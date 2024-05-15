@@ -78,6 +78,10 @@ prep_data <- function(grid_size,
   # butterflies in other places but just didn't see any.
   # could add in all the sites by rejoining the clipped grid?
   
+  # with this approach we assume that any grid cell in which a detection has occurred
+  # was sampled on every day in every year. I don't think this is a very realistic
+  # assumption, but maybe an ok place to start.
+  
   # how many species were detected?
   n_species <- nrow(species_names <- df %>%
                       # group by species ID
