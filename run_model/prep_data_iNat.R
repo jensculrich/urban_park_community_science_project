@@ -1,35 +1,34 @@
 library(tidyverse)
 library(sf) # spatial data processing
 
-prep_data <- function(grid_size,
-                      min_species_detections) {
+prep_data <- function(min_species_detections,
+                      min_park_size_acres,
+                      max_park_size_acres,
+                      buffer_distance) {
+  
   #-----------------------------------------------------
   # summarize the detection data
   
   # first read the data 
-  df <- rbind(
-    cbind(read.csv("./data/city-nature-challenge-2020-los-angeles-county.csv"), year = 1),
-    cbind(read.csv("./data/city-nature-challenge-2021-los-angeles-county.csv"), year = 2),
-    cbind(read.csv("./data/city-nature-challenge-2022-los-angeles-county.csv"), year = 3),
-    cbind(read.csv("./data/city-nature-challenge-2023-los-angeles-county.csv"), year = 4),
-    cbind(read.csv("./data/city-nature-challenge-2024-los-angeles-county.csv"), year = 5)
-  )
+  df <- read.csv(
+    "./data/all_inat_lep_records_2020-2023_los_angeles_county/all_inat_lep_records_2020-2023_los_angeles_county.csv")
           
   # and perform some initial filters
   df <- df %>%
     
     # for now, let's only look at detections with a species ID
-    filter(str_count(scientific_name, "\\w+") == 2) %>%
+    filter(str_count(species, "\\w+") == 2) %>%
     
     # for now, let's filter out geo obscured detections
-    filter(geoprivacy != "obscured") %>%
+    #filter(geoprivacy != "obscured") %>%
     
     # and additionally, let's get rid of any points with huge coordinate uncertainty
     # say > 1000m for now
-    filter(positional_accuracy <= 1000) %>%
-  
+    filter(coordinateUncertaintyInMeters <= 1000) %>%
+    filter(!is.na(coordinateUncertaintyInMeters)) %>%
+    
     # for now, to speed up the inference, let's also filter to the more common species
-    group_by(scientific_name) %>%
+    group_by(species) %>%
     add_tally() %>%
     filter(n >= min_species_detections) %>%
     dplyr::select(-n) %>%
@@ -38,38 +37,53 @@ prep_data <- function(grid_size,
   #-----------------------------------------------------
   # map the data on a spatial file
   
-  county_shp <- read_sf("./data/Los_Angeles_County_Boundary/County_Boundary.SHP")
+  parks_shp <- read_sf("./data/los_angeles_county_parks_shapefile/Regional_Site_Inventory.shp")
   
   # USA_Contiguous_Albers_Equal_Area_Conic
   crs <- 5070
-
-  county_shp <- county_shp  %>% 
-    st_transform(., crs) %>% # USA_Contiguous_Albers_Equal_Area_Conic
-    filter(!OBJECTID %in% c(1,2,3,5,6,7))
   
-  # create "grid_size" km grid over the area
-  grid <- st_make_grid(county_shp, cellsize = c(grid_size, grid_size)) %>% 
-    st_sf(grid_id = 1:length(.))
+  parks_shp <- parks_shp  %>% 
+    st_transform(., crs) # USA_Contiguous_Albers_Equal_Area_Conic
   
-  clipped_grid <- st_intersection(grid, county_shp)
+  # for now, I filtered out some things that were clearly not urban parks 
+  parks_shp <- parks_shp  %>% 
+    filter(!str_detect(PARK_NAME, "Angeles National Forest")) %>% 
+    filter(!str_detect(PARK_NAME, "Los Padres National Forest")) %>% 
+    filter(!str_detect(PARK_NAME, "Edwards AFB")) %>%
+    filter(!str_detect(PARK_NAME, "Hungry Valley")) %>%
+    filter(!str_detect(PARK_NAME, "Air Force")) %>%
+    filter(!str_detect(PARK_NAME, "State Recreation Area")) %>%
+    filter(!str_detect(PARK_NAME, "National Recreation")) %>%
+    filter(!str_detect(PARK_NAME, "State Park")) %>%
+    filter(!str_detect(PARK_NAME, "State Beach")) %>%
+    filter(!str_detect(PARK_NAME, "County Beach")) %>%
+    filter(!str_detect(PARK_NAME, "Santa Catalina Island")) %>%
+    
+    # for now I also filtered out small parks just to speed up the estimation times (fewer sites)
+    filter(RRE_ACRES > min_park_size_acres) %>%
+    # and also the really really big ones 
+    filter(RRE_ACRES < max_park_size_acres)
   
-  rm(grid)
+  # let's add a buffer around each park and then merge parks that are touching or overlapping
+  parks_shp <- st_buffer(parks_shp, buffer_distance)
+  
+  # include the detection data on the map
   
   # make the detection data a spatial file
   (df_sf <- st_as_sf(df,
-                     coords = c("longitude", "latitude"), 
+                     coords = c("decimalLongitude", "decimalLatitude"), 
                      crs = 4326))
   
   # and then transform it to the crs
   df <- st_transform(df_sf, crs = crs) %>%
-    st_join(clipped_grid, join = st_intersects) %>% as.data.frame %>%
-    # filter out records from outside of the grid
-    filter(!is.na(grid_id)) %>%
+    st_join(parks_shp, join = st_intersects) %>% as.data.frame %>%
+    # filter out records from outside of the urban grid
+    filter(!is.na(PARK_NAME)) %>%
     # now rejoin the lat/long data for each point
     left_join(., dplyr::select(
-      df, id, latitude, longitude), by="id")
+      df, gbifID, decimalLatitude, decimalLongitude), by="gbifID") 
   
-  rm(df_sf)
+  rm(parks_shp, df_sf)
   
   #-----------------------------------------------------
   # for now, let's also just include only grid cells with 
@@ -84,26 +98,26 @@ prep_data <- function(grid_size,
   
   # how many species were detected?
   n_species <- nrow(species_names <- df %>%
-                      # group by species ID
-                      group_by(scientific_name) %>%
-                      add_tally() %>%
-                      # and take one record
-                      slice(1) %>%
-                      select(scientific_name, common_name, n))
+         # group by species ID
+         group_by(species) %>%
+         add_tally() %>%
+         # and take one record
+         slice(1) %>%
+         select(species, family, n))
   
   species_vector <- species_names %>%
-    pull(scientific_name)
+    pull(species)
   
   n_detections <- nrow(df)
   
   n_sites <- (nrow(site_names <- df %>%
-         group_by(grid_id) %>%
+         group_by(PARK_NAME) %>%
          slice(1) %>%
          ungroup() %>%
-         select(grid_id)))
+         select(PARK_NAME)))
   
   site_vector <- site_names %>%
-    pull(grid_id)
+    pull(PARK_NAME)
   
   
   #-----------------------------------------------------
@@ -116,14 +130,15 @@ prep_data <- function(grid_size,
     
     # add survey date within year
     group_by(year) %>% 
-    mutate(survey = as.numeric(factor(observed_on))) %>%
+    mutate(survey = as.integer(factor(month)),
+           year = as.integer(year - 2019)) %>% # used (- 2019) to make 2020 == year 1
     ungroup() %>%
     
     # for now, reducing down to mandatory data columns
-    dplyr::select(scientific_name, grid_id, survey, year) %>%
+    dplyr::select(species, PARK_NAME, survey, year) %>%
     
     # turn into binary detections (for occupancy rather than abundance model)
-    group_by(scientific_name, grid_id, year, survey) %>% 
+    group_by(species, PARK_NAME, year, survey) %>% 
     slice(1) %>%
     ungroup() %>%
     
@@ -155,17 +170,17 @@ prep_data <- function(grid_size,
         
         # now join with all species (so that we include species not captured during 
         # this interval*visit but which might actually be at some sites undetected)
-        full_join(., select(species_names, scientific_name), by="scientific_name") %>%
+        full_join(., select(species_names, species), by="species") %>%
         
         # now join with all sites columns (so that we include sites where no species captured during 
         # this interval*visit but which might actually have some species that went undetected)
-        full_join(., select(site_names, grid_id), by="grid_id") %>%
+        full_join(., select(site_names, PARK_NAME), by="PARK_NAME") %>%
         
         # group by SPECIES
-        group_by(scientific_name) %>%
+        group_by(species) %>%
         mutate(row = row_number()) %>%
         # spread sites by species, and fill with 0 if species never captured this interval*visit
-        spread(grid_id, row, fill = 0) %>%
+        spread(PARK_NAME, row, fill = 0) %>%
         
         # replace number of unique site captures of the species (if > 1) with 1.
         mutate_at(4:(ncol(.)), ~replace(., . > 1, 1)) %>%
@@ -176,7 +191,7 @@ prep_data <- function(grid_size,
         # if some sites had no species, this workflow will construct a row for species = NA
         # we want to filter out this row ONLY if this happens and so need to filter out rows
         # for SPECIES not in SPECIES list
-        filter(scientific_name %in% levels(as.factor(species_names$scientific_name)))
+        filter(species %in% levels(as.factor(species_names$species)))
       
       # convert from dataframe to matrix
       temp_matrix <- as.matrix(temp)

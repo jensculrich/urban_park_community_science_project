@@ -1,9 +1,16 @@
 library(rstan)
 
-source("./run_model/prep_data.R")
+source("./run_model/prep_data_iNat.R")
 
-my_data <- prep_data(grid_size = 5000,
-                     min_species_detections = 5)
+min_species_detections <- 30
+min_park_size_acres <- 50 # acres
+max_park_size_acres <- 400 # acres
+buffer_distance <- 200 # meters
+
+my_data <- prep_data(min_species_detections,
+                     min_park_size_acres,
+                     max_park_size_acres,
+                     buffer_distance)
 
 # data to feed to the model
 V <- my_data$V 
@@ -22,7 +29,8 @@ species <- as.integer(as.factor(my_data$species))
 sites <- as.integer(as.factor(my_data$sites))
 years_full <- as.integer(my_data$years)
 years <- seq(1, n_years_minus1)
-surveys <- as.integer(my_data$surveys)
+surveys_raw <- as.integer(my_data$surveys)
+surveys <- (surveys_raw - mean(surveys_raw)) / sd(surveys_raw)
 
 stan_data <- c("V", "species", "sites", "years", "surveys", 
                "n_species", "n_sites", "n_years", "n_years_minus1", "n_surveys"
@@ -40,14 +48,20 @@ params <- c("psi1_0",
             
             "p0", 
             "sigma_p_species",
+            "p_date",
+            "p_date_sq",
+            #"mu_p_species_date",
+            #"sigma_p_species_date",
+            #"mu_p_species_date_sq",
+            #"sigma_p_species_date_sq",
             
             "W_species_rep",
             "psi1_species", "gamma_species", "phi_species", "p_species")
 
 # MCMC settings
-n_iterations <- 400
+n_iterations <- 300
 n_thin <- 1
-n_burnin <- 200
+n_burnin <- 150
 n_chains <- 4
 n_cores <- n_chains
 delta = 0.95
@@ -71,7 +85,7 @@ inits <- lapply(1:n_chains, function(i)
 ## --------------------------------------------------
 ### Run model
 
-stan_model <- "./models/dynamic_occupancy_model1.stan"
+stan_model <- "./models/dynamic_occupancy_model2.stan"
 
 ## Call Stan from R
 set.seed(1)
