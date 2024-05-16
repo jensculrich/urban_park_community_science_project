@@ -1,6 +1,6 @@
 library(rstan)
 
-source("./run_model/prep_data.R")
+source("./run_model/prep_data_citynaturechallenge.R")
 
 my_data <- prep_data(grid_size = 5000,
                      min_species_detections = 5)
