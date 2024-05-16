@@ -1,3 +1,11 @@
+# create a detection array from iNaturalist data.
+# this will join detections to sites.
+# non-detections are currently added whenever we don't see a species.
+# sampling effort could then be modeled as a function of species/site/year/time,
+# using the months within year as repeat "survey periods".
+# but possibly we could look to identify "community sampling events"
+# and only model non-detections as those species not observed on a given community sampling event?
+
 library(tidyverse)
 library(sf) # spatial data processing
 
