@@ -8,11 +8,11 @@ library(sf) # spatial data processing
 # downloaded via https://www.citynaturechallenge.org/participating-cities
 # first read the data 
 df <- rbind(
-  cbind(read.csv("./data/city-nature-challenge-2020-los-angeles-county.csv"), year = 1),
-  cbind(read.csv("./data/city-nature-challenge-2021-los-angeles-county.csv"), year = 2),
-  cbind(read.csv("./data/city-nature-challenge-2022-los-angeles-county.csv"), year = 3),
-  cbind(read.csv("./data/city-nature-challenge-2023-los-angeles-county.csv"), year = 4),
-  cbind(read.csv("./data/city-nature-challenge-2024-los-angeles-county.csv"), year = 5)
+  cbind(read.csv("./data/city_nature_challenge_2020_2024_los_angeles_county/city-nature-challenge-2020-los-angeles-county.csv"), year = 1),
+  cbind(read.csv("./data/city_nature_challenge_2020_2024_los_angeles_county/city-nature-challenge-2021-los-angeles-county.csv"), year = 2),
+  cbind(read.csv("./data/city_nature_challenge_2020_2024_los_angeles_county/city-nature-challenge-2022-los-angeles-county.csv"), year = 3),
+  cbind(read.csv("./data/city_nature_challenge_2020_2024_los_angeles_county/city-nature-challenge-2023-los-angeles-county.csv"), year = 4),
+  cbind(read.csv("./data/city_nature_challenge_2020_2024_los_angeles_county/city-nature-challenge-2024-los-angeles-county.csv"), year = 5)
 )
 
 # and perform some initial filters
@@ -47,7 +47,7 @@ nrow(species_names <- df %>%
 #-----------------------------------------------------
 # map the data on a spatial file
 
-county_shp <- read_sf("./data/Los_Angeles_County_Boundary/County_Boundary.SHP")
+county_shp <- read_sf("./data/los_angeles_county_boundary_shapefile/County_Boundary.SHP")
 
 # USA_Contiguous_Albers_Equal_Area_Conic
 crs <- 5070
