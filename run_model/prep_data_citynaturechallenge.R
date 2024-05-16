@@ -1,3 +1,7 @@
+# currently this is written to prepare detection data that are linked to grid cell "sites"
+# in the prep_data_iNat file I linked the detection data to urban parks.
+# I didn't do that here because I didn't have the park shapefile but could be redone :)
+
 library(tidyverse)
 library(sf) # spatial data processing
 
@@ -6,7 +10,7 @@ prep_data <- function(grid_size,
   #-----------------------------------------------------
   # summarize the detection data
   
-  # first read the data 
+  # first read the data, append "year" column in the process of reading
   df <- rbind(
     cbind(read.csv("./data/city_nature_challenge_2020_2024_los_angeles_county/city-nature-challenge-2020-los-angeles-county.csv"), year = 1),
     cbind(read.csv("./data/city_nature_challenge_2020_2024_los_angeles_county/city-nature-challenge-2021-los-angeles-county.csv"), year = 2),
@@ -30,9 +34,9 @@ prep_data <- function(grid_size,
   
     # for now, to speed up the inference, let's also filter to the more common species
     group_by(scientific_name) %>%
-    add_tally() %>%
-    filter(n >= min_species_detections) %>%
-    dplyr::select(-n) %>%
+    add_tally() %>% # tally number of detections
+    filter(n >= min_species_detections) %>% # filter rarest species
+    dplyr::select(-n) %>% # remove the tally column
     ungroup()
   
   #-----------------------------------------------------
@@ -45,7 +49,7 @@ prep_data <- function(grid_size,
 
   county_shp <- county_shp  %>% 
     st_transform(., crs) %>% # USA_Contiguous_Albers_Equal_Area_Conic
-    filter(!OBJECTID %in% c(1,2,3,5,6,7))
+    filter(!OBJECTID %in% c(1,2,3,5,6,7)) # this gets rid of catalina island and some weird disparate chunks of land
   
   # create "grid_size" km grid over the area
   grid <- st_make_grid(county_shp, cellsize = c(grid_size, grid_size)) %>% 
@@ -96,6 +100,7 @@ prep_data <- function(grid_size,
   
   n_detections <- nrow(df)
   
+  # how many sites are we including (here this is sites with >=1 detections)
   n_sites <- (nrow(site_names <- df %>%
          group_by(grid_id) %>%
          slice(1) %>%
@@ -186,7 +191,7 @@ prep_data <- function(grid_size,
       last_column = ncol(temp_matrix)
       temp_matrix <- temp_matrix[,-(last_column)]
       
-      # replace NAs for the interval i and visit j with the matrix
+      # replace NAs for the year k and survey l with the matrix
       V[1:n_species, 1:n_sites,k,l] <- temp_matrix[1:n_species, 1:n_sites]
       
     }
@@ -194,6 +199,7 @@ prep_data <- function(grid_size,
   
   class(V) <- "numeric"
   
+  # what proportion of species*site*year*survey are a positive detection (V = 1)?
   print((paste0("prop detections = ", 
            signif(sum(V[1:n_species, 1:n_sites, 1:n_years, 1:n_surveys]) / 
              length(V) * 100, 3),
