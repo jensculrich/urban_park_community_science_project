@@ -3,8 +3,10 @@ library(rstan)
 source("./run_model/prep_data_iNat.R")
 
 min_species_detections <- 30
+# I filtered the parks by area just because there's so many and it takes forever to run
 min_park_size_acres <- 50 # acres
 max_park_size_acres <- 400 # acres
+# add a buffer around each park, 50-500 metres seems like a reasonable starting point?
 buffer_distance <- 200 # meters
 
 my_data <- prep_data(min_species_detections,
@@ -100,7 +102,7 @@ stan_out <- stan(stan_model,
                  open_progress = FALSE,
                  cores = n_cores)
 
-saveRDS(stan_out, "./model_outputs/stan_out.rds")
+saveRDS(stan_out, "./model_outputs/stan_out2.rds")
 
 print(stan_out, digits = 3, 
       pars = c("psi1_0", "sigma_psi1_species",
