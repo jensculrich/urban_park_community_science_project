@@ -218,6 +218,10 @@ ggplot() +
   #theme(legend.position="") + 
   ggtitle("Lepidoptera detections from iNat\n(Los Angeles, 2020-2023) (coloured by year)")
 
+# plot number of records by month
+ggplot() + 
+  geom_histogram(aes(df_sf$month))
+
 
 #-----------------------------------------------------
 # for now, let's also just include only grid cells with 
