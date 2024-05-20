@@ -50,14 +50,14 @@ parameters {
   real p0; // intercept
   vector[n_species] p_species_raw;
   real<lower=0> sigma_p_species;
-  real p_date;
-  real p_date_sq;
-  //vector[n_species] p_date; // phenology peak
-  //real mu_p_species_date; // community mean
-  //real<lower=0> sigma_p_species_date; // variation
-  //vector[n_species] p_date_sq; // decay pattern of phenology
-  //real mu_p_species_date_sq; // variation
-  //real<lower=0> sigma_p_species_date_sq; // community mean
+  //real p_date;
+  //real p_date_sq;
+  vector[n_species] p_date; // phenology peak
+  real mu_p_species_date; // community mean
+  real<lower=0> sigma_p_species_date; // variation
+  vector[n_species] p_date_sq; // decay pattern of phenology
+  real mu_p_species_date_sq; // variation
+  real<lower=0> sigma_p_species_date_sq; // community mean
   
 } // end parameters
 
@@ -108,8 +108,8 @@ transformed parameters {
 
           p[i,j,k,l] = inv_logit( // probability (0-1) of detection is equal to..
             p_species[species[i]] + // a species specific intercept
-            p_date * surveys[l] + // a species-specific phenological detection effect (peak)
-            p_date_sq * (surveys[l])^2 // a species-specific phenological detection effect (decay)
+            p_date[species[i]] * surveys[l] + // a species-specific phenological detection effect (peak)
+            p_date_sq[species[i]] * (surveys[l])^2 // a species-specific phenological detection effect (decay)
             ); // end p[j,k,l]
             
         } // end loop across all surveys
@@ -166,14 +166,14 @@ model {
   p0 ~ normal(0, 2); // global intercept
   p_species_raw ~ std_normal();
   sigma_p_species ~ normal(0, 2);
-  p_date ~ normal(0, 2); // species-specific phenology (peak)
-  p_date_sq ~ normal(0, 1); // species-specific phenology (decay)
-  //p_date ~ normal(mu_p_species_date, sigma_p_species_date); // species-specific phenology (peak)
-  //mu_p_species_date ~ normal(0, 2); // mean
-  //sigma_p_species_date ~ normal(0, 2); // variation
-  //p_date_sq ~ normal(mu_p_species_date_sq, sigma_p_species_date_sq); // species-specific phenology (decay)
-  //mu_p_species_date_sq ~ normal(0, 2); // mean
-  //sigma_p_species_date_sq ~ normal(0, 2); // variation
+  //p_date ~ normal(0, 2); // species-specific phenology (peak)
+  //p_date_sq ~ normal(0, 1); // species-specific phenology (decay)
+  p_date ~ normal(mu_p_species_date, sigma_p_species_date); // species-specific phenology (peak)
+  mu_p_species_date ~ normal(0, 2); // mean
+  sigma_p_species_date ~ normal(0, 2); // variation
+  p_date_sq ~ normal(mu_p_species_date_sq, sigma_p_species_date_sq); // species-specific phenology (decay)
+  mu_p_species_date_sq ~ normal(0, 1); // mean
+  sigma_p_species_date_sq ~ normal(0, 1); // variation
 
   // LIKELIHOOD
   for(i in 1:n_species){

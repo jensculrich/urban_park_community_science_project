@@ -53,12 +53,12 @@ params <- c("psi1_0",
             
             "p0", 
             "sigma_p_species",
-            "p_date",
-            "p_date_sq",
-            #"mu_p_species_date",
-            #"sigma_p_species_date",
-            #"mu_p_species_date_sq",
-            #"sigma_p_species_date_sq",
+            #"p_date",
+            #"p_date_sq",
+            "mu_p_species_date",
+            "sigma_p_species_date",
+            "mu_p_species_date_sq",
+            "sigma_p_species_date_sq",
             
             "W_species_rep",
             "psi1_species", "gamma_species", "phi_species", "p_species")
@@ -116,7 +116,8 @@ print(stan_out, digits = 3,
                
                "p0", "sigma_p_species",
                
-               "p_date", "p_date_sq"
+               "mu_p_species_date", "sigma_p_species_date",
+               "mu_p_species_date_sq", "sigma_p_species_date_sq"
       ))
 
 # traceplots
