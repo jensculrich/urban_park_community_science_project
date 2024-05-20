@@ -255,7 +255,9 @@ generated quantities{
           
           // detections in replicated data (us z_simmed from above)
           W_species_rep[i] = W_species_rep[i] + 
-            (z_simmed[i,j,k] * bernoulli_rng(p[i,j,k,l]));
+            // multiply by the NA indicator - if we didn't survey in real life
+            // we don't survey in this simulation.
+            (z_simmed[i,j,k] * bernoulli_rng(p[i,j,k,l]) * V_NA[i,j,k,l]);
            
         } // end loop across surveys
       } // end loop across years

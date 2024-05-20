@@ -2,7 +2,7 @@ library(rstan)
 
 source("./run_model/prep_data_iNat_w_community_sampling_events.R")
 
-min_species_detections <- 100
+min_species_detections <- 25
 # I filtered the parks by area just because there's so many and it takes forever to run
 min_park_size_acres <- 200 # acres
 max_park_size_acres <- 500 # acres
@@ -20,7 +20,7 @@ my_data <- prep_data(min_species_detections,
 V <- my_data$V 
 V_NA <- my_data$V_NA
 
-species_names <- my_data$species_names
+species_names <- my_data$species_names # what does n represent again?
 
 n_species <- my_data$n_species # number of species
 n_sites <- my_data$n_sites # number of sites
@@ -114,7 +114,9 @@ print(stan_out, digits = 3,
                
                "phi0", "sigma_phi_species",
                
-               "p0", "sigma_p_species"
+               "p0", "sigma_p_species",
+               
+               "p_date", "p_date_sq"
       ))
 
 # traceplots
