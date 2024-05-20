@@ -2,7 +2,7 @@ library(rstan)
 library(tidyverse)
 library(gridExtra)
 
-stan_out <- readRDS("./model_outputs/stan_out.rds")
+stan_out <- readRDS("./model_outputs/stan_out3.rds")
 fit_summary <- rstan::summary(stan_out)
 
 n_species <- nrow(species_names)
@@ -15,35 +15,35 @@ y = (rep(1:n_species, times=params)) # species reference
 
 estimate <- c(
   # param 1 
-  rev(fit_summary$summary[9:70,1]),
+  rev(fit_summary$summary[83:152,1]),
   # param 2 
-  rev(fit_summary$summary[71:132,1]),
+  rev(fit_summary$summary[153:222,1]),
   # param 3 
-  rev(fit_summary$summary[133:194,1]), 
+  rev(fit_summary$summary[223:292,1]), 
   # param 4 
-  rev(fit_summary$summary[195:256,1])
+  rev(fit_summary$summary[293:362,1])
 )
 
 lower <-  c(
   # param 1 
-  rev(fit_summary$summary[9:70,4]),
+  rev(fit_summary$summary[83:152,4]),
   # param 2 
-  rev(fit_summary$summary[71:132,4]),
+  rev(fit_summary$summary[153:222,4]),
   # param 3 
-  rev(fit_summary$summary[133:194,4]), 
+  rev(fit_summary$summary[223:292,4]), 
   # param 4 
-  rev(fit_summary$summary[195:256,4])
+  rev(fit_summary$summary[293:362,4])
 )
 
 upper <-  c(
   # param 1 
-  rev(fit_summary$summary[9:70,8]),
+  rev(fit_summary$summary[83:152,8]),
   # param 2 
-  rev(fit_summary$summary[71:132,8]),
+  rev(fit_summary$summary[153:222,8]),
   # param 3 
-  rev(fit_summary$summary[133:194,8]), 
+  rev(fit_summary$summary[223:292,8]), 
   # param 4 
-  rev(fit_summary$summary[195:256,8])
+  rev(fit_summary$summary[293:362,8])
 )
 
 df = as.data.frame(cbind(x,y,estimate, lower, upper)) %>%
@@ -51,15 +51,16 @@ df = as.data.frame(cbind(x,y,estimate, lower, upper)) %>%
          y = as.factor(y))
 
 # flip species names
-species_names_label <- species_names$scientific_name %>%
+species_names_label <- species_names$species %>%
   as.data.frame(.) %>%
   map_df(., rev) %>%
   pull(.)
 
 num_per_page = 31
+i = 1
 
 df_filtered <- df %>%
-  mutate(y_num = as.integer(y))%>%
+  mutate(y_num = as.integer(y)) %>%
   filter(y_num > num_per_page*i - num_per_page) %>%
   filter(y_num < num_per_page*i)
 
@@ -120,7 +121,7 @@ bottom <- rbind(bottom, test)
 top_and_bottom <- rbind(top, bottom) %>% map_df(., rev)
 
 # join species names
-species_names_df <- species_names$scientific_name %>%
+species_names_df <- species_names$species %>%
   rev(.) %>%
   as.data.frame(.) %>%
   mutate(row_id=row_number()) %>%
