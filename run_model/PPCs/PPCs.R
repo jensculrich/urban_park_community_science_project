@@ -48,7 +48,7 @@ W_df <- as.data.frame(cbind(species_names, W_species)) %>%
   mutate(W_species = as.numeric(W_species))
 
 # get W distributions from model
-#stan_out <- readRDS("./model_outputs/stan_out.rds")
+stan_out <- readRDS("./model_outputs/stan_out4.rds")
 fit_summary <- rstan::summary(stan_out)
 
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
@@ -64,11 +64,11 @@ c_mid_highlight <- c("#A25050")
 c_dark <- c("#8F2727")
 c_dark_highlight <- c("#7C0000")
 
-start = 37 # which species to start at (hard to see them all at once)
+start = 1 # which species to start at (hard to see them all at once)
 # start at 1, 37, and 73 is pretty good for visualization
 n = 36 # how many species to plot (36 is a good number to look at the species in 3 slices)
 
-stan_fit_first_W <- 13 # this changes depending on how many params you tracked
+stan_fit_first_W <- 14 # this changes depending on how many params you tracked
 
 df_estimates <- data.frame(X = numeric(), 
                            Y = numeric(), 
