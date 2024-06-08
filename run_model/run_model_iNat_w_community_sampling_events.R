@@ -24,9 +24,12 @@ my_data <- prep_data(min_species_detections,
 V <- my_data$V 
 V_NA <- my_data$V_NA
 
-species_names <- my_data$species_names # what does n represent again?
+species_names <- my_data$species_names 
+# n (from species_names) is the total number of detections (not unique site visit detections)
+View(cbind(species_names, as.data.frame(family_lookup)))
 
 n_species <- my_data$n_species # number of species
+n_families <- my_data$n_families # number of families
 n_sites <- my_data$n_sites # number of sites
 n_years <- my_data$n_years # number of surveys
 n_years_minus1 <- n_years - 1
@@ -35,13 +38,19 @@ n_surveys <- my_data$n_surveys
 species_character <- my_data$species
 sites_character <- my_data$sites
 species <- as.integer(as.factor(my_data$species))
+family_lookup <- as.integer(as.factor(my_data$families))
 sites <- as.integer(as.factor(my_data$sites))
 years_full <- as.integer(my_data$years)
 years <- seq(1, n_years_minus1)
 surveys_raw <- as.integer(my_data$surveys)
 surveys <- (surveys_raw - mean(surveys_raw)) / sd(surveys_raw)
 
+# do this for now
+n_families <- length(unique(family_lookup)) # number of families
+
+
 stan_data <- c("V", "V_NA", "species", "sites", "years", "surveys", 
+               #"n_families", "family_lookup",
                "n_species", "n_sites", "n_years", "n_years_minus1", "n_surveys"
 ) 
 
@@ -57,15 +66,15 @@ params <- c("psi1_0",
             
             "p0", 
             "sigma_p_species",
-            #"p_date",
-            #"p_date_sq",
+            "sigma_p_family",
             "mu_p_species_date",
             "sigma_p_species_date",
             "mu_p_species_date_sq",
             "sigma_p_species_date_sq",
             
             "W_species_rep",
-            "psi1_species", "gamma_species", "phi_species", "p_species")
+            "psi1_species", "gamma_species", "phi_species", "p_species"#, "p_family"
+            )
 
 # MCMC settings
 n_iterations <- 300
@@ -109,7 +118,8 @@ stan_out <- stan(stan_model,
                  open_progress = FALSE,
                  cores = n_cores)
 
-saveRDS(stan_out, "./model_outputs/stan_out3.rds")
+saveRDS(stan_out, "./model_outputs/stan_out3.2.rds")
+#stan_out <- readRDS("./model_outputs/stan_out4.rds")
 
 print(stan_out, digits = 3, 
       pars = c("psi1_0", "sigma_psi1_species",
@@ -122,6 +132,10 @@ print(stan_out, digits = 3,
                
                "mu_p_species_date", "sigma_p_species_date",
                "mu_p_species_date_sq", "sigma_p_species_date_sq"
+      ))
+
+print(stan_out, digits = 3, 
+      pars = c("p_family"
       ))
 
 # traceplots
