@@ -9,7 +9,7 @@ source("./run_model/prep_data_iNat_w_community_sampling_events_by_family.R")
 min_species_detections <- 1
 # I filtered the parks by area just because there's so many and it takes forever to run
 min_park_size_acres <- 200 # acres
-max_park_size_acres <- 400 # acres
+max_park_size_acres <- 500 # acres
 # add a buffer around each park, 50-500 metres seems like a reasonable starting point?
 buffer_distance <- 250 # meters
 min_species_for_community_sampling_event = 1
@@ -50,7 +50,7 @@ n_families <- length(unique(family_lookup)) # number of families
 
 
 stan_data <- c("V", "V_NA", "species", "sites", "years", "surveys", 
-               "n_families", "family_lookup",
+               #"n_families", "family_lookup",
                "n_species", "n_sites", "n_years", "n_years_minus1", "n_surveys"
 ) 
 
@@ -66,14 +66,14 @@ params <- c("psi1_0",
             
             "p0", 
             "sigma_p_species",
-            "sigma_p_family",
+            #"sigma_p_family",
             "mu_p_species_date",
             "sigma_p_species_date",
             "mu_p_species_date_sq",
             "sigma_p_species_date_sq",
             
             "W_species_rep",
-            "psi1_species", "gamma_species", "phi_species", "p_species", "p_family"
+            "psi1_species", "gamma_species", "phi_species", "p_species"#, "p_family"
             )
 
 # MCMC settings
@@ -103,7 +103,7 @@ inits <- lapply(1:n_chains, function(i)
 ## --------------------------------------------------
 ### Run model
 
-stan_model <- "./models/dynamic_occupancy_model4.stan"
+stan_model <- "./models/dynamic_occupancy_model3.stan"
 
 ## Call Stan from R
 set.seed(1)
@@ -118,7 +118,7 @@ stan_out <- stan(stan_model,
                  open_progress = FALSE,
                  cores = n_cores)
 
-saveRDS(stan_out, "./model_outputs/stan_out4.2_w_all_species.rds")
+saveRDS(stan_out, "./model_outputs/stan_out3.2_w_all_species.rds")
 #stan_out <- readRDS("./model_outputs/stan_out4.rds")
 
 print(stan_out, digits = 3, 
