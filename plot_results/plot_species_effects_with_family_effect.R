@@ -2,7 +2,7 @@ library(rstan)
 library(tidyverse)
 library(gridExtra)
 
-stan_out <- readRDS("./model_outputs/stan_out4.rds")
+#stan_out <- readRDS("./model_outputs/stan_out4.rds")
 fit_summary <- rstan::summary(stan_out)
 
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
@@ -23,63 +23,65 @@ estimate <- matrix(nrow = n_species, ncol = params)
 lower <- matrix(nrow = n_species, ncol = params)
 upper <- matrix(nrow = n_species, ncol = params)
 
+start <- 165 # row of first species param
+
 for(i in 1:n_species){
   
   estimate[i,1] <- c(
     # param 1 - psi1
-    rev(fit_summary$summary[84+(i -1),1])
+    rev(fit_summary$summary[165+(i -1),1])
   )
   estimate[i,2] <- c(
     # param 2 - colonization
-    rev(fit_summary$summary[154+(i -1),1])
+    rev(fit_summary$summary[316+(i -1),1])
   )
   estimate[i,3] <- c(
     # param 3 - persistence
-    rev(fit_summary$summary[224+(i -1),1])
+    rev(fit_summary$summary[467+(i -1),1])
   )
   estimate[i,4] <- c(
     # param 4 - detection
-    rev(fit_summary$summary[294+(i -1),1] + 
+    rev(fit_summary$summary[618+(i -1),1] + 
           # add family effect
           fit_summary$summary[364+(species_names$family_lookup[i] - 1),1]) 
   )
   
   lower[i,1] <- c(
     # param 1 - psi1
-    rev(fit_summary$summary[84+(i -1),4])
+    rev(fit_summary$summary[165+(i -1),4])
   )
   lower[i,2] <- c(
     # param 2 - colonization
-    rev(fit_summary$summary[154+(i -1),4])
+    rev(fit_summary$summary[316+(i -1),4])
   )
   lower[i,3] <- c(
     # param 3 - persistence
-    rev(fit_summary$summary[224+(i -1),4])
+    rev(fit_summary$summary[467+(i -1),4])
   )
   lower[i,4] <- c(
     # param 4 - detection
-    rev(fit_summary$summary[294+(i -1),4] + 
+    rev(fit_summary$summary[618+(i -1),4] + 
           # add family effect
-          fit_summary$summary[364+(species_names$family_lookup[i] - 1),4]) 
+          fit_summary$summary[769+(species_names$family_lookup[i] - 1),4]) 
   )
   
   upper[i,1] <- c(
     # param 1 - psi1
-    rev(fit_summary$summary[84+(i -1),8])
+    rev(fit_summary$summary[165+(i -1),8])
   )
   upper[i,2] <- c(
     # param 2 - colonization
-    rev(fit_summary$summary[154+(i -1),8])
+    rev(fit_summary$summary[316+(i -1),8])
   )
   upper[i,3] <- c(
     # param 3 - persistence
-    rev(fit_summary$summary[224+(i -1),8])
+    rev(fit_summary$summary[467+(i -1),8])
   )
   upper[i,4] <- c(
     # param 4 - detection
-    rev(fit_summary$summary[294+(i -1),8] + 
+    rev(fit_summary$summary[618+(i -1),8] + 
           # add family effect
-          fit_summary$summary[364+(species_names$family_lookup[i] - 1),8]) 
+          fit_summary$summary[769+(species_names$family_lookup[i] - 1),8]) 
   )
 
 }
@@ -116,8 +118,8 @@ df_filtered <- df %>%
   filter(y_num >= num_per_page*i - num_per_page) %>%
   filter(y_num < num_per_page*i)
 
-start <- 40
-end <- 71
+start <- 100
+end <- 140
 df_filtered <- df %>%
   mutate(y_num = as.integer(y)) %>%
   filter(y_num >= start) %>%
