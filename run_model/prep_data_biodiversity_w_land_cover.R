@@ -171,6 +171,7 @@ prep_data <- function(min_species_detections,
   
   n_detections <- nrow(df)
   
+  # n sites and site vector
   n_sites <- (nrow(site_names <- df %>%
                      group_by(grid_id) %>%
                      slice(1) %>%
@@ -179,6 +180,17 @@ prep_data <- function(min_species_detections,
   
   site_vector <- site_names %>%
     pull(grid_id)
+  
+  # n cities and city vector
+  # how many species were detected?
+  n_cities <- nrow(city_names <- df %>%
+                      # group by species ID
+                      group_by(city) %>%
+                      slice(1) %>%
+                      select(city))
+  
+  city_vector <- city_names %>%
+    pull(city)
   
   ## --------------------------------------------------
   ## Now we are ready to create the detection matrix, V.
@@ -251,6 +263,13 @@ prep_data <- function(min_species_detections,
   # identify whether a city is "in range" of each species
   # ie. whether the species was found in the city one or more times
   
+  all_species_city_combos <- as.data.frame(cbind(
+    rep(species_vector, each=n_cities),
+    rep(city_vector, times=n_species)
+  )) %>% 
+    rename("species" = "V1",
+           "city" = "V2")
+  
   species_city_occurrences <- rbind(
     cbind(city="los_angeles", read.csv(
       "./data/biodiversity_data_with_land_classification/leps_la_data_with_land_classification.csv")),
@@ -266,31 +285,26 @@ prep_data <- function(min_species_detections,
     slice(1) %>%
     ungroup() %>%
     select(species, city) %>%
-    mutate(occurs = "yes")
+    mutate(occurs = 1) %>%
+    left_join(all_species_city_combos, .) %>%
+    mutate(occurs = replace_na(occurs, 0))
 
   # now create a df of all possible species city occurrences
-  a <- rep(species_vector, times=n_sites)
-  b <- rep(site_vector, each=n_species)
-  city <- sub("^(.*)[_].*", "\\1", b)
-  all_species_sites_possible <- as.data.frame(cbind(a, b, city))
+  city <- sub("^(.*)[_].*", "\\1",site_vector)
+  all_species_sites_possible <- as.data.frame(cbind(site_vector, city))
   
   # and add the city name
-  test <- left_join(species_city_occurrences, all_species_sites_possible,
-                    relationship = "many-to-many", by="city")
+  ranges <- left_join(all_species_sites_possible, species_city_occurrences, 
+                    by=c("city")) %>%
+    arrange(., species)
   
-  site_names_and_city <- df %>%
-    select(city, grid_id) %>%
-    group_by(city, grid_id) %>%
-    slice(1) %>%
-    ungroup()
-    
-  test <- left_join(species_city_occurrences, site_names_and_city, 
-                    relationship = "many-to-many", by="city")
+  ranges <- ranges %>% 
+    select(-city) %>% 
+    pivot_wider(names_from = site_vector, values_from = occurs) %>% 
+    column_to_rownames('species') %>%
+    as.matrix()
   
-  # make a 2 dimensional array
-  ranges <- array(data = 0, dim = c(n_species, n_sites))
-  
-  
+  ranges <- unname(ranges)
   
   #-----------------------------------------------------
   # identify community sampling events which we will use to infer non-detections
@@ -397,12 +411,16 @@ prep_data <- function(min_species_detections,
     n_sites = n_sites, # number of sites
     n_years = n_years, # number of years 
     n_surveys = n_surveys, # [max] number of surveys within year
+    n_cities = n_cities, # number of cities
     
     species = species_vector,
     families = family_vector, 
     sites = site_vector,
     years = year_vector,
-    surveys = survey_vector
+    surveys = survey_vector,
+    cities = city_vector,
+    
+    ranges = ranges
     
   ))
 
