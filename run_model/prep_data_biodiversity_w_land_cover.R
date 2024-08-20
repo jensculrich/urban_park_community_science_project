@@ -8,6 +8,7 @@
 
 library(tidyverse) # data organization
 library(sf) # spatial data processing
+library(geojsonsf) # geojson spatial data processing
 
 prep_data <- function(min_species_detections,
                       min_species_for_community_sampling_event) {
@@ -22,7 +23,9 @@ prep_data <- function(min_species_detections,
     cbind(city="los_angeles", read.csv(
     "./data/biodiversity_data_with_land_classification/leps_la_data_with_land_classification.csv")),
     cbind(city="san_diego", read.csv(
-      "./data/biodiversity_data_with_land_classification/leps_san_diego_data_with_land_classification.csv"))
+      "./data/biodiversity_data_with_land_classification/leps_san_diego_data_with_land_classification.csv")),
+    cbind(city="dallas", read.csv(
+      "./data/biodiversity_data_with_land_classification/leps_dallas_data_with_land_classification.csv"))
     #,
     #cbind(city="san_fransisco", read.csv(
       #"./data/biodiversity_data_with_land_classification/leps_sf_data_with_land_classification.csv"))
@@ -37,6 +40,7 @@ prep_data <- function(min_species_detections,
   #-----------------------------------------------------
   # map the data onto a spatial file
   
+  dallas_shp <- geojson_sf("./data/urbanwatch_data/city_outlines/dallas_boundary/dallas.geojson")
   los_angeles_shp <- read_sf("./data/urbanwatch_data/city_outlines/los_angeles_boundary/geo_export_f62c93b8-4e53-4645-8ef0-b08c094f4cd8.shp")
   san_diego_shp <- read_sf("./data/urbanwatch_data/city_outlines/san_diego_boundary_datasd/san_diego_boundary_datasd.shp")
   
@@ -44,18 +48,26 @@ prep_data <- function(min_species_detections,
   crs <- 5070
   grid_size <- 2000 # grid size in metres (1000 = 1km)
   
+  # dallas
+  dallas_shp <- dallas_shp  %>% 
+    st_transform(., crs) 
+  dallas_shp <- sf::st_buffer(dallas_shp, dist = 0)
+  dallas_grid <- st_make_grid(dallas_shp, cellsize = c(grid_size, grid_size)) %>% 
+    st_sf(grid_id = 1:length(.))
+  dallas_grid <- st_intersection(dallas_grid, dallas_shp) %>%
+    mutate(grid_id = paste0("dallas_", grid_id)) %>%
+    select(grid_id)
+  # los angeles
   los_angeles_shp <- los_angeles_shp  %>% 
     st_transform(., crs) 
-  # create "grid_size" km grid over the area
   los_angeles_grid <- st_make_grid(los_angeles_shp, cellsize = c(grid_size, grid_size)) %>% 
     st_sf(grid_id = 1:length(.))
   los_angeles_grid <- st_intersection(los_angeles_grid, los_angeles_shp) %>%
     mutate(grid_id = paste0("los_angeles_", grid_id)) %>%
     select(grid_id)
-  
+  # san diego
   san_diego_shp <- san_diego_shp  %>% 
     st_transform(., crs) 
-  # create "grid_size" km grid over the area
   san_diego_grid <- st_make_grid(san_diego_shp, cellsize = c(grid_size, grid_size)) %>% 
     st_sf(grid_id = 1:length(.))
   san_diego_grid <- st_intersection(san_diego_grid, san_diego_shp) %>%
@@ -63,8 +75,9 @@ prep_data <- function(min_species_detections,
     select(grid_id)
   
   
+  
   # combine the grids from all cities to get all sites
-  all_grids <- bind_rows(los_angeles_grid, san_diego_grid)
+  all_grids <- bind_rows(dallas_grid, los_angeles_grid, san_diego_grid)
   
   # and now match detections with spatial units (grid cells)
   df <- st_transform(df_sf, crs = crs) %>%
@@ -91,7 +104,7 @@ prep_data <- function(min_species_detections,
                      coords = c("longitude", "latitude"), 
                      crs = 4326))
   
-  # view the state shapefile
+  # view the shapefile
   ggplot() + 
     geom_sf(data = san_diego_shp, fill = 'white', lwd = 0.05) +
     geom_sf(data = san_diego_grid, fill = 'transparent', lwd = 0.3) +
@@ -102,7 +115,7 @@ prep_data <- function(min_species_detections,
     ggtitle("San Diego")
   #theme(legend.position="none") 
   
-  # view the state shapefile
+  # view the shapefile
   ggplot() + 
     geom_sf(data = los_angeles_shp, fill = 'white', lwd = 0.05) +
     geom_sf(data = los_angeles_grid, fill = 'transparent', lwd = 0.3) +
@@ -112,6 +125,17 @@ prep_data <- function(min_species_detections,
     labs(y = "") +
     ggtitle("Los Angeles")
   #theme(legend.position="none") 
+  
+  # view the shapefile
+  ggplot() + 
+    geom_sf(data = dallas_shp, fill = 'white', lwd = 0.05) +
+    geom_sf(data = dallas_grid, fill = 'transparent', lwd = 0.3) +
+    geom_sf(data = filter(df_sf, city == "dallas"), aes(colour=as.factor(year))) +
+    coord_sf(datum = NA)  +
+    labs(x = "") +
+    labs(y = "") +
+    ggtitle("Dallas")
+  #theme(legend.position="none")
   
   #-----------------------------------------------------
   # prep data for array format
@@ -271,6 +295,8 @@ prep_data <- function(min_species_detections,
            "city" = "V2")
   
   species_city_occurrences <- rbind(
+    cbind(city="dallas", read.csv(
+      "./data/biodiversity_data_with_land_classification/leps_dallas_data_with_land_classification.csv")),
     cbind(city="los_angeles", read.csv(
       "./data/biodiversity_data_with_land_classification/leps_la_data_with_land_classification.csv")),
     cbind(city="san_diego", read.csv(
@@ -315,7 +341,7 @@ prep_data <- function(min_species_detections,
     
     # determine whether a community sampling event occurred
     # using collector/observer name
-    group_by(family, PARK_NAME, year, survey) %>%
+    group_by(family, grid_id, year, survey) %>%
     mutate(n_species_sampled = n_distinct(species)) %>%
     ungroup() %>%
     
@@ -333,7 +359,7 @@ prep_data <- function(min_species_detections,
     dplyr::select(-species, -n_species_sampled) %>%
     
     # we just need one row per community sampling event (not a row for all species positively detected)
-    group_by(PARK_NAME, family, year, survey) %>%
+    group_by(grid_id, family, year, survey) %>%
     slice(1) %>%
     ungroup()
 
@@ -350,7 +376,7 @@ prep_data <- function(min_species_detections,
     rep(family_vector, times=(n_sites*n_years*n_surveys))
   )) %>%
     rename("species" = "V1",
-           "PARK_NAME" = "V2",
+           "grid_id" = "V2",
            "year" = "V3",
            "survey" = "V4",
            "family" = "V5") %>%
@@ -362,7 +388,7 @@ prep_data <- function(min_species_detections,
   # could revise to propagate nondetection only to other species in same suborder, family, genus etc.
   all_visits_joined <- left_join(
       all_species_site_visits, community_samples, 
-      by=c("PARK_NAME","family", "year", "survey")) %>%
+      by=c("grid_id","family", "year", "survey")) %>%
     
     # create an indicator if the site visit was a sample or not (0 == not sampled, 1 == sampled)
     mutate(community_sampled = replace_na(community_sampled, 0)) 
@@ -420,6 +446,7 @@ prep_data <- function(min_species_detections,
     surveys = survey_vector,
     cities = city_vector,
     
+    species_city_occurrences = species_city_occurrences,
     ranges = ranges
     
   ))
