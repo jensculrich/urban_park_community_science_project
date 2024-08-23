@@ -6,11 +6,13 @@ library(rstan)
 # for community sampling events inferred by [taxonomic] family, source this file:
 source("./run_model/prep_data_biodiversity_w_land_cover.R")
 
-min_species_detections <- 20
-min_species_for_community_sampling_event = 1
+min_species_detections <- 100
+min_species_for_community_sampling_event <- 1
+grid_size <- 5000
 
 my_data <- prep_data(min_species_detections,
-                     min_species_for_community_sampling_event)
+                     min_species_for_community_sampling_event,
+                     grid_size)
 
 # save or load data for later
 saveRDS(my_data, "./run_model/prepped_data/prepped_data.RDS")
@@ -20,6 +22,8 @@ my_data <- readRDS("./run_model/prepped_data/prepped_data.RDS")
 V <- my_data$V 
 V_NA <- my_data$V_NA
 
+# for species names, note that n == number of unique BINARY detections
+# while our filter min_species_detections is for total number of detections.
 species_names <- my_data$species_names 
 
 n_species <- my_data$n_species # number of species
@@ -40,7 +44,6 @@ years_full <- as.integer(my_data$years)
 years <- seq(1, n_years_minus1)
 surveys_raw <- as.integer(my_data$surveys)
 surveys <- (surveys_raw - mean(surveys_raw)) / sd(surveys_raw)
-ranges <- my_data$ranges
 
 # do this for now
 n_families <- length(unique(family_lookup)) # number of families
@@ -48,7 +51,7 @@ n_families <- length(unique(family_lookup)) # number of families
 # n (from species_names) is the total number of detections (not unique site visit detections)
 View(cbind(species_names, as.data.frame(family_lookup)))
 
-stan_data <- c("V", "V_NA", "ranges",
+stan_data <- c("V", "V_NA", 
                "species", "sites", "years", "surveys", 
                "cities", "n_cities",
                "n_species", "n_sites", "n_years", "n_years_minus1", "n_surveys"

@@ -28,7 +28,6 @@ data {
   real surveys[n_surveys]; // surveys (difference from the mean)
   int<lower=0,upper=1> V[n_species, n_sites, n_years, n_surveys]; // binary detection / non detection
   int<lower=0,upper=1> V_NA[n_species, n_sites, n_years, n_surveys]; // sampling indicator 1==non-detection, 0==no evidence the species was sampled
-  int<lower=0,upper=1> ranges[n_species, n_sites]; // binary range / non range
 
 } // end data
 
@@ -181,56 +180,48 @@ model {
   // LIKELIHOOD
   for(i in 1:n_species){
     for (j in 1:n_sites){
-      
-      if(ranges[i,j] > 0){ 
-        // range is 1 if the species has ever been detected in the city, else:
-        // ranges is 0 (species never detected in the city), and we will not evaluate
-        // the likelihood of the data, which is by definition all 0's (non-detections).
+      for (k in 1:n_years){
         
-        for (k in 1:n_years){
-          
-          if (sum(V[i,j,k]) > 0){ // lp observed 
-            // detection on each visit given detection rate on each visit
-            // V_NA == 0 indicates that no survey occurred. Multiplying 0 by the 
-            // lpmf() statement should remove it from the target
-            target += (log(psi[i,j,k]) + // present
-                           bernoulli_lpmf(V[i,j,k,1]|p[i,j,k,1])*V_NA[i,j,k,1] + 
-                           bernoulli_lpmf(V[i,j,k,2]|p[i,j,k,2])*V_NA[i,j,k,2] + 
-                           bernoulli_lpmf(V[i,j,k,3]|p[i,j,k,3])*V_NA[i,j,k,3] + 
-                           bernoulli_lpmf(V[i,j,k,4]|p[i,j,k,4])*V_NA[i,j,k,4] +
-                           bernoulli_lpmf(V[i,j,k,5]|p[i,j,k,5])*V_NA[i,j,k,5] + 
-                           bernoulli_lpmf(V[i,j,k,6]|p[i,j,k,6])*V_NA[i,j,k,6] +
-                           bernoulli_lpmf(V[i,j,k,7]|p[i,j,k,7])*V_NA[i,j,k,7] + 
-                           bernoulli_lpmf(V[i,j,k,8]|p[i,j,k,8])*V_NA[i,j,k,8] +
-                           bernoulli_lpmf(V[i,j,k,9]|p[i,j,k,9])*V_NA[i,j,k,9] + 
-                           bernoulli_lpmf(V[i,j,k,10]|p[i,j,k,10])*V_NA[i,j,k,10] +
-                           bernoulli_lpmf(V[i,j,k,11]|p[i,j,k,11])*V_NA[i,j,k,11] + 
-                           bernoulli_lpmf(V[i,j,k,12]|p[i,j,k,12])*V_NA[i,j,k,12]
-                       );
-          } else { // lp unobserved (set up for 6 annual surveys)
-            // marginal likelihood of:
-            // occurrence, yet...
-            // non-detection on each visit given detection rate on each visit given occurrence
-            target += (log_sum_exp(log(psi[i,j,k]) + log1m(p[i,j,k,1])*V_NA[i,j,k,1] + 
-                                                     log1m(p[i,j,k,2])*V_NA[i,j,k,2] + 
-                                                     log1m(p[i,j,k,3])*V_NA[i,j,k,3] + 
-                                                     log1m(p[i,j,k,4])*V_NA[i,j,k,4] +
-                                                     log1m(p[i,j,k,5])*V_NA[i,j,k,5] + 
-                                                     log1m(p[i,j,k,6])*V_NA[i,j,k,6] +
-                                                     log1m(p[i,j,k,7])*V_NA[i,j,k,7] + 
-                                                     log1m(p[i,j,k,8])*V_NA[i,j,k,8] +
-                                                     log1m(p[i,j,k,9])*V_NA[i,j,k,9] + 
-                                                     log1m(p[i,j,k,10])*V_NA[i,j,k,10] +
-                                                     log1m(p[i,j,k,11])*V_NA[i,j,k,11] + 
-                                                     log1m(p[i,j,k,12])*V_NA[i,j,k,12],
-                                    // or just simple no occurrence
-                                    log1m(psi[i,j,k])));
-                                    
-          } // end if/else species ever detected or not at site in range
-  
-      } // end loop across all years
-      
-      } // and if/else site is in range
+        if (sum(V[i,j,k]) > 0){ // lp observed 
+          // detection on each visit given detection rate on each visit
+          // V_NA == 0 indicates that no survey occurred. Multiplying 0 by the 
+          // lpmf() statement should remove it from the target
+          target += (log(psi[i,j,k]) + // present
+                         bernoulli_lpmf(V[i,j,k,1]|p[i,j,k,1])*V_NA[i,j,k,1] + 
+                         bernoulli_lpmf(V[i,j,k,2]|p[i,j,k,2])*V_NA[i,j,k,2] + 
+                         bernoulli_lpmf(V[i,j,k,3]|p[i,j,k,3])*V_NA[i,j,k,3] + 
+                         bernoulli_lpmf(V[i,j,k,4]|p[i,j,k,4])*V_NA[i,j,k,4] +
+                         bernoulli_lpmf(V[i,j,k,5]|p[i,j,k,5])*V_NA[i,j,k,5] + 
+                         bernoulli_lpmf(V[i,j,k,6]|p[i,j,k,6])*V_NA[i,j,k,6] +
+                         bernoulli_lpmf(V[i,j,k,7]|p[i,j,k,7])*V_NA[i,j,k,7] + 
+                         bernoulli_lpmf(V[i,j,k,8]|p[i,j,k,8])*V_NA[i,j,k,8] +
+                         bernoulli_lpmf(V[i,j,k,9]|p[i,j,k,9])*V_NA[i,j,k,9] + 
+                         bernoulli_lpmf(V[i,j,k,10]|p[i,j,k,10])*V_NA[i,j,k,10] +
+                         bernoulli_lpmf(V[i,j,k,11]|p[i,j,k,11])*V_NA[i,j,k,11] + 
+                         bernoulli_lpmf(V[i,j,k,12]|p[i,j,k,12])*V_NA[i,j,k,12]
+                     );
+        } else { // lp unobserved (set up for 6 annual surveys)
+          // marginal likelihood of:
+          // occurrence, yet...
+          // non-detection on each visit given detection rate on each visit given occurrence
+          target += (log_sum_exp(log(psi[i,j,k]) + log1m(p[i,j,k,1])*V_NA[i,j,k,1] + 
+                                                   log1m(p[i,j,k,2])*V_NA[i,j,k,2] + 
+                                                   log1m(p[i,j,k,3])*V_NA[i,j,k,3] + 
+                                                   log1m(p[i,j,k,4])*V_NA[i,j,k,4] +
+                                                   log1m(p[i,j,k,5])*V_NA[i,j,k,5] + 
+                                                   log1m(p[i,j,k,6])*V_NA[i,j,k,6] +
+                                                   log1m(p[i,j,k,7])*V_NA[i,j,k,7] + 
+                                                   log1m(p[i,j,k,8])*V_NA[i,j,k,8] +
+                                                   log1m(p[i,j,k,9])*V_NA[i,j,k,9] + 
+                                                   log1m(p[i,j,k,10])*V_NA[i,j,k,10] +
+                                                   log1m(p[i,j,k,11])*V_NA[i,j,k,11] + 
+                                                   log1m(p[i,j,k,12])*V_NA[i,j,k,12],
+                                  // or just simple no occurrence
+                                  log1m(psi[i,j,k])));
+                                  
+        } // end if/else species ever detected or not at site in range
+
+    } // end loop across all years
       
     } // end loop across all sites   
   } // end loop across all species
