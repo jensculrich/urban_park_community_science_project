@@ -11,7 +11,8 @@ library(sf) # spatial data processing
 library(geojsonsf) # geojson spatial data processing
 
 prep_data <- function(min_species_detections,
-                      min_species_for_community_sampling_event) {
+                      min_species_for_community_sampling_event, 
+                      grid_size) {
   
   #-----------------------------------------------------
   # load the detection data
@@ -19,7 +20,7 @@ prep_data <- function(min_species_detections,
   # first read the data 
   # cbind each city's data with the corresponding city name,
   # rbind the data from different cities
-  df <- rbind(
+  df_original <- rbind(
     cbind(city="los_angeles", read.csv(
     "./data/biodiversity_data_with_land_classification/leps_la_data_with_land_classification.csv")),
     cbind(city="san_diego", read.csv(
@@ -33,7 +34,7 @@ prep_data <- function(min_species_detections,
   filter(species != "")
   
   # make the detection data a spatial file
-  (df_sf <- st_as_sf(df,
+  (df_sf <- st_as_sf(df_original,
                      coords = c("longitude", "latitude"), 
                      crs = 4326))
   
@@ -46,7 +47,7 @@ prep_data <- function(min_species_detections,
   
   # USA_Contiguous_Albers_Equal_Area_Conic
   crs <- 5070
-  grid_size <- 2000 # grid size in metres (1000 = 1km)
+  grid_size <- grid_size # grid size in metres (1000 = 1km)
   
   # dallas
   dallas_shp <- dallas_shp  %>% 
@@ -77,7 +78,8 @@ prep_data <- function(min_species_detections,
   
   
   # combine the grids from all cities to get all sites
-  all_grids <- bind_rows(dallas_grid, los_angeles_grid, san_diego_grid)
+  all_grids <- bind_rows(dallas_grid, los_angeles_grid, san_diego_grid
+                         )
   
   # and now match detections with spatial units (grid cells)
   df <- st_transform(df_sf, crs = crs) %>%
@@ -86,7 +88,7 @@ prep_data <- function(min_species_detections,
     filter(!is.na(grid_id)) %>%
     # now rejoin the lat/long data for each point
     left_join(., dplyr::select(
-      df, gbifID, latitude, longitude), by="gbifID") %>%
+      df_original, gbifID, latitude, longitude), by="gbifID") %>%
     
     # to confirm: did Jenny already remove samples without detailed coordinate uncertainty?
     
@@ -105,14 +107,14 @@ prep_data <- function(min_species_detections,
                      crs = 4326))
   
   # view the shapefile
-  ggplot() + 
-    geom_sf(data = san_diego_shp, fill = 'white', lwd = 0.05) +
-    geom_sf(data = san_diego_grid, fill = 'transparent', lwd = 0.3) +
-    geom_sf(data = filter(df_sf, city == "san_diego"), aes(colour=as.factor(year))) +
-    coord_sf(datum = NA)  +
-    labs(x = "") +
-    labs(y = "") +
-    ggtitle("San Diego")
+  #ggplot() + 
+    #geom_sf(data = san_diego_shp, fill = 'white', lwd = 0.05) +
+    #geom_sf(data = san_diego_grid, fill = 'transparent', lwd = 0.3) +
+    #geom_sf(data = filter(df_sf, city == "san_diego"), aes(colour=as.factor(year))) +
+    #coord_sf(datum = NA)  +
+    #labs(x = "") +
+    #labs(y = "") +
+    #ggtitle("San Diego")
   #theme(legend.position="none") 
   
   # view the shapefile
@@ -238,6 +240,7 @@ prep_data <- function(min_species_detections,
         # now join with all species (so that we include species not captured during 
         # this interval*visit but which might actually be at some sites undetected)
         full_join(., select(species_names, species), by="species") %>%
+        select(-city) %>%
         
         # now join with all sites columns (so that we include sites where no species captured during 
         # this interval*visit but which might actually have some species that went undetected)
@@ -251,11 +254,11 @@ prep_data <- function(min_species_detections,
         spread(grid_id, row, fill = 0) %>%
         
         # replace number of unique site captures of the species (if > 1) with 1.
-        mutate_at(5:(ncol(.)), ~replace(., . > 1, 1)) %>%
+        mutate_at(4:(ncol(.)), ~replace(., . > 1, 1)) %>%
         # if more columns are added these indices above^ might need to change
         # 5:(n_species+5) represent the columns of each site in the matrix
         # just need the matrix of 0's and 1's
-        dplyr::select(5:(ncol(.))) %>%
+        dplyr::select(4:(ncol(.))) %>%
         # if some sites had no species, this workflow will construct a row for species = NA
         # we want to filter out this row ONLY if this happens and so need to filter out rows
         # for SPECIES not in SPECIES list
@@ -311,9 +314,9 @@ prep_data <- function(min_species_detections,
     slice(1) %>%
     ungroup() %>%
     select(species, city) %>%
-    mutate(occurs = 1) %>%
+    mutate(in_range = 1) %>%
     left_join(all_species_city_combos, .) %>%
-    mutate(occurs = replace_na(occurs, 0))
+    mutate(in_range = replace_na(in_range, 0))
 
   # now create a df of all possible species city occurrences
   city <- sub("^(.*)[_].*", "\\1",site_vector)
@@ -322,22 +325,73 @@ prep_data <- function(min_species_detections,
   # and add the city name
   ranges <- left_join(all_species_sites_possible, species_city_occurrences, 
                     by=c("city")) %>%
-    arrange(., species)
+    arrange(., species) %>%
+    select(species, site_vector, in_range) %>%
+    rename("grid_id" = "site_vector")
   
-  ranges <- ranges %>% 
-    select(-city) %>% 
-    pivot_wider(names_from = site_vector, values_from = occurs) %>% 
-    column_to_rownames('species') %>%
-    as.matrix()
+  #ranges <- ranges %>% 
+    #select(-city) %>% 
+    #pivot_wider(names_from = site_vector, values_from = occurs) %>% 
+    #column_to_rownames('species') %>%
+    #as.matrix()
   
-  ranges <- unname(ranges)
+  #ranges <- unname(ranges)
   
   #-----------------------------------------------------
   # identify community sampling events which we will use to infer non-detections
   # identified by site*survey months with > 1 species detected. Another option
   # might be to group by iNat user name by date*park but this may be a very narrow scope?
   
-  community_samples <- df %>%
+  # -----
+  # first we need to regather the data but not filter out species below min detections
+  # we want all species from the families considered when determining whether a sampling
+  # event had occurred.
+  
+  # make the detection data a spatial file
+  (df_sf <- st_as_sf(df_original,
+                     coords = c("longitude", "latitude"), 
+                     crs = 4326))
+  
+  # and now match detections with spatial units (grid cells)
+  df_full <- st_transform(df_sf, crs = crs) %>%
+    st_join(all_grids, join = st_intersects) %>% as.data.frame %>%
+    # filter out records from outside of the urban grid
+    filter(!is.na(grid_id)) %>%
+    # now rejoin the lat/long data for each point
+    left_join(., dplyr::select(
+      df_original, gbifID, latitude, longitude), by="gbifID") %>%
+    
+    # to confirm: did Jenny already remove samples without detailed coordinate uncertainty?
+    
+    # for now, to speed up the inference, let's also filter to the more common species
+    group_by(species) %>%
+    add_tally() %>%
+    rename("species_detections" = "n") %>%
+    ungroup()
+  
+  df_full <- df_full %>%
+    
+    # change date to ordinal day
+    #mutate(survey = as.numeric(factor(observed_on))) %>%
+    
+    # add survey date within year
+    group_by(year) %>% 
+    mutate(survey = as.integer(factor(month)),
+           year = as.integer(year - 2019)) %>% # used (- 2019) to make 2020 == year 1
+    ungroup() %>%
+    
+    # for now, reducing down to mandatory data columns
+    dplyr::select(species, family, city, grid_id, survey, year) %>%
+    
+    # turn into binary detections (for occupancy rather than abundance model)
+    group_by(species, grid_id, year, survey) %>% 
+    slice(1) %>%
+    ungroup() %>%
+    
+    # arrange by survey within year  
+    arrange(year, survey) 
+  
+  community_samples <- df_full %>%
     
     # determine whether a community sampling event occurred
     # using collector/observer name
@@ -410,11 +464,14 @@ prep_data <- function(min_species_detections,
     # or not a community sampling event occurred and then fill in accordingly
     mutate(any_sampled = ifelse(non_comm_sample == 1, 1, community_sampled)) 
   
+  all_visits_joined <- left_join(all_visits_joined, ranges, by = c("species", "grid_id")) %>%
+    mutate(sampled_in_range = any_sampled) %>%
+    mutate(sampled_in_range = ifelse(in_range==1, sampled_in_range, 0)) 
   #test <- all_visits_joined %>%
     #mutate(any_sampled = +(!any_sampled))
   
   # now spread into 4 dimensions
-  V_NA <- array(data = all_visits_joined$any_sampled, dim = c(n_species, n_sites, n_years, n_surveys))
+  V_NA <- array(data = all_visits_joined$sampled_in_range, dim = c(n_species, n_sites, n_years, n_surveys))
   check <- which(V>V_NA) # this will give you numerical value
   # this check should be empty (can never detect a species where sampling has not occurred)
   
@@ -446,9 +503,8 @@ prep_data <- function(min_species_detections,
     surveys = survey_vector,
     cities = city_vector,
     
-    species_city_occurrences = species_city_occurrences,
-    ranges = ranges
-    
+    species_city_occurrences = species_city_occurrences
+
   ))
 
 }
