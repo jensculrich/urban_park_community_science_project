@@ -8,11 +8,12 @@ source("./run_model/prep_data_iNat_w_community_sampling_events_by_family.R")
 
 min_species_detections <- 1
 # I filtered the parks by area just because there's so many and it takes forever to run
-min_park_size_acres <- 200 # acres
-max_park_size_acres <- 500 # acres
+#min_park_size_acres <- 200 # acres
+#max_park_size_acres <- 500 # acres
 # add a buffer around each park, 50-500 metres seems like a reasonable starting point?
 buffer_distance <- 250 # meters
 min_species_for_community_sampling_event = 1
+n_parks_sampled_per_city <- 250
 
 my_data <- prep_data(min_species_detections,
                      min_park_size_acres,

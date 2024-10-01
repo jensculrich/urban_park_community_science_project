@@ -6,13 +6,14 @@ library(rstan)
 # for community sampling events inferred by [taxonomic] family, source this file:
 source("./run_model/prep_data_biodiversity_w_land_cover.R")
 
-min_species_detections <- 100
+min_species_detections <- 20
 min_species_for_community_sampling_event <- 1
 grid_size <- 5000
 
+
 my_data <- prep_data(min_species_detections,
                      min_species_for_community_sampling_event,
-                     grid_size)
+                     n_parks_sampled_per_city)
 
 # save or load data for later
 saveRDS(my_data, "./run_model/prepped_data/prepped_data.RDS")
