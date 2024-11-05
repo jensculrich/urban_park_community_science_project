@@ -8,13 +8,12 @@
 
 library(tidyverse) # data organization
 library(sf) # spatial data processing
-library(geojsonsf) # geojson spatial data processing
+library(wesanderson) # colour palettes
 
 prep_data <- function(min_species_detections,
                       min_species_per_family,
                       min_species_for_community_sampling_event, 
-                      n_parks_sampled_per_city,
-                      buffer_distance) {
+                      city_name) {
   
   ## --------------------------------------------------
   ## Operation Functions
@@ -31,10 +30,12 @@ prep_data <- function(min_species_detections,
   
   # first read the data 
   df <- rbind(
-    cbind(city="los_angeles", read.csv(
-    "./data/02_wrangled_data/leps_data_cali.csv"))
+    cbind(city=city_name, read.csv(
+    "./data/wrangled_detection_data/leps_data_cali.csv"))
     ) %>%
-  filter(species != "") #%>%
+    
+  # remove records with no species name
+  filter(species != "") %>%
   
   # filter down to the butterfly families
   filter(family %in% butterfly_families)
@@ -51,38 +52,41 @@ prep_data <- function(min_species_detections,
   # map the data on a spatial file
   
   
-  los_angeles_shp <- readRDS("./data/parks_by_city/parks_merged_LA.rds") %>%
-    cbind(city = "los_angeles") %>%
-    cbind(site = 1:nrow(los_angeles_shp))
+  city_shp <- readRDS(paste0(
+    "./data/merged_parks_by_city/parks_merged_", city_name, ".rds")) %>%
+    cbind(city = city_name) %>%
+    cbind(site = 1:nrow(.)) 
 
   # USA_Contiguous_Albers_Equal_Area_Conic
   crs <- 5070
   
   # los angeles
-  los_angeles_shp <- los_angeles_shp  %>% 
-    st_transform(., crs) 
+  city_shp <- city_shp  %>% 
+    st_transform(., crs) %>%
+    mutate(area = st_area(.)) %>%
+    mutate(park_size_scaled = as.numeric(word(center_scale(log(area)), 1)))
   
   # view the shapefile
+  #sub <- city_shp %>%
+    #mutate(big = as.factor(ifelse(site== "185", 1, 0)))
   ggplot() + 
-    geom_sf(data = los_angeles_shp, fill = 'white', lwd = 0.05) +
-    #geom_sf(data = parks2, fill = 'skyblue', alpha= 0.7, lwd = 0.3) +
-    #geom_sf(data = filter(df_sf, city == "los_angeles"), aes(colour=as.factor(year))) +
+    #geom_sf(data = sub, aes(fill = big), lwd = 0.05) +
     coord_sf(datum = NA)  +
     labs(x = "") +
     labs(y = "") +
-    ggtitle(paste0("Los Angeles: ", nrow(los_angeles_shp), 
+    ggtitle(paste0(city_name, ": ", nrow(city_shp), 
                    ", following 100m buffer merge parks"))
   
   # and now match detections with spatial units (grid cells)
   df2 <- st_transform(df_sf, crs = crs) %>%
-    st_join(los_angeles_shp, join = st_intersects) %>% as.data.frame %>%
+    st_join(city_shp, join = st_intersects) %>% as.data.frame %>%
     # filter out records from outside of the urban grid
     filter(!is.na(site)) %>%
     # now rejoin the lat/long data for each point
     left_join(., dplyr::select(
       df, gbifID, decimalLatitude, decimalLongitude), by="gbifID")
   
-  df3 <- df2 %>%
+  df2 <- df2 %>%
     # and remove families with very few species
     group_by(family) %>%
     mutate(n_species_per_family=n_distinct(species)) %>% 
@@ -92,30 +96,35 @@ prep_data <- function(min_species_detections,
     # for now, to speed up the inference, let's also filter to the more common species
     group_by(species) %>%
     mutate(n_binary_detections_per_species=n_distinct(site, year)) %>% 
-    add_tally()
+    add_tally() %>%
+    ungroup()
   
   unique(df2$family)  
 
-  
   # make the detection data a spatial file for plotting
-  (df_sf <- st_as_sf(df,
-                     coords = c("longitude", "latitude"), 
+  (df_sf <- st_as_sf(df2,
+                     coords = c("decimalLongitude", "decimalLatitude"), 
                      crs = 4326))
   
   # view the shapefile
+  mypalette <- as.vector(wesanderson::wes_palette("FantasticFox1"))
+  
   ggplot() + 
-    geom_sf(data = los_angeles_shp, fill = 'white', lwd = 0.05) +
-    geom_sf(data = parks2, fill = 'skyblue', alpha= 0.7, lwd = 0.3) +
-    geom_sf(data = df_sf, aes(colour=as.factor(year))) +
+    geom_sf(data = city_shp, fill = 'grey80', lwd = 0.05) +
+    geom_sf(data = df_sf, aes(colour=as.factor(family))) +
     coord_sf(datum = NA)  +
     labs(x = "") +
     labs(y = "") +
-    ggtitle(paste0("Los Angeles: ", n_parks_sampled_per_city, 
-                   " randomly sampled parks\n w/ buffers of ", buffer_distance, "m"))
-  #theme(legend.position="none") 
+    scale_colour_manual(name = "Family", values = mypalette) +
+    theme_void() +
+    ggtitle(paste0(
+      "butterfly detections in ", city_name, " parks (2020 - 2024)"))
   
-  rm(parks_shp, df_sf, los_angeles_shp)
   gc()
+  
+  genus <- unique(df2$genus)
+  
+  #write.csv(genus, "data/lepidoptera_trait_data/ease_of_id/identifiability_by_genus.csv")
   
   #-----------------------------------------------------
   # prep data for array format
@@ -123,7 +132,7 @@ prep_data <- function(min_species_detections,
   
   # we will have one big array, with different lengths of species, sites and years
   
-  df <- df %>%
+  df2 <- df2 %>%
     
     # change date to ordinal day
     #mutate(survey = as.numeric(factor(observed_on))) %>%
@@ -134,14 +143,12 @@ prep_data <- function(min_species_detections,
            year = as.integer(year - 2019)) %>% # used (- 2019) to make 2020 == year 1
     ungroup() %>%
     
-    # scale the park size covariate
-    mutate(park_size_scaled = center_scale(log(Park_Size_))) %>%
-    
     # for now, reducing down to mandatory data columns
-    dplyr::select(species, family, ParkID, park_size_scaled, survey, year) %>%
+    dplyr::select(species, family, site, park_size_scaled, survey, year,
+                  n_species_per_family, n_binary_detections_per_species, n) %>%
     
     # turn into binary detections (for occupancy rather than abundance model)
-    group_by(species, ParkID, year, survey) %>% 
+    group_by(species, site, year, survey) %>% 
     slice(1) %>%
     ungroup() %>%
     
@@ -149,27 +156,23 @@ prep_data <- function(min_species_detections,
     arrange(year, survey) 
   
   # get dimensions of surveys and years
-  survey_vector <- as.vector(levels(as.factor(df$survey)))
+  survey_vector <- as.vector(levels(as.factor(df2$survey)))
   n_surveys <- length(survey_vector)
   
-  year_vector <- as.vector(levels(as.factor(df$year)))
+  year_vector <- as.vector(levels(as.factor(df2$year)))
   n_years <- length(year_vector)
   
   # how many species were detected?
   # and how many binary detections occurred? species/site/year/visit
-  n_species <- nrow(species_names <- df %>%
+  n_species <- length(species_vector <- pull(df2 %>%
                       # group by species ID
                       group_by(species) %>%
-                      add_tally() %>%
                       # and take one record
                       slice(1) %>%
-                      select(species, family, n))
-  
-  species_vector <- species_names %>%
-    pull(species)
+                      select(species)))
   
   # get vector of families for each species
-  n_families <- nrow(family_vector <- pull(df %>%
+  n_families <- unique(family_vector <- pull(df2 %>%
                                              # group by species ID
                                              group_by(species) %>%
                                              # grab one row per species ID
@@ -177,77 +180,95 @@ prep_data <- function(min_species_detections,
                                              # and then pull out it's family
                                              select(family)))
   
-  n_detections <- nrow(df)
+  n_detections <- nrow(df2)
+  
+  # start a "species_info" table
+  species_info <- df2  %>%
+    mutate(genus = word(species, 1)) %>%
+    select(species, genus, family, n_species_per_family, n_binary_detections_per_species, n) %>%
+    group_by(species) %>%
+    slice(1) %>%
+    rename("n_total_detections_species" = "n") %>%
+    ungroup()
   
   # n sites and site vector
-  n_sites <- (nrow(site_names <- df %>%
-                     group_by(ParkID) %>%
+  n_sites <- (nrow(site_data <- city_shp %>%
+                     group_by(site) %>%
                      slice(1) %>%
                      ungroup() %>%
-                     select(ParkID)))
+                     select(site, park_size_scaled)))
   
-  site_vector <- site_names %>%
-    pull(ParkID)
-  
-  park_size_scaled <- df %>%
-    group_by(ParkID) %>%
-    slice(1) %>%
-    ungroup() %>%
-    select(park_size_scaled) %>%
-    pull(park_size_scaled)
+  site_vector <- site_data %>%
+    pull(site)
   
   ## --------------------------------------------------
   ## get species trait data
   
-  # https://www.sciencebase.gov/catalog/item/62d59ae5d34e87fffb2dda99
-  #invasive_df <- read.csv("./data/lepidoptera_trait_data/USRIISv2_invasive_species_list_lepidoptera.csv") %>%
-    #select(scientificName) %>%
-    #rename("species" = "scientificName") %>%
-    #mutate(invasive = 1) 
+  # ease of identification
+  trait_df <- read.csv(
+    "./data/lepidoptera_trait_data/butterfly_engagement/SpeciesListForTraits.csv") %>%
+    select(GBIF_species, eButterfly_species, featureDiversity, aveWingspan) 
   
-  #df <- left_join(df, invasive_df) %>%
-    #mutate(invasive = replace_na(invasive, 0))
+  ## separate out all possible names for the species
+  # first figure out how many possible names
+  trait_df <- trait_df %>%
+    mutate(words = NULL) 
+  for(i in 1:nrow(trait_df)){
+    trait_df$words[i] <- length(str_split(trait_df$GBIF_species, "\\s+")[[i]])
+  }
+  max_names <- max(trait_df$words) / 2
   
-  #n_invasive = df %>%
-    #group_by(species) %>%
-    #slice(1) %>%
-    #ungroup() %>%
-    #filter(invasive == 1) %>%
-    #nrow()
+  # make a column for each possible name 1:max_names
+  name_cols <- as.character(vector(length = max_names))
+  for(i in 1:max_names){
+    name_cols[i] <- paste0("GBIF_species", as.character(i))
+  }
+  # Split name column into GBIF names
+  trait_df[name_cols] <- str_split_fixed(
+    trait_df$GBIF_species, ', ', max_names)
   
-  #invasiveness <- df %>%
-    #group_by(species) %>%
-    #slice(1) %>%
-    #ungroup() %>%
-    #select(invasive) %>%
-    #pull(invasive)
-  
-  #species_names <- cbind(species_names, invasiveness) %>%
-    #rename("invasiveness" = "...4")
-  
-  # Chowdhury 2021 Migratory Status
-  migratory_df <- read.csv("./data/lepidoptera_trait_data/migratory.csv") %>%
-    select(species, migratory) 
-  
-  df <- left_join(df, migratory_df) %>%
-    mutate(migratory = replace_na(migratory, 0))
-  
-  n_invasive = df %>%
-    group_by(species) %>%
+  # now get the trait data by genus incase anyone is missing for any name
+  genus_id <- trait_df %>%
+    mutate(genus = word(GBIF_species1, 1)) %>%
+    group_by(genus) %>%
+    mutate(featureDiversityGenus = mean(featureDiversity),
+           aveWingspanGenus = mean(aveWingspan, na.rm = TRUE)) %>%
     slice(1) %>%
     ungroup() %>%
-    filter(migratory == 1) %>%
-    nrow()
+    select(genus, featureDiversityGenus, aveWingspanGenus)
   
-  migratory <- df %>%
-    group_by(species) %>%
+  # now get the trait data by family incase anyone is missing for any name
+  family_id <- trait_df %>%
+    left_join(., select(df2, species, family), by=c("GBIF_species" = "species")) %>%
+    group_by(family) %>%
+    mutate(featureDiversityFamily = mean(featureDiversity),
+           aveWingspanFamily = mean(aveWingspan, na.rm = TRUE)) %>%
     slice(1) %>%
     ungroup() %>%
-    select(migratory) %>%
-    pull(migratory)
+    select(family, featureDiversityFamily, aveWingspanFamily)
   
-  species_names <- cbind(species_names, migratory) %>%
-    rename("migratory" = "...4")
+  species_info <- left_join(species_info, trait_df, by=c("species" = "GBIF_species1")) %>%
+    left_join(., genus_id) %>%
+    mutate(featureDiversity = ifelse(is.na(featureDiversity), featureDiversityGenus, featureDiversity),
+           aveWingspan = ifelse(is.na(aveWingspan), aveWingspanGenus, aveWingspan)) %>%
+    left_join(., family_id) %>%
+    mutate(featureDiversity = ifelse(is.na(featureDiversity), featureDiversityFamily, featureDiversity),
+           aveWingspan = ifelse(is.na(aveWingspan), aveWingspanFamily, aveWingspan))
+  species_info[species_info == ""] <- NA
+  
+  ## now add ease of identification info
+  ease_id_df <- read.csv("./data/lepidoptera_trait_data/ease_of_id/identifiability_by_genus.csv") %>%
+    select(genus, research_grade_proportion)
+  
+  species_info <- left_join(species_info, ease_id_df)
+  
+  # now scale and select all the variables 
+  species_info <- species_info %>%
+    mutate(aveWingspan_scaled = center_scale(aveWingspan),
+           research_grade_proportion_scaled = center_scale(research_grade_proportion),
+           featureDiversity_scaled = center_scale(featureDiversity)) %>%
+    select(species, genus, family, n_binary_detections_per_species, n_total_detections_species,
+           aveWingspan_scaled, featureDiversity_scaled, research_grade_proportion_scaled)
   
   ## --------------------------------------------------
   ## Now we are ready to create the detection matrix, V.
@@ -259,10 +280,10 @@ prep_data <- function(min_species_detections,
     for(l in 1:n_surveys){
       
       # iterate this across surveys within years
-      temp <- df %>%
+      temp <- df2 %>%
         
         # don't need the family column for this
-        select(-family) %>%
+        dplyr::select(-family) %>%
         
         # filter to indices for year and survey
         filter(year == (k), 
@@ -270,30 +291,30 @@ prep_data <- function(min_species_detections,
         
         # now join with all species (so that we include species not captured during 
         # this interval*visit but which might actually be at some sites undetected)
-        full_join(., select(species_names, species), by="species") %>%
-        select(-park_size_scaled) %>% # if you don't deselect the variable it expands the temp matrix for every unique one
+        full_join(., dplyr::select(species_info, species), by="species") %>%
+        dplyr::select(-park_size_scaled) %>% # if you don't deselect the variable it expands the temp matrix for every unique one
         
         # now join with all sites columns (so that we include sites where no species captured during 
         # this interval*visit but which might actually have some species that went undetected)
         #full_join(., select(site_names, grid_id), by="grid_id") %>%
-        full_join(., as.data.frame(site_vector), by=c("ParkID" = "site_vector")) %>% 
+        full_join(., as.data.frame(site_vector), by=c("site" = "site_vector")) %>% 
         
         # group by SPECIES
         group_by(species) %>%
         mutate(row = row_number()) %>%
         # spread sites by species, and fill with 0 if species never captured this interval*visit
-        spread(ParkID, row, fill = 0) %>%
+        spread(site, row, fill = 0) %>%
         
         # replace number of unique site captures of the species (if > 1) with 1.
-        mutate_at(5:(ncol(.)), ~replace(., . > 1, 1)) %>%
+        mutate_at(7:(ncol(.)), ~replace(., . > 1, 1)) %>%
         # if more columns are added these indices above^ might need to change
         # 5:(n_species+5) represent the columns of each site in the matrix
         # just need the matrix of 0's and 1's
-        dplyr::select(5:(ncol(.))) %>%
+        dplyr::select(7:(ncol(.))) %>%
         # if some sites had no species, this workflow will construct a row for species = NA
         # we want to filter out this row ONLY if this happens and so need to filter out rows
         # for SPECIES not in SPECIES list
-        filter(species %in% levels(as.factor(species_names$species)))
+        filter(species %in% levels(as.factor(species_info$species)))
       
       # remove the NA column at the end (why is this popping up? happens if no species detected at any sites)
       #last_column = ncol(temp_matrix)
@@ -333,21 +354,21 @@ prep_data <- function(min_species_detections,
   # -----
   # first we need to regather the data but not filter out species below min detections
   # we want all species from the families considered when determining whether a sampling
-  # event had occurred.
+  # event had occurred. So we have to reload the original df
   
   # make the detection data a spatial file
-  (df_sf <- st_as_sf(df_original,
-                     coords = c("longitude", "latitude"), 
+  (df_sf <- st_as_sf(df,
+                     coords = c("decimalLongitude", "decimalLatitude"), 
                      crs = 4326))
   
   # and now match detections with spatial units (grid cells)
   df_full <- st_transform(df_sf, crs = crs) %>%
-    st_join(parks2, join = st_intersects) %>% as.data.frame %>%
+    st_join(city_shp, join = st_intersects) %>% as.data.frame %>%
     # filter out records from outside of the urban grid
-    filter(!is.na(ParkID)) %>%
+    filter(!is.na(site)) %>%
     # now rejoin the lat/long data for each point
     left_join(., dplyr::select(
-      df_original, gbifID, latitude, longitude), by="gbifID") %>%
+      df, gbifID, decimalLatitude, decimalLongitude), by="gbifID") %>%
     
     # to confirm: did Jenny already remove samples without detailed coordinate uncertainty?
     
@@ -369,10 +390,10 @@ prep_data <- function(min_species_detections,
     ungroup() %>%
     
     # for now, reducing down to mandatory data columns
-    dplyr::select(species, family, ParkID, survey, year) %>%
+    dplyr::select(species, family, site, survey, year) %>%
     
     # turn into binary detections (for occupancy rather than abundance model)
-    group_by(species, ParkID, year, survey) %>% 
+    group_by(species, site, year, survey) %>% 
     slice(1) %>%
     ungroup() %>%
     
@@ -383,7 +404,7 @@ prep_data <- function(min_species_detections,
     
     # determine whether a community sampling event occurred
     # using collector/observer name
-    group_by(family, ParkID, year, survey) %>%
+    group_by(family, site, year, survey) %>%
     mutate(n_species_sampled = n_distinct(species)) %>%
     ungroup() %>%
     
@@ -401,7 +422,7 @@ prep_data <- function(min_species_detections,
     dplyr::select(-species, -n_species_sampled) %>%
     
     # we just need one row per community sampling event (not a row for all species positively detected)
-    group_by(ParkID, family, year, survey) %>%
+    group_by(site, family, year, survey) %>%
     slice(1) %>%
     ungroup()
   
@@ -418,19 +439,20 @@ prep_data <- function(min_species_detections,
     rep(family_vector, times=(n_sites*n_years*n_surveys))
   )) %>%
     rename("species" = "V1",
-           "ParkID" = "V2",
+           "site" = "V2",
            "year" = "V3",
            "survey" = "V4",
            "family" = "V5") %>%
     mutate(year = as.integer(year),
-           survey = as.integer(survey))
+           survey = as.integer(survey),
+           site = as.integer(site))
   
   # now propagate nondetections to any species 
   # this assumes that ALL other species could have been detected
   # could revise to propagate nondetection only to other species in same suborder, family, genus etc.
   all_visits_joined <- left_join(
     all_species_site_visits, community_samples, 
-    by=c("ParkID","family", "year", "survey")) %>%
+    by=c("site","family", "year", "survey")) %>%
     
     # create an indicator if the site visit was a sample or not (0 == not sampled, 1 == sampled)
     mutate(community_sampled = replace_na(community_sampled, 0)) 
@@ -439,12 +461,12 @@ prep_data <- function(min_species_detections,
   # by definition, we know that someone observed these species and so they were observed
   # even if we aren't considering it a community sampling event.
   # i.e., keep the data for the singletons, while not inferring absence for the rest of the community
-  df <- df %>%
+  df2 <- df2 %>%
     # if the species was sampled than at least that species was sampled (may also be a comm sample)
     mutate(non_comm_sample = 1) 
   
   # a species was sampled if either a community sample or a targeted sample event occurred
-  all_visits_joined <- left_join(all_visits_joined, df) %>%
+  all_visits_joined <- left_join(all_visits_joined, df2) %>%
     # replace_na with zero, a targeted sampling event did not occur 
     mutate(non_comm_sample = replace_na(non_comm_sample, 0)) %>%
     # if a targeted sampling event occurred then sampling occurred,
@@ -474,26 +496,20 @@ prep_data <- function(min_species_detections,
     V = V, # community science detection data
     V_NA = V_NA, # sampling event indicator array
     
-    species_names = species_names, # species sci name, family common name and number of detections
+    species_info = species_info, # species sci name, family name, num detections and predictors
+    site_data = site_data, # site names and predictors
+    
     n_species = n_species, # number of species
     n_families = n_families, # number of Lepidoptera families
     n_sites = n_sites, # number of sites
     n_years = n_years, # number of years 
     n_surveys = n_surveys, # [max] number of surveys within year
-    #n_cities = n_cities, # number of cities
-    
+
     species = species_vector,
     families = family_vector, 
     sites = site_vector,
     years = year_vector,
-    surveys = survey_vector,
-    #cities = city_vector,
-    
-    # covariate data
-    migratory = migratory,
-    park_size_scaled = park_size_scaled
-    
-    #species_city_occurrences = species_city_occurrences
+    surveys = survey_vector
 
   ))
 

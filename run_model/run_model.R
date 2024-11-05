@@ -2,28 +2,22 @@
 # source("./run_model/prep_data_iNat_w_community_sampling_events.R")
 
 # for community sampling events inferred by [taxonomic] family, source this file:
-source("./run_model/prep_data_biodiversity_w_land_cover_traits.R")
+source("./run_model/prep_data.R")
 
 min_species_detections <- 1 # binary park/year/species detections
 min_species_per_family <- 2
-# I filtered the parks by area just because there's so many and it takes forever to run
-#min_park_size_acres <- 200 # acres
-#max_park_size_acres <- 500 # acres
-# add a buffer around each park, 50-500 metres seems like a reasonable starting point?
-buffer_distance <- 100 # meters
 min_species_for_community_sampling_event = 1
-n_parks_sampled_per_city <- 200
+city_name <- "los_angeles"
 
 set.seed(1)
 my_data <- prep_data(min_species_detections,
                      min_species_per_family,
                      min_species_for_community_sampling_event,
-                     n_parks_sampled_per_city,
-                     buffer_distance
+                     city_name
                      )
 
-saveRDS(my_data, "./run_model/prepped_data/prepped_data.RDS")
-my_data <- readRDS("./run_model/prepped_data/prepped_data.RDS")
+saveRDS(my_data, paste0("./run_model/prepped_data/prepped_data_", city_name, ".RDS"))
+my_data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", city_name, ".RDS"))
 
 # prepare to fit occupncy model
 library(rstan)
