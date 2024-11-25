@@ -1,9 +1,8 @@
 // dynamic multi-species occupancy model for pollinators in urban parks
 // this is for the full iNat data
 // I'm using months as survey blocks and assuming all parks are surveyed in all months in all years
+// so long as one or more species from corresponding family was detected
 // I've included a month-phenology covariate for detection
-// I am also working on including a NA indicator function that passes over species for
-// surveys where a species was not sampled directly or through a community sampling event
 
 // I've also added park site and species trait predictors (contrast with model 3)
 
@@ -28,8 +27,10 @@ data {
   real surveys[n_surveys]; // surveys (difference from the mean)
   int<lower=0,upper=1> V[n_species, n_sites, n_years, n_surveys]; // binary detection / non detection
   int<lower=0,upper=1> V_NA[n_species, n_sites, n_years, n_surveys]; // sampling indicator 1==non-detection, 0==no evidence the species was sampled
-  vector[n_species] migratory;
-  vector[n_sites] park_size_scaled;
+  vector[n_species] feature_diversity;
+  vector[n_species] ease_of_id;
+  vector[n_species] wingspan;
+  vector[n_sites] park_size;
   
 } // end data
 
@@ -39,28 +40,30 @@ parameters {
   real psi1_0; // intercept
   vector[n_species] psi1_species_raw;  
   real<lower=0> sigma_psi1_species;
-  real psi1_migratory;
+  real psi1_wingspan;
   real psi1_park_size;
 
   // colonization
   real gamma0;
   vector[n_species] gamma_species_raw;
   real<lower=0> sigma_gamma_species;
-  real gamma_migratory;
+  real gamma_wingspan;
   real gamma_park_size;
   
   // persistence
   real phi0;
   vector[n_species] phi_species_raw;
   real<lower=0> sigma_phi_species;
-  real phi_migratory;
+  real phi_wingspan;
   real phi_park_size;
 
   // detection
   real p0; // intercept
   vector[n_species] p_species_raw;
   real<lower=0> sigma_p_species;
-  real p_migratory;
+  real p_wingspan;
+  real p_feature_diversity;
+  real p_ease_of_id;
   real p_park_size;
   vector[n_species] p_date; // phenology peak
   real mu_p_species_date; // community mean
@@ -96,20 +99,20 @@ transformed parameters {
   
         psi1[i,j] = inv_logit( // probability (0-1) of occurrence in year 1 is equal to..
           psi1_species[species[i]] + // a species specific intercept
-          psi1_migratory * migratory[i] + // a species effect of migratory
-          psi1_park_size * park_size_scaled[j] // a site effect of park size
+          psi1_wingspan * wingspan[i] + // a species effect of migratory
+          psi1_park_size * park_size[j] // a site effect of park size
           ); // end psi1[j,k]
         
         gamma[i,j,k] = inv_logit( // probability (0-1) of colonization is equal to..
           gamma_species[species[i]] + // a species specific intercept
-          gamma_migratory * migratory[i] + // a species effect of migratory
-          gamma_park_size * park_size_scaled[j] // a site effect of park size
+          gamma_wingspan * wingspan[i] + // a species effect of migratory
+          gamma_park_size * park_size[j] // a site effect of park size
           ); // end gamma[i,j,k]
                 
         phi[i,j,k] = inv_logit( // probability (0-1) of persistence is equal to..
           phi_species[species[i]] + // a species specific intercept
-          phi_migratory * migratory[i] + // a species effect of migratory
-          phi_park_size * park_size_scaled[j] // a site effect of park size
+          phi_wingspan * wingspan[i] + // a species effect of migratory
+          phi_park_size * park_size[j] // a site effect of park size
           ); // end phi[i,j,k]
           
       } // end loop across all years
@@ -124,8 +127,10 @@ transformed parameters {
 
           p[i,j,k,l] = inv_logit( // probability (0-1) of detection is equal to..
             p_species[species[i]] + // a species specific intercept
-            p_migratory * migratory[i] + // a species effect of migratory
-            p_park_size * park_size_scaled[j] + // a site effect of park size
+            p_wingspan * wingspan[i] + // a species effect of wingspan
+            p_feature_diversity * feature_diversity[i] + // a species effect of feature diversity
+            p_ease_of_id * ease_of_id[i] + // a species effect of ease of identification
+            p_park_size * park_size[j] + // a site effect of park size
             p_date[species[i]] * surveys[l] + // a species-specific phenological detection effect (peak)
             p_date_sq[species[i]] * (surveys[l])^2 // a species-specific phenological detection effect (decay)
             ); // end p[j,k,l]
@@ -169,28 +174,30 @@ model {
   psi1_0 ~ normal(0, 2); // persistence intercept
   psi1_species_raw ~ std_normal();
   sigma_psi1_species ~ normal(0, 1);
-  psi1_migratory ~ normal(0, 2);
+  psi1_wingspan ~ normal(0, 2);
   psi1_park_size ~ normal(0, 2);
 
   // colonization
   gamma0 ~ normal(0, 1); // persistence intercept
   gamma_species_raw ~ std_normal();
   sigma_gamma_species ~ normal(0, 1);
-  gamma_migratory ~ normal(0, 2);
+  gamma_wingspan ~ normal(0, 2);
   gamma_park_size ~ normal(0, 2); 
 
   // persistence
   phi0 ~ normal(0, 1); // global intercept
   phi_species_raw ~ std_normal();
   sigma_phi_species ~ normal(0, 1);
-  phi_migratory ~ normal(0, 2);
+  phi_wingspan ~ normal(0, 2);
   phi_park_size ~ normal(0, 2);
 
   // detection
   p0 ~ normal(0, 2); // global intercept
   p_species_raw ~ std_normal();
   sigma_p_species ~ normal(0, 2);
-  p_migratory ~ normal(0, 2);
+  p_wingspan ~ normal(0, 2);
+  p_feature_diversity ~ normal(0, 2);
+  p_ease_of_id ~ normal(0, 2);
   p_park_size ~ normal(0, 2);
   p_date ~ normal(mu_p_species_date, sigma_p_species_date); // species-specific phenology (peak)
   mu_p_species_date ~ normal(0, 2); // mean

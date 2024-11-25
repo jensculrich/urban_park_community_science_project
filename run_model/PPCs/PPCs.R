@@ -5,39 +5,136 @@
 library(rstan)
 library(tidyverse)
 
-source("./run_model/prep_data.R")
-my_data <- process_data(grid_size = 5000,
-                        min_species_detections = 5)
+city_name <- "los_angeles"
+my_data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", city_name, ".RDS"))
 
 ## --------------------------------------------------
 ### Prepare data for model
 
 # data to feed to the model
-V <- my_data$V 
+V <- my_data$V_detections
+R <- nrow(V)
+V_NA <- my_data$V_NA
 
-species_names <- my_data$species_names
-
+covariate_data <- my_data$covariate_data
 n_species <- my_data$n_species # number of species
-n_sites <- my_data$n_sites # number of sites
-n_years <- my_data$n_years # number of surveys
-n_years_minus1 <- n_years - 1
+species <- covariate_data$species_number
 n_surveys <- my_data$n_surveys
+survey <- sequence(n_surveys)
+survey <- (survey - mean(survey)) / sd(survey)
 
-species_character <- my_data$species
-sites_character <- my_data$sites
-species <- as.integer(as.factor(my_data$species))
-sites <- as.integer(as.factor(my_data$sites))
-years_full <- as.integer(my_data$years)
-years <- seq(1, n_years_minus1)
-surveys <- as.integer(my_data$surveys)
+# categorical year dummy variables
+X_year <- model.matrix(~ as.factor(year), data = covariate_data)
 
-# Summarize V[i,j,k,l] by species -> to get W[i]
-W_species = vector(length = n_species)
+species_info <- my_data$species_info %>%
+  mutate(species_number = as.integer(as.factor(species)))
+site_data <- my_data$site_data
 
-for(i in 1:n_species){
-  W_species[i] = sum(V[i,,,])
+## --------------------------------------------------
+### Calculate number of detections in the data (by species)
+
+W_species <- as.data.frame(V) %>%
+  mutate(sum = rowSums(across(where(is.numeric)))) %>%
+  cbind(covariate_data$species) %>%
+  rename("species" = "covariate_data$species") %>%
+  group_by(species) %>%
+  mutate(total_detections = sum(sum)) %>%
+  slice(1) %>%
+  select(species, total_detections)
+  ungroup()
+
+## --------------------------------------------------
+### Calculate number of detections predicted by the model (by species)
+
+stan_out <- readRDS("./model_outputs/stan_out.rds")  
+  
+fit_summary <- rstan::summary(stan_out)
+View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
+
+list_of_draws <- as.data.frame(stan_out)
+  
+## ilogit and logit functions
+ilogit <- function(x) exp(x)/(1+exp(x))
+logit <- function(x) log(x/(1-x))  
+  
+## --------------------------------------------------
+
+n_draws = 100 # small number for testing bc it does take a few minutes to simulate results
+#n_draws = nrow(list_of_draws) # number of samples from the posteriors
+random_draws_from_posterior = seq(length.out=n_draws) # use if not using the full posterior
+
+psi_expected <- vector(length=R)
+simmed_occurrence <- vector(length=R)
+
+p_expected <- array(data = NA, dim=c(R, n_surveys))
+simmed_detections <- array(data = NA, dim=c(R, n_surveys))
+
+#total_detections_per_draw <- array(data = NA, dim=c(R, n_surveys))
+
+for(i in 1:n_draws){
+  
+  rand <- random_draws_from_posterior[draw]
+  
+  # expected occurrence
+  for(i in 1:R){
+      
+      species <- covariate_data$species_number[i] # which species random effects to add
+      
+      psi_expected[i] =
+        ilogit(
+          # YEAR 1 is the global intercept
+          list_of_draws[rand,2] + 
+          # a year effect
+          list_of_draws[rand,3] * X_year[i,2] + 
+          list_of_draws[rand,4] * X_year[i,3] + 
+          list_of_draws[rand,5] * X_year[i,4] + 
+          list_of_draws[rand,6] * X_year[i,5] + 
+          # a species specific intercept effect
+          list_of_draws[rand,(19+(species-1))] +
+          # effect of wingspan * wingspan of species i + 
+          list_of_draws[rand,7] * covariate_data$aveWingspan_scaled[i] + 
+          # effect of parksize * wingspan of species i + 
+          list_of_draws[rand,8] * covariate_data$park_size_scaled[i] 
+        )
+      
+      simmed_occurrence[i] <- rbinom(1, 1, prob = psi_expected[i])
+      
+      for(j in 1:n_surveys){
+        p_expected =
+          ilogit(
+            # YEAR 1 is the global intercept
+            list_of_draws[rand,9] + 
+            # a species specific intercept effect
+            list_of_draws[rand,(79+(species-1))] +
+            # effect of wingspan * wingspan of species i + 
+            list_of_draws[rand,11] * covariate_data$aveWingspan_scaled[i] + 
+            # effect of feature diversity * feature diversity of species i + 
+            list_of_draws[rand,12] * covariate_data$featureDiversity_scaled[i] +
+            # effect of ease of id * ease of id of species i + 
+            list_of_draws[rand,13] * covariate_data$research_grade_proportion_scaled[i] +
+            # effect of parksize * wingspan of species i + 
+            list_of_draws[rand,14] * covariate_data$park_size_scaled[i] +
+            # a species specific effect of survey month
+            list_of_draws[rand,(79+(species-1))] * survey[j] +
+            # a species specific effect of survey squared
+            list_of_draws[rand,(79+(species-1))] * survey[j]^2
+          )
+      }
+  }
+
+  
 }
 
+
+
+
+
+
+## --------------------------------------------------
+# old stuff
+for(i in 1:n_draws){
+  W_species[i] = sum(V[i,])
+}
 
 # for simulated data
 W_df <- as.data.frame(cbind(species, W_species)) %>%

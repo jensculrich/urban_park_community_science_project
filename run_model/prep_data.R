@@ -34,6 +34,11 @@ prep_data <- function(min_species_detections,
     "./data/wrangled_detection_data/leps_data_cali.csv"))
     ) %>%
     
+  # use verbatim names for Riodinidae (GBIF does not accept them)
+  mutate(species = ifelse(family == "Riodinidae", 
+                          word(verbatimScientificName, 1, 2), 
+                          species)) %>%
+    
   # remove records with no species name
   filter(species != "") %>%
   

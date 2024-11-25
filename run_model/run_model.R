@@ -26,7 +26,8 @@ library(rstan)
 V <- my_data$V 
 V_NA <- my_data$V_NA
 
-species_names <- my_data$species_names 
+species_info <- my_data$species_info 
+site_data <- my_data$site_data
 # n (from species_names) is the total number of detections (not unique site visit detections)
 
 n_species <- my_data$n_species # number of species
@@ -49,39 +50,44 @@ surveys <- (surveys_raw - mean(surveys_raw)) / sd(surveys_raw)
 # do this for now
 n_families <- length(unique(family_lookup)) # number of families
 
-# predictors
-migratory <- my_data$migratory
-park_size_scaled <- my_data$park_size_scaled
+## predictors
+# species
+feature_diversity <- species_info$featureDiversity_scaled
+ease_of_id <- species_info$research_grade_proportion_scaled
+wingspan <- species_info$aveWingspan_scaled
+# site
+park_size <- site_data$park_size_scaled
 
-View(cbind(species_names, as.data.frame(family_lookup)))
+#View(cbind(species_names, as.data.frame(family_lookup)))
 
 
 stan_data <- c("V", "V_NA", "species", "sites", "years", "surveys", 
-               #"n_families", "family_lookup",
                "n_species", "n_sites", "n_years", "n_years_minus1", "n_surveys",
-               "migratory", "park_size_scaled"
+               "feature_diversity", "ease_of_id", "wingspan",
+               "park_size"
 ) 
 
 ## Parameters monitored 
 params <- c("psi1_0", 
             "sigma_psi1_species",
-            "psi1_migratory",
+            "psi1_wingspan",
             "psi1_park_size",
             
             "gamma0", 
             "sigma_gamma_species",
-            "gamma_migratory",
+            "gamma_wingspan",
             "gamma_park_size",
             
             "phi0", 
             "sigma_phi_species",
-            "phi_migratory",
+            "phi_wingspan",
             "phi_park_size",
             
             "p0", 
             "sigma_p_species",
-            #"sigma_p_family",
-            "p_migratory",
+            "p_wingspan",
+            "p_feature_diversity",
+            "p_ease_of_id",
             "p_park_size",
             "mu_p_species_date",
             "sigma_p_species_date",
@@ -89,7 +95,7 @@ params <- c("psi1_0",
             "sigma_p_species_date_sq",
             
             "W_species_rep",
-            "psi1_species", "gamma_species", "phi_species", "p_species"#, "p_family"
+            "psi1_species", "gamma_species", "phi_species", "p_species"
             )
 
 # MCMC settings
@@ -106,20 +112,20 @@ delta = 0.95
 inits <- lapply(1:n_chains, function(i)
   
   list(psi1_0 = runif(1, -1, 1),
-       
+       sigma_psi1_species = runif(1, 0, 1),
        gamma0 = runif(1, -1, 0),
-       
+       sigma_gamma_species = runif(1, 0, 1),
        phi0 = runif(1, 1, 2),
-       
-       p0 = runif(1, -1, 1)
-       
+       sigma_phi_species = runif(1, 0, 1),
+       p0 = runif(1, -1, 1),
+       sigma_p_species = runif(1, 0, 1)
   )
 )
 
 ## --------------------------------------------------
 ### Run model
 
-stan_model <- "./models/dynamic_occupancy_model5.stan"
+stan_model <- "./models/dynamic_occupancy_model.stan"
 
 ## Call Stan from R
 set.seed(1)
@@ -134,8 +140,8 @@ stan_out <- stan(stan_model,
                  open_progress = FALSE,
                  cores = n_cores)
 
-saveRDS(stan_out, "./model_outputs/stan_out5.2_w_all_species.rds")
-#stan_out <- readRDS("./model_outputs/stan_out4.rds")
+saveRDS(stan_out, "./model_outputs/stan_out.rds")
+#stan_out <- readRDS("./model_outputs/stan_out.rds")
 
 print(stan_out, digits = 3, 
       pars = c("psi1_0", 
