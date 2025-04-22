@@ -14,8 +14,97 @@ buffer_distance <- 250 # meters
 # downloaded via https://www.citynaturechallenge.org/participating-cities
 # first read the data 
 df <- read.csv(
-  "./data/all_inat_lep_records_2020-2023_los_angeles_county/all_inat_lep_records_2020-2023_los_angeles_county.csv")
-# 29,276 records
+  "./data/LA_county_observations_park_coord_clipped.csv") 
+
+# define butterfly families to include
+butterfly_families <- c("Hesperiidae", "Lycaenidae", "Nymphalidae", 
+                        "Papilionidae", "Pieridae", "Riodinidae")
+
+# The GBIF output doesn't recognize Rioidinidae or the common species Apodemia virgulti
+df <- df %>%
+  mutate(family = ifelse(taxonRank=="Riodinidae", "Riodinidae", family)) %>%
+  mutate(species = ifelse(verbatimScientificName=="Apodemia virgulti", 
+                          "Apodemia virgulti", species)) %>%
+  filter(family %in% butterfly_families) %>%
+  filter(species != "")
+# n records = 7596
+
+# number of species
+n_species <- length(unique(df$species))
+
+# vector of species names
+species_unique <- unique(df$species)
+
+# species / family table
+species_family <- df %>%
+  group_by(species) %>%
+  slice(1) %>%
+  select(family, species)
+
+# make a table of species by each park type to join 
+# (in case we had species that never occurred in one of the park types)
+species <- rep(species_unique, each = 2)
+type <- rep(c("classified", "unclassified"), times=n_species)
+species_type <- as.data.frame(cbind(species, type)) %>%
+  left_join(., species_family)
+
+# calculate total detections and detections by park type
+detections_by_park_type <- df %>%
+  group_by(species, type) %>%
+  add_tally() %>%
+  slice(1) %>%
+  ungroup() %>%
+  select(family, species, type, n) %>%
+  full_join(., species_type) %>%
+  mutate(n = replace_na(n, 0)) %>%
+  group_by(species) %>%
+  mutate(total_detections = sum(n),
+         ratio_classified_to_unclassified = n[1] / total_detections) %>%
+  ungroup() %>%
+  spread(type, n)
+
+# plot total detections
+p <- ggplot(detections_by_park_type, aes(x=reorder(fct_infreq(species), -total_detections), y=total_detections)) +
+  geom_bar(stat = "identity", aes(fill = family)) +
+  labs(x = "", y = "total detections") +
+  theme_classic() +
+  scale_y_continuous(limits = (c(0, 800))) +
+  theme(legend.position = "right",
+        legend.title=element_blank(),
+        legend.text=element_text(size=12),
+        axis.text.x = element_text(size = 12, angle = 65, vjust = 1, hjust=1.1),
+        axis.text.y = element_text(size = 12),
+        axis.title.y = element_text(size = 14),
+        plot.margin = unit(c(1,1,1,1), "cm")) 
+p
+
+# plot ratio in classified parks
+q <- ggplot(detections_by_park_type, aes(x=reorder(fct_infreq(species), 
+                                                   -ratio_classified_to_unclassified), 
+                                                   y=ratio_classified_to_unclassified)) +
+  geom_bar(stat = "identity", aes(fill = family)) +
+  labs(x = "", y = "% detections in classified parks") +
+  theme_classic() +
+  scale_y_continuous(limits = (c(0, 1))) +
+  theme(legend.position = "right",
+        legend.title=element_blank(),
+        legend.text=element_text(size=12),
+        axis.text.x = element_text(size = 12, angle = 65, vjust = 1, hjust=1.1),
+        axis.text.y = element_text(size = 12),
+        axis.title.y = element_text(size = 14),
+        plot.margin = unit(c(1,1,1,1), "cm")) 
+q
+
+
+
+
+
+
+
+
+
+#-------------------------------------------------------------------------------
+# this is all old stuff for visualizing the spatial layout of the sites
 
 # and perform some initial filters
 df <- df %>%
