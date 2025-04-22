@@ -1,12 +1,6 @@
 library(tidyverse)
 library(sf) # spatial data processing
 
-min_species_detections = 20
-grid_size = 2000 # meters
-min_park_size_acres = 10 # acres
-max_park_size_acres = 500 # acres
-buffer_distance <- 250 # meters
-
 #-----------------------------------------------------
 # summarize the detection data
 
@@ -105,6 +99,12 @@ q
 
 #-------------------------------------------------------------------------------
 # this is all old stuff for visualizing the spatial layout of the sites
+
+min_species_detections = 20
+grid_size = 2000 # meters
+min_park_size_acres = 10 # acres
+max_park_size_acres = 500 # acres
+buffer_distance <- 250 # meters
 
 # and perform some initial filters
 df <- df %>%
