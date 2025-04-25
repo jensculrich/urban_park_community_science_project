@@ -5,31 +5,45 @@
 library(rstan)
 library(tidyverse)
 
-city_name <- "los_angeles"
-my_data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", city_name, ".RDS"))
+#city_name <- "los_angeles"
+#my_data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", city_name, ".RDS"))
 
 ## --------------------------------------------------
 ### Prepare data for model
 
 # data to feed to the model
-V <- my_data$V_detections
+# detection data
+V <- my_data$V_detections # detections (1==detected)
+V_NA <- my_data$V_NA # NAs (0==no known survey effort made)
 R <- nrow(V)
-V_NA <- my_data$V_NA
 
+# covariate data
 covariate_data <- my_data$covariate_data
+n_sites <- my_data$n_sites # number of sites
+site <- covariate_data$new_id
 n_species <- my_data$n_species # number of species
 species <- covariate_data$species_number
+n_years <- my_data$n_years # number of surveys
+year <- covariate_data$year
 n_surveys <- my_data$n_surveys
 survey <- sequence(n_surveys)
 survey <- (survey - mean(survey)) / sd(survey)
+reverse_index <- covariate_data$reverse_index
 
 # categorical year dummy variables
-X_year <- model.matrix(~ as.factor(year), data = covariate_data)
+#X_year <- model.matrix(~ as.factor(year), data = covariate_data)
 
-species_info <- my_data$species_info %>%
-  mutate(species_number = as.integer(as.factor(species)))
+## predictors
+# species
+feature_diversity <- covariate_data$featureDiversity_scaled
+ease_of_id <- covariate_data$research_grade_proportion_scaled
+wingspan <- covariate_data$aveWingspan_scaled
+# site
+park_size <- covariate_data$log_classified_area_scaled
+# add more site predictors here
+
+species_info <- my_data$species_info 
 site_data <- my_data$site_data
-
 ## --------------------------------------------------
 ### Calculate number of detections in the data (by species)
 
@@ -40,13 +54,13 @@ W_species <- as.data.frame(V) %>%
   group_by(species) %>%
   mutate(total_detections = sum(sum)) %>%
   slice(1) %>%
-  select(species, total_detections)
+  select(species, total_detections) %>%
   ungroup()
 
 ## --------------------------------------------------
 ### Calculate number of detections predicted by the model (by species)
 
-stan_out <- readRDS("./model_outputs/stan_out.rds")  
+stan_out <- readRDS("./model_outputs/stan_out_new.rds")  
   
 fit_summary <- rstan::summary(stan_out)
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
