@@ -31,6 +31,8 @@ data {
   vector[n_species] ease_of_id;
   vector[n_species] wingspan;
   vector[n_sites] park_size;
+  vector[n_sites] connectivity;
+  vector[n_sites] tree_cover;
   
 } // end data
 
@@ -42,6 +44,8 @@ parameters {
   real<lower=0> sigma_psi1_species;
   real psi1_wingspan;
   real psi1_park_size;
+  real psi1_connectivity;
+  real psi1_tree_cover;
 
   // colonization
   real gamma0;
@@ -49,6 +53,9 @@ parameters {
   real<lower=0> sigma_gamma_species;
   real gamma_wingspan;
   real gamma_park_size;
+  real gamma_connectivity;
+  real gamma_tree_cover;
+  real gamma_wingspan_connectivity;
   
   // persistence
   real phi0;
@@ -56,6 +63,8 @@ parameters {
   real<lower=0> sigma_phi_species;
   real phi_wingspan;
   real phi_park_size;
+  real phi_connectivity;
+  real phi_tree_cover;
 
   // detection
   real p0; // intercept
@@ -64,7 +73,6 @@ parameters {
   real p_wingspan;
   real p_feature_diversity;
   real p_ease_of_id;
-  real p_park_size;
   vector[n_species] p_date; // phenology peak
   real mu_p_species_date; // community mean
   real<lower=0> sigma_p_species_date; // variation
@@ -100,19 +108,26 @@ transformed parameters {
         psi1[i,j] = inv_logit( // probability (0-1) of occurrence in year 1 is equal to..
           psi1_species[species[i]] + // a species specific intercept
           psi1_wingspan * wingspan[i] + // a species effect of migratory
-          psi1_park_size * park_size[j] // a site effect of park size
+          psi1_park_size * park_size[j] + // a site effect of park size
+          psi1_connectivity * connectivity[j] + // a site effect of park connectivity
+          psi1_tree_cover * tree_cover[j] // a site effect of tree cover
           ); // end psi1[j,k]
         
         gamma[i,j,k] = inv_logit( // probability (0-1) of colonization is equal to..
           gamma_species[species[i]] + // a species specific intercept
           gamma_wingspan * wingspan[i] + // a species effect of migratory
-          gamma_park_size * park_size[j] // a site effect of park size
+          gamma_park_size * park_size[j] + // a site effect of park size
+          gamma_connectivity * connectivity[j] + // a site effect of park connectivity
+          gamma_tree_cover * tree_cover[j] + // a site effect of tree cover
+          gamma_wingspan_connectivity * wingspan[i] + connectivity[j]
           ); // end gamma[i,j,k]
                 
         phi[i,j,k] = inv_logit( // probability (0-1) of persistence is equal to..
           phi_species[species[i]] + // a species specific intercept
           phi_wingspan * wingspan[i] + // a species effect of migratory
-          phi_park_size * park_size[j] // a site effect of park size
+          phi_park_size * park_size[j] + // a site effect of park size
+          phi_connectivity * connectivity[j] + // a site effect of park connectivity
+          phi_tree_cover * tree_cover[j] // a site effect of tree cover
           ); // end phi[i,j,k]
           
       } // end loop across all years
@@ -130,7 +145,6 @@ transformed parameters {
             p_wingspan * wingspan[i] + // a species effect of wingspan
             p_feature_diversity * feature_diversity[i] + // a species effect of feature diversity
             p_ease_of_id * ease_of_id[i] + // a species effect of ease of identification
-            p_park_size * park_size[j] + // a site effect of park size
             p_date[species[i]] * surveys[l] + // a species-specific phenological detection effect (peak)
             p_date_sq[species[i]] * (surveys[l])^2 // a species-specific phenological detection effect (decay)
             ); // end p[j,k,l]
@@ -171,18 +185,23 @@ model {
   
   // occupancy
   // initial state
-  psi1_0 ~ normal(0, 2); // persistence intercept
+  psi1_0 ~ normal(0, 1); // persistence intercept
   psi1_species_raw ~ std_normal();
   sigma_psi1_species ~ normal(0, 1);
   psi1_wingspan ~ normal(0, 2);
   psi1_park_size ~ normal(0, 2);
+  psi1_connectivity ~ normal(0, 2);
+  psi1_tree_cover ~ normal(0, 2);
 
   // colonization
   gamma0 ~ normal(0, 1); // persistence intercept
   gamma_species_raw ~ std_normal();
   sigma_gamma_species ~ normal(0, 1);
   gamma_wingspan ~ normal(0, 2);
-  gamma_park_size ~ normal(0, 2); 
+  gamma_park_size ~ normal(0, 2);
+  gamma_connectivity ~ normal(0, 2);
+  gamma_tree_cover ~ normal(0, 2); 
+  gamma_wingspan_connectivity ~ normal(0, 1);
 
   // persistence
   phi0 ~ normal(0, 1); // global intercept
@@ -190,6 +209,8 @@ model {
   sigma_phi_species ~ normal(0, 1);
   phi_wingspan ~ normal(0, 2);
   phi_park_size ~ normal(0, 2);
+  phi_connectivity ~ normal(0, 2);
+  phi_tree_cover ~ normal(0, 2);
 
   // detection
   p0 ~ normal(0, 2); // global intercept
@@ -198,7 +219,6 @@ model {
   p_wingspan ~ normal(0, 2);
   p_feature_diversity ~ normal(0, 2);
   p_ease_of_id ~ normal(0, 2);
-  p_park_size ~ normal(0, 2);
   p_date ~ normal(mu_p_species_date, sigma_p_species_date); // species-specific phenology (peak)
   mu_p_species_date ~ normal(0, 2); // mean
   sigma_p_species_date ~ normal(0, 2); // variation
@@ -210,6 +230,8 @@ model {
   for(i in 1:n_species){
     for (j in 1:n_sites){
       for (k in 1:n_years){
+        
+        if(sum(V_NA[i,j,k]) > 0){
           
           if (sum(V[i,j,k]) > 0){ // lp observed 
             // detection on each visit given detection rate on each visit
@@ -221,13 +243,7 @@ model {
                            bernoulli_lpmf(V[i,j,k,3]|p[i,j,k,3])*V_NA[i,j,k,3] + 
                            bernoulli_lpmf(V[i,j,k,4]|p[i,j,k,4])*V_NA[i,j,k,4] +
                            bernoulli_lpmf(V[i,j,k,5]|p[i,j,k,5])*V_NA[i,j,k,5] + 
-                           bernoulli_lpmf(V[i,j,k,6]|p[i,j,k,6])*V_NA[i,j,k,6] +
-                           bernoulli_lpmf(V[i,j,k,7]|p[i,j,k,7])*V_NA[i,j,k,7] + 
-                           bernoulli_lpmf(V[i,j,k,8]|p[i,j,k,8])*V_NA[i,j,k,8] +
-                           bernoulli_lpmf(V[i,j,k,9]|p[i,j,k,9])*V_NA[i,j,k,9] + 
-                           bernoulli_lpmf(V[i,j,k,10]|p[i,j,k,10])*V_NA[i,j,k,10] +
-                           bernoulli_lpmf(V[i,j,k,11]|p[i,j,k,11])*V_NA[i,j,k,11] + 
-                           bernoulli_lpmf(V[i,j,k,12]|p[i,j,k,12])*V_NA[i,j,k,12]
+                           bernoulli_lpmf(V[i,j,k,6]|p[i,j,k,6])*V_NA[i,j,k,6]
                        );
           } else { // lp unobserved (set up for 6 annual surveys)
             // marginal likelihood of:
@@ -238,16 +254,12 @@ model {
                                                      log1m(p[i,j,k,3])*V_NA[i,j,k,3] + 
                                                      log1m(p[i,j,k,4])*V_NA[i,j,k,4] +
                                                      log1m(p[i,j,k,5])*V_NA[i,j,k,5] + 
-                                                     log1m(p[i,j,k,6])*V_NA[i,j,k,6] +
-                                                     log1m(p[i,j,k,7])*V_NA[i,j,k,7] + 
-                                                     log1m(p[i,j,k,8])*V_NA[i,j,k,8] +
-                                                     log1m(p[i,j,k,9])*V_NA[i,j,k,9] + 
-                                                     log1m(p[i,j,k,10])*V_NA[i,j,k,10] +
-                                                     log1m(p[i,j,k,11])*V_NA[i,j,k,11] + 
-                                                     log1m(p[i,j,k,12])*V_NA[i,j,k,12],
+                                                     log1m(p[i,j,k,6])*V_NA[i,j,k,6],
                                     // or just simple no occurrence
                                     log1m(psi[i,j,k])));
           } // end if/else
+          
+        } // end if (any in year not NA)
   
       } // end loop across all years
     } // end loop across all sites   
