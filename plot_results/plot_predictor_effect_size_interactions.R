@@ -3,8 +3,8 @@
 library(tidyverse)
 library(rstan)
 
-stan_out <- readRDS("./model_outputs/stan_out_2km_connectivity_family.rds")
-stan_out2 <- readRDS("./model_outputs/stan_out_2km_connectivity_order.rds")
+stan_out <- readRDS("./model_outputs/stan_out_2km_connectivity_family_interaction.rds")
+stan_out2 <- readRDS("./model_outputs/stan_out_1km_connectivity_order_interaction.rds")
 fit_summary <- rstan::summary(stan_out)
 fit_summary2 <- rstan::summary(stan_out2)
 

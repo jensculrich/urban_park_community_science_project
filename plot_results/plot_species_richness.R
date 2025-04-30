@@ -3,93 +3,157 @@
 library(tidyverse)
 library(rstan)
 
-stan_out <- readRDS("./model_outputs/stan_out.rds")
+stan_out <- readRDS("./model_outputs/stan_out_2km_connectivity_family.rds")
 fit_summary <- rstan::summary(stan_out)
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
 
 list_of_draws <- as.data.frame(stan_out)
 
-city_name <- "los_angeles"
-my_data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", city_name, ".RDS"))
-
-n_species <- my_data$covariate_data %>%
-  group_by(species) %>%
-  slice(1) %>%
-  nrow(.)
+city_name <- "LA"
+my_data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", city_name, "_family.RDS"))
 
 species_data <- my_data$species_info
-  
-#site_data <- my_data$site_data
-park_size <- my_data$covariate_data %>%
-  select(site, park_size_scaled) %>%
-  group_by(site) %>%
-  slice(1) %>%
-  ungroup() %>%
-  pull(park_size_scaled)
+
+n_species <- nrow(species_data)
+
+site_data <- my_data$site_data
+
+park_size <- site_data$total_green_space_area 
+connectivity <- site_data$avg_dist_2000m_scaled
 
 ## ilogit and logit functions
 ilogit <- function(x) exp(x)/(1+exp(x))
 logit <- function(x) log(x/(1-x))
 
 ## --------------------------------------------------
+## plot species richness by park size
+
+## --------------------------------------------------
 ## get prediction range
 
-n_draws = 100 # small number for testing bc it does take a few minutes to simulate results
+n_years = 5
+n_years_minus1 = n_years - 1 
+
+n_draws = 50 # small number for testing bc it does take a few minutes to simulate results
 #n_draws = nrow(list_of_draws) # number of samples from the posteriors
 
-pred_length = 1000
+pred_length = 500
 
 pred_data <- seq(from = min(park_size), to = max(park_size), length.out = pred_length)
 
 ## --------------------------------------------------
 
-psi_expected <- array(data = NA, dim=c(n_species, pred_length))
+psi1_expected <- array(data = NA, dim=c(n_species, pred_length))
 
-occurrence_simmed <- array(data = NA, dim=c(n_species, pred_length))
+gamma_expected <- array(data = NA, dim=c(n_species, pred_length, n_years_minus1))
+
+phi_expected <- array(data = NA, dim=c(n_species, pred_length, n_years_minus1))
+
+occurrence_simmed <- array(data = NA, dim=c(n_species, pred_length, n_years))
 
 random_draws_from_posterior = seq(length.out=n_draws) # use if not using the full posterior
 
-richness = array(data = NA, dim=c(pred_length, n_draws))
+psi <- array(data = NA, dim=c(n_species, pred_length, n_years_minus1))
+
+richness = array(data = NA, dim=c(pred_length,n_years, n_draws))
 
 # take random draws for psi and predict occurrence, then sum across n species
+
 for(draw in 1:n_draws){
-  
+
   rand <- random_draws_from_posterior[draw]
   
-  # expected occurrence
+  # expected occurrence in year 1
   for(i in 1:n_species){
     for(j in 1:pred_length){
-     
-      psi_expected[i,j] =
-        ilogit(
-          # YEAR 1 is the global intercept
-          list_of_draws[rand,2] + 
-            # a species specific intercept effect
-            list_of_draws[rand,(19+(i-1))] +
-            # effect of wingspan * wingspan of species i + 
-            list_of_draws[rand,7] * species_data$aveWingspan_scaled[i] + 
-            # effect of parksize * wingspan of species i + 
-            list_of_draws[rand,8] * pred_data[j] 
-        )
+      for(k in 2:n_years){
+        
+        psi1_expected[i,j] =
+          ilogit(
+            # YEAR 1 is the global intercept
+            list_of_draws[rand,1] + 
+              # a species specific intercept effect (the number here should be first column)
+              list_of_draws[rand,(93+(i-1))] +
+              # effect of wingspan * wingspan of species i + 
+              list_of_draws[rand,3] * species_data$aveWingspan_scaled[i] + 
+              # effect of parksize * parksize of site j + 
+              list_of_draws[rand,8] * pred_data[j] 
+            # not adding any other park predictors would keep park at same value
+          )
+        
+        
+        gamma_expected[i,j,k-1] =
+          ilogit(#gamma0 +
+            list_of_draws[rand,7] + 
+              #species_effects[species[i],1] + // a species specific intercept
+              # start at first row of species effects
+              # then each next species will be + i
+              list_of_draws[rand,(158+(i-1))] +
+              # effect of wingspan * wingspan of species i + 
+              list_of_draws[rand,9] * species_data$aveWingspan_scaled[i] + 
+              # effect of parksize * parksize of site j + 
+              list_of_draws[rand,10] * pred_data[j] 
+            # not adding any other park predictors would keep park at same value
+          )
+        
       
+        phi_expected[i,j,k-1] =
+          ilogit(#phi0 +
+            list_of_draws[rand,13] + 
+              #species_effects[species[i],1] + // a species specific intercept
+              # start at first row of species effects
+              # then each next species will be + i
+              list_of_draws[rand,(223+(i-1))] +
+              # effect of wingspan * wingspan of species i + 
+              list_of_draws[rand,15] * species_data$aveWingspan_scaled[i] + 
+              # effect of parksize * parksize of site j + 
+              list_of_draws[rand,16] * pred_data[j] 
+            # not adding any other park predictors would keep park at same value
+          )
+        
+        if(k == 2){
+          # calculate occurrence based on transition from first year
+          psi[i,j,k-1] = psi1_expected[i,j] * phi_expected[i,j,k-1] + 
+            (1 - psi1_expected[i,j]) * gamma_expected[i,j,k-1]
+          
+        } else{
+          # calculate occurrence based on transition from first year
+          psi[i,j,k-1] = psi[i,j,k-2] * phi_expected[i,j,k-1] + 
+            (1 - psi[i,j,k-2]) * gamma_expected[i,j,k-1]
+        
+        }
+      } 
     }
   }
   
   # simmed occurrence in year 1
   for(i in 1:n_species){
     for(j in 1:pred_length){
-        occurrence_simmed[i,j] <- rbinom(1, 1, prob = psi_expected[i,j])
+      for(k in 1:n_years){
+        if(k < 2){
+          occurrence_simmed[i,j,1] <- rbinom(1, 1, prob = psi1_expected[i,j])
+        } else{
+          occurrence_simmed[i,j,k] = occurrence_simmed[i,j,k-1] * phi_expected[i,j,k-1] + 
+            (1 - occurrence_simmed[i,j,k-1]) * gamma_expected[i,j,k-1]
+        }
+      }
     }
   }
   
   for(j in 1:pred_length){
-      richness[j,draw] <- sum(occurrence_simmed[1:n_species,j])
+    for(k in 1:n_years){
+      richness[j,k,draw] <- sum(occurrence_simmed[1:n_species,j,k])
+    }
   }
   
 } 
 
 ## --------------------------------------------------
 # summarize the results
+
+# collapse across years (average richness by site [array dimension 3] 
+# per rand draw from the posterior [dim 1], across all years [dim 2])
+richness <- apply(richness,c(1,3),mean)
 
 mean = vector(length=pred_length)
 lower_50 = vector(length=pred_length)
@@ -137,18 +201,18 @@ df2 <- data.frame(pred_data = p$data[[1]]$x,
 
 # use the loess data to add the 'ribbon' to plot 
 (p  <- ggplot(data = df2, aes(pred_data)) +
-   geom_line(aes(y=mean), size = 2, colour = "#8F2727") +
-   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "#DCBCBC", alpha = 0.3) +
-   geom_ribbon(aes(ymin = lower_50, ymax = upper_50), fill = "#B97C7C", alpha = 0.3) +
+   geom_line(aes(y=mean), size = 2, colour = "lightskyblue4") +
+   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "lightskyblue3", alpha = 0.3) +
+   geom_ribbon(aes(ymin = lower_50, ymax = upper_50), fill = "lightskyblue2", alpha = 0.3) +
     #geom_ribbon(
     # aes(ymin = lower_95, ymax = upper_95), fill = "#DCBCBC") +
    #geom_ribbon(
      #aes(ymin = lower_50, ymax = upper_50), fill = "#B97C7C") +
    #geom_line(size = 2, colour = "#8F2727") +
-   ylim(c(0, 60)) +
+   ylim(c(0, 65)) +
    theme_classic() +
-   xlab("Park size (log-transformed and then scaled)") +
-   ylab("Predicted species richness") +
+   xlab("Park Size (log-transformed and scaled)") +
+   ylab("Predicted Local Species Richness  \n (averaged across years") +
    theme(axis.text.x = element_text(size = 18),
          axis.text.y = element_text(size = 18),
          axis.title.x = element_text(size=20),
@@ -158,3 +222,209 @@ df2 <- data.frame(pred_data = p$data[[1]]$x,
          )
  
 ) 
+
+
+
+## --------------------------------------------------
+## plot species richness by connectivity
+
+## --------------------------------------------------
+## get prediction range
+
+n_years = 5
+n_years_minus1 = n_years - 1 
+
+n_draws = 50 # small number for testing bc it does take a few minutes to simulate results
+#n_draws = nrow(list_of_draws) # number of samples from the posteriors
+
+pred_length = 500
+
+pred_data <- seq(from = min(connectivity), to = max(connectivity), length.out = pred_length)
+
+## --------------------------------------------------
+
+psi1_expected <- array(data = NA, dim=c(n_species, pred_length))
+
+gamma_expected <- array(data = NA, dim=c(n_species, pred_length, n_years_minus1))
+
+phi_expected <- array(data = NA, dim=c(n_species, pred_length, n_years_minus1))
+
+occurrence_simmed <- array(data = NA, dim=c(n_species, pred_length, n_years))
+
+random_draws_from_posterior = seq(length.out=n_draws) # use if not using the full posterior
+
+psi <- array(data = NA, dim=c(n_species, pred_length, n_years_minus1))
+
+richness = array(data = NA, dim=c(pred_length,n_years, n_draws))
+
+# take random draws for psi and predict occurrence, then sum across n species
+
+for(draw in 1:n_draws){
+  
+  rand <- random_draws_from_posterior[draw]
+  
+  # expected occurrence in year 1
+  for(i in 1:n_species){
+    for(j in 1:pred_length){
+      for(k in 2:n_years){
+        
+        psi1_expected[i,j] =
+          ilogit(
+            # YEAR 1 is the global intercept
+            list_of_draws[rand,1] + 
+              # a species specific intercept effect (the number here should be first column)
+              list_of_draws[rand,(93+(i-1))] +
+              # effect of wingspan * wingspan of species i + 
+              list_of_draws[rand,3] * species_data$aveWingspan_scaled[i] + 
+              # effect of connectivity * connectivity of site j + 
+              list_of_draws[rand,9] * pred_data[j] 
+            # not adding any other park predictors would keep park at same value
+          )
+        
+        
+        gamma_expected[i,j,k-1] =
+          ilogit(#gamma0 +
+            list_of_draws[rand,7] + 
+              #species_effects[species[i],1] + // a species specific intercept
+              # start at first row of species effects
+              # then each next species will be + i
+              list_of_draws[rand,(158+(i-1))] +
+              # effect of wingspan * wingspan of species i + 
+              list_of_draws[rand,9] * species_data$aveWingspan_scaled[i] + 
+              # effect of connectivity * connectivity of site j + 
+              list_of_draws[rand,11] * pred_data[j] 
+            # not adding any other park predictors would keep park at same value
+          )
+        
+        
+        phi_expected[i,j,k-1] =
+          ilogit(#phi0 +
+            list_of_draws[rand,13] + 
+              #species_effects[species[i],1] + // a species specific intercept
+              # start at first row of species effects
+              # then each next species will be + i
+              list_of_draws[rand,(223+(i-1))] +
+              # effect of wingspan * wingspan of species i + 
+              list_of_draws[rand,15] * species_data$aveWingspan_scaled[i] + 
+              # effect of connectivity * connectivity of site j + 
+              list_of_draws[rand,17] * pred_data[j] 
+            # not adding any other park predictors would keep park at same value
+          )
+        
+        if(k == 2){
+          # calculate occurrence based on transition from first year
+          psi[i,j,k-1] = psi1_expected[i,j] * phi_expected[i,j,k-1] + 
+            (1 - psi1_expected[i,j]) * gamma_expected[i,j,k-1]
+          
+        } else{
+          # calculate occurrence based on transition from first year
+          psi[i,j,k-1] = psi[i,j,k-2] * phi_expected[i,j,k-1] + 
+            (1 - psi[i,j,k-2]) * gamma_expected[i,j,k-1]
+          
+        }
+      } 
+    }
+  }
+  
+  # simmed occurrence in year 1
+  for(i in 1:n_species){
+    for(j in 1:pred_length){
+      for(k in 1:n_years){
+        if(k < 2){
+          occurrence_simmed[i,j,1] <- rbinom(1, 1, prob = psi1_expected[i,j])
+        } else{
+          occurrence_simmed[i,j,k] = occurrence_simmed[i,j,k-1] * phi_expected[i,j,k-1] + 
+            (1 - occurrence_simmed[i,j,k-1]) * gamma_expected[i,j,k-1]
+        }
+      }
+    }
+  }
+  
+  for(j in 1:pred_length){
+    for(k in 1:n_years){
+      richness[j,k,draw] <- sum(occurrence_simmed[1:n_species,j,k])
+    }
+  }
+  
+} 
+
+## --------------------------------------------------
+# summarize the results
+
+# collapse across years (average richness by site [array dimension 3] 
+# per rand draw from the posterior [dim 1], across all years [dim 2])
+richness <- apply(richness,c(1,3),mean)
+
+mean = vector(length=pred_length)
+lower_50 = vector(length=pred_length)
+upper_50 = vector(length=pred_length)
+lower_95 = vector(length=pred_length)
+upper_95 = vector(length=pred_length)
+
+for(j in 1:pred_length){
+  quants = as.vector(quantile(richness[j,], probs = c(0.05, 0.25, 0.50, 0.75, 0.95)))
+  
+  mean[j] = quants[3]
+  lower_50[j] = quants[2]
+  upper_50[j] = quants[4]
+  lower_95[j] = quants[1]
+  upper_95[j] = quants[5]
+}
+
+df <- as.data.frame(cbind(pred_data,
+                          mean,
+                          lower_50, upper_50,
+                          lower_95, upper_95))
+
+## --------------------------------------------------
+## Draw species richness plot
+
+# create plot object with loess regression lines
+pre_q <- ggplot(df) + 
+  stat_smooth(aes(x = pred_data, y = mean), method = "loess", se = FALSE) +
+  stat_smooth(aes(x = pred_data, y = lower_95), method = "loess", se = FALSE) +
+  stat_smooth(aes(x = pred_data, y = upper_95), method = "loess", se = FALSE) +
+  stat_smooth(aes(x = pred_data, y = lower_50), method = "loess", se = FALSE) +
+  stat_smooth(aes(x = pred_data, y = upper_50), method = "loess", se = FALSE) 
+pre_q
+
+# build plot object for rendering 
+q <- ggplot_build(pre_q)
+
+# extract data for the loess lines from the 'data' slot
+df2 <- data.frame(pred_data = q$data[[1]]$x,
+                  mean = q$data[[1]]$y,
+                  lower_95 = q$data[[2]]$y,
+                  upper_95 = q$data[[3]]$y,
+                  lower_50 = q$data[[4]]$y,
+                  upper_50 = q$data[[5]]$y) 
+
+# use the loess data to add the 'ribbon' to plot 
+(q  <- ggplot(data = df2, aes(pred_data)) +
+    geom_line(aes(y=mean), size = 2, colour = "lightskyblue4") +
+    geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "lightskyblue3", alpha = 0.3) +
+    geom_ribbon(aes(ymin = lower_50, ymax = upper_50), fill = "lightskyblue2", alpha = 0.3) +
+    #geom_ribbon(
+    # aes(ymin = lower_95, ymax = upper_95), fill = "#DCBCBC") +
+    #geom_ribbon(
+    #aes(ymin = lower_50, ymax = upper_50), fill = "#B97C7C") +
+    #geom_line(size = 2, colour = "#8F2727") +
+    ylim(c(0, 65)) +
+    theme_classic() +
+    xlab("Connectivity: Mean Distance to\nOther Greenspace within 2km (scaled)") +
+    ylab("Predicted Local Species Richness  \n (averaged across years") +
+    theme(axis.text.x = element_text(size = 18),
+          axis.text.y = element_text(size = 18),
+          axis.title.x = element_text(size=20),
+          axis.title.y = element_text(size = 20)#,
+          #panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          #panel.background = element_blank(), axis.line = element_line(colour = "black")
+    )
+  
+) 
+
+
+## --------------------------------------------------
+## cowplot
+
+cowplot::plot_grid(p, q)
