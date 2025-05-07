@@ -116,7 +116,7 @@ df_estimates$upper_50 <- as.numeric(df_estimates$upper_50)
                               bquote(psi["tree cover"])
                      )) +
     scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                       limits = c(-4, 3)) +
+                       limits = c(-5, 3)) +
     guides(color = guide_legend(title = "background sampling")) +
     geom_hline(yintercept = 0, lty = "dashed") +
     ggtitle("Initial Occurrence") +
@@ -247,7 +247,7 @@ df_estimates$upper_50 <- as.numeric(df_estimates$upper_50)
                              bquote(gamma["tree cover"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-5, 2.5), breaks = c(-4, -2, 0, 2)) +
+                      limits = c(-7, 2.5), breaks = c(-4, -2, 0, 2)) +
    guides(color = guide_legend(title = "background sampling")) +
    geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("Colonization") +
