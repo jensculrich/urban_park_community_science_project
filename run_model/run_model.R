@@ -4,9 +4,9 @@
 # for community sampling events inferred by [taxonomic] family, source this file:
 source("./run_model/prep_data.R")
 
-min_species_detections <- 1 # binary park/year/species detections
+min_species_detections <- 2 # binary park/year/species detections
 min_species_for_community_sampling_event = 1 
-family_sampling = TRUE 
+family_sampling = FALSE # Should enter either TRUE or FALSE 
 # family_sampling:
 # if false infer sampling event for all butterflies if any butterflies detected
 # if true only infer sampling event for butterflies in same family as any butterflies detected
@@ -70,7 +70,6 @@ params <- c("psi1_0",
            "gamma_park_size",
            "gamma_connectivity",
            "gamma_tree_cover",
-           "gamma_wingspan_connectivity",
            
            "phi0", 
            "sigma_phi_species",
@@ -110,6 +109,8 @@ inits <- lapply(1:n_chains, function(i)
        sigma_psi1_species = runif(1, 0, 1),
        psi1_wingspan = runif(1, -1, 1),
        psi1_park_size = runif(1, -1, 1),
+       gamma0 = runif(1, -4, -3),
+       phi0 = runif(1, 2, 3),
        p0 = runif(1, -1, 1),
        sigma_p_species = runif(1, 0, 1),
        sigma_p_site = runif(1, 0, 1),
@@ -126,7 +127,7 @@ inits <- lapply(1:n_chains, function(i)
 ## --------------------------------------------------
 ### Run model
 
-stan_model <- "./models/dynamic_occupancy_model.stan"
+stan_model <- "./models/dynamic_occupancy_model_stricter_priors.stan"
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
@@ -140,7 +141,7 @@ stan_out <- stan(stan_model,
                  open_progress = FALSE,
                  cores = n_cores)
 
-saveRDS(stan_out, "./model_outputs/stan_out_order_interaction.rds")
+saveRDS(stan_out, "./model_outputs/stan_out_2km_connectivity_order.rds")
 #stan_out <- readRDS("./model_outputs/stan_out.rds")
 
 print(stan_out, digits = 3, 

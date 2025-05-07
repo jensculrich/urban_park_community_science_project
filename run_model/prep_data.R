@@ -81,11 +81,11 @@ prep_data <- function(min_species_detections,
     ungroup() %>%
     
     # to get two-month surveys, we can subtract one from all even numbered months
-    mutate(month = ifelse(month %% 2 == 0, month - 1, month)) %>% 
+    mutate(survey = ifelse(month %% 2 == 0, month - 1, month)) %>% 
   
     # add survey date within year
     group_by(year) %>% 
-    mutate(survey = as.integer(factor(month)),
+    mutate(survey = as.integer(factor(survey)),
            year = as.integer(year - 2019)) %>% # used (- 2019) to make 2020 == year 1
     ungroup() %>%
     
@@ -103,6 +103,9 @@ prep_data <- function(min_species_detections,
     group_by(species) %>%
     add_tally(name = 'n_binary_detections') %>%
     ungroup() %>%
+    
+    # and filter out species with too few detections
+    filter(n_binary_detections >= min_species_detections) %>%
     
     # arrange by survey within year  
     arrange(year, survey) 
@@ -160,7 +163,7 @@ prep_data <- function(min_species_detections,
   hist(site_data$total_green_space_area)
   hist(site_data$tree_cover_scaled)
   hist(site_data$grass_shrub_cover_scaled)
-  hist(site_data$avg_dist_1000m_scaled)
+  hist(site_data$avg_dist_2000m_scaled)
   #hist(site_data$avg_dist_500m)
   #hist(site_data$avg_dist_1000m)
 
@@ -456,9 +459,10 @@ prep_data <- function(min_species_detections,
       dplyr::select(-species, -n_species_sampled) %>%
       
       # we just need one row per community sampling event (not a row for all species positively detected)
-      group_by(new_id, family, year, survey) %>%
+      group_by(new_id, year, survey) %>%
       slice(1) %>%
-      ungroup()
+      ungroup() %>%
+      select(-family)
   }
   
   
@@ -490,12 +494,24 @@ prep_data <- function(min_species_detections,
   # now propagate nondetections to any species 
   # this assumes that ALL other species could have been detected
   # could revise to propagate nondetection only to other species in same suborder, family, genus etc.
-  all_visits_joined <- left_join(
-    all_species_site_visits, community_samples, 
-    by=c("new_id","family", "year", "survey")) %>%
+  if(family_sampling == TRUE){
     
-    # create an indicator if the site visit was a sample or not (0 == not sampled, 1 == sampled)
-    mutate(community_sampled = replace_na(community_sampled, 0)) 
+    all_visits_joined <- left_join(
+      all_species_site_visits, community_samples, 
+      by=c("new_id", "family", "year", "survey")) %>%
+      
+      # create an indicator if the site visit was a sample or not (0 == not sampled, 1 == sampled)
+      mutate(community_sampled = replace_na(community_sampled, 0)) 
+    
+  } else {
+    
+    all_visits_joined <- left_join(
+      all_species_site_visits, community_samples, 
+      by=c("new_id", "year", "survey")) %>%
+      
+      # create an indicator if the site visit was a sample or not (0 == not sampled, 1 == sampled)
+      mutate(community_sampled = replace_na(community_sampled, 0)) 
+  }
   
   # for < min_species_for_community_sampling_event with a sampled indicator
   # by definition, we know that someone observed these species and so they were observed

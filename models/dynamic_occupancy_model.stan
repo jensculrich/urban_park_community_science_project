@@ -55,8 +55,7 @@ parameters {
   real gamma_park_size;
   real gamma_connectivity;
   real gamma_tree_cover;
-  real gamma_wingspan_connectivity;
-  
+
   // persistence
   real phi0;
   vector[n_species] phi_species_raw;
@@ -118,8 +117,7 @@ transformed parameters {
           gamma_wingspan * wingspan[i] + // a species effect of migratory
           gamma_park_size * park_size[j] + // a site effect of park size
           gamma_connectivity * connectivity[j] + // a site effect of park connectivity
-          gamma_tree_cover * tree_cover[j] + // a site effect of tree cover
-          gamma_wingspan_connectivity * wingspan[i] + connectivity[j]
+          gamma_tree_cover * tree_cover[j] // a site effect of tree cover
           ); // end gamma[i,j,k]
                 
         phi[i,j,k] = inv_logit( // probability (0-1) of persistence is equal to..
@@ -201,7 +199,6 @@ model {
   gamma_park_size ~ normal(0, 2);
   gamma_connectivity ~ normal(0, 2);
   gamma_tree_cover ~ normal(0, 2); 
-  gamma_wingspan_connectivity ~ normal(0, 1);
 
   // persistence
   phi0 ~ normal(0, 1); // global intercept
