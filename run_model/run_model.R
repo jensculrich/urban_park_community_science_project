@@ -6,7 +6,7 @@ source("./run_model/prep_data.R")
 
 min_species_detections <- 2 # binary park/year/species detections
 min_species_for_community_sampling_event = 1 
-family_sampling = FALSE # Should enter either TRUE or FALSE 
+family_sampling = TRUE # Should enter either TRUE or FALSE 
 # family_sampling:
 # if false infer sampling event for all butterflies if any butterflies detected
 # if true only infer sampling event for butterflies in same family as any butterflies detected
@@ -127,7 +127,7 @@ inits <- lapply(1:n_chains, function(i)
 ## --------------------------------------------------
 ### Run model
 
-stan_model <- "./models/dynamic_occupancy_model_stricter_priors.stan"
+stan_model <- "./models/dynamic_occupancy_model.stan"
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
@@ -141,7 +141,7 @@ stan_out <- stan(stan_model,
                  open_progress = FALSE,
                  cores = n_cores)
 
-saveRDS(stan_out, "./model_outputs/stan_out_2km_connectivity_order.rds")
+saveRDS(stan_out, "./model_outputs/stan_out_2km_connectivity_family.rds")
 #stan_out <- readRDS("./model_outputs/stan_out.rds")
 
 print(stan_out, digits = 3, 

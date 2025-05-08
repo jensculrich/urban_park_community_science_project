@@ -52,6 +52,7 @@ prep_data <- function(min_species_detections,
   
   # genus <- unique(df$genus)
   
+  # write a file with list of genera that we need to gather data for (only need to do this once)
   #write.csv(genus, "data/lepidoptera_trait_data/ease_of_id/identifiability_by_genus.csv")
   
   #-----------------------------------------------------
@@ -81,8 +82,10 @@ prep_data <- function(min_species_detections,
     ungroup() %>%
     
     # to get two-month surveys, we can subtract one from all even numbered months
-    mutate(survey = ifelse(month %% 2 == 0, month - 1, month)) %>% 
-  
+    #mutate(survey = ifelse(month %% 2 == 0, month - 1, month)) %>% 
+    # or use one moth surveys
+    mutate(survey = month) %>%
+    
     # add survey date within year
     group_by(year) %>% 
     mutate(survey = as.integer(factor(survey)),
@@ -181,7 +184,7 @@ prep_data <- function(min_species_detections,
   
   # ease of identification
   trait_df <- read.csv(
-    "./data/lepidoptera_trait_data/butterfly_engagement/SpeciesListForTraits.csv") %>%
+    "./data/lepidoptera_trait_data/lepidoptera_trait_data/SpeciesListForTraits.csv") %>%
     select(GBIF_species, eButterfly_species, featureDiversity, aveWingspan) 
   
   ## separate out all possible names for the species
