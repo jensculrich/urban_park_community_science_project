@@ -116,7 +116,7 @@ df_estimates$upper_50 <- as.numeric(df_estimates$upper_50)
                               bquote(psi["tree cover"])
                      )) +
     scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                       limits = c(-5, 3)) +
+                       limits = c(-4, 3.5)) +
     guides(color = guide_legend(title = "background sampling")) +
     geom_hline(yintercept = 0, lty = "dashed") +
     ggtitle("Initial Occurrence") +
@@ -247,7 +247,7 @@ df_estimates$upper_50 <- as.numeric(df_estimates$upper_50)
                              bquote(gamma["tree cover"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-7, 2.5), breaks = c(-4, -2, 0, 2)) +
+                      limits = c(-5, 4), breaks = c(-4, -2, 0, 2)) +
    guides(color = guide_legend(title = "background sampling")) +
    geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("Colonization") +
@@ -378,7 +378,7 @@ df_estimates$upper_50 <- as.numeric(df_estimates$upper_50)
                              bquote(phi["tree cover"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-2, 4.5)) +
+                      limits = c(-2, 7)) +
    guides(color = guide_legend(title = "background sampling")) +
    geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("Persistence") +
@@ -519,7 +519,7 @@ df_estimates$upper_50 <- as.numeric(df_estimates$upper_50)
                              bquote(p["phenology decay"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-2.5, 2), breaks = -2, 0, 2) +
+                      limits = c(-3, 2), breaks = c(-2, 0, 2)) +
    guides(color = guide_legend(title = "background sampling")) +
    geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("Detection") +
