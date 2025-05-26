@@ -7,10 +7,9 @@
 # and only model non-detections as those species not observed on a given community sampling event?
 
 library(tidyverse) # data organization
-# library(sf) # spatial data processing
-# library(wesanderson) # colour palettes
 
-prep_data <- function(min_species_detections,
+prep_data <- function(city,
+                      min_species_detections,
                       min_species_for_community_sampling_event,
                       family_sampling
                       ) {
@@ -26,8 +25,10 @@ prep_data <- function(min_species_detections,
   # load the detection data
   
   # first read the data 
-  df <- read.csv(
-    "./data/LA_county_observations_park_coord_clipped.csv") 
+  df <- read.csv(paste0(
+    "./data/", city, "/01_", city,
+    "_observations_park_coord_2km_clipped.csv"
+  ))
   
   # define butterfly families to include
   butterfly_families <- c("Hesperiidae", "Lycaenidae", "Nymphalidae", 
@@ -48,7 +49,9 @@ prep_data <- function(min_species_detections,
   filter(species != "") %>%
   
   # filter down to the butterfly families
-  filter(family %in% butterfly_families)
+  filter(family %in% butterfly_families) %>%
+  
+  filter(coordinateUncertaintyInMeters < 100)
   
   # genus <- unique(df$genus)
   
@@ -148,12 +151,17 @@ prep_data <- function(min_species_detections,
   
   # get scaled versions of the site covariate data
   site_data <- site_data %>%
-    mutate(total_green_space_area = center_scale(log(total_green_space_area)),
+    mutate(log_total_green_space_area = log(total_green_space_area),
+           log_total_green_space_area_scaled = center_scale(log_total_green_space_area),
            tree_cover_scaled = center_scale(tree_percent_cover),
            grass_shrub_cover_scaled = center_scale(grass_shrub__percent_cover))
   
   # add connectivity data
-  connectivity <- read.csv("./data/connectivity.csv") 
+  connectivity <- read.csv(paste0(
+    "./data/", city, "/04_", city,
+    "_connectivity.csv"
+  ))
+  
   # and join the variables we want with the site data by site id
   site_data <- site_data %>%
     left_join(., connectivity, by="new_id") %>%
@@ -161,10 +169,33 @@ prep_data <- function(min_species_detections,
            avg_dist_1000m = replace_na(avg_dist_1000m, 1000),
            avg_dist_1000m_scaled = center_scale(avg_dist_1000m))
            
+  # add park flower data
+  flower_data <- read.csv(paste0(
+    "./data/", city, "/03_", city,
+    "_flowers_clipped_park.csv"
+  )) %>%
+  
+  # get number of flowering plant genera per site
+    group_by(new_id, genus) %>%
+    # only need one row per genus in each site to count number of genera at each site
+    slice(1) %>%
+    ungroup() %>%
+    group_by(new_id) %>%
+    summarise(n_plant_genera = n())
+  
+  # and join the variables we want with the site data by site id
+  site_data <- site_data %>%
+    left_join(., flower_data, by="new_id") %>%
+    mutate(n_plant_genera = replace_na(n_plant_genera, 0),
+           log_n_plant_genera = log(n_plant_genera+1),
+           plant_genera_density = log_n_plant_genera / log_total_green_space_area) %>%
+    mutate(plant_genera_density_scaled = center_scale(plant_genera_density))
+  
   # plot the spread of the site covariate data
-  par(mfrow=c(1,4))  
-  hist(site_data$total_green_space_area)
+  par(mfrow=c(1,5))  
+  hist(site_data$log_total_green_space_area_scaled)
   hist(site_data$tree_cover_scaled)
+  hist(site_data$plant_genera_density_scaled)
   hist(site_data$grass_shrub_cover_scaled)
   hist(site_data$avg_dist_2000m_scaled)
   #hist(site_data$avg_dist_500m)
@@ -173,19 +204,21 @@ prep_data <- function(min_species_detections,
   par(mfrow=c(1,1)) 
   
   # how correlated are the site covariate data
-  cor(site_data$total_green_space_area, site_data$tree_cover_scaled)
+  cor(site_data$log_total_green_space_area_scaled, site_data$tree_cover_scaled)
+  cor(site_data$log_total_green_space_area_scaled, site_data$plant_genera_density_scaled)
+  cor(site_data$tree_cover_scaled, site_data$plant_genera_density_scaled)
   cor(site_data$grass_shrub_cover_scaled, site_data$tree_cover_scaled)
-  cor(site_data$grass_shrub_cover_scaled, site_data$total_green_space_area)
-  cor(site_data$total_green_space_area, site_data$avg_dist_2000m)
+  cor(site_data$grass_shrub_cover_scaled, site_data$log_total_green_space_area_scaled)
+  cor(site_data$log_total_green_space_area_scaled, site_data$avg_dist_2000m)
   cor(site_data$avg_dist_1000m, site_data$avg_dist_2000m)
   
   ## --------------------------------------------------
   ## get species trait data
   
-  # ease of identification
+  # species morpho traits
   trait_df <- read.csv(
     "./data/lepidoptera_trait_data/lepidoptera_trait_data/SpeciesListForTraits.csv") %>%
-    select(GBIF_species, eButterfly_species, featureDiversity, aveWingspan) 
+    select(GBIF_species, eButterfly_species, LepTraits_name, featureDiversity, aveWingspan) 
   
   ## separate out all possible names for the species
   # first figure out how many possible names
@@ -225,6 +258,10 @@ prep_data <- function(min_species_detections,
     ungroup() %>%
     select(family, featureDiversityFamily, aveWingspanFamily)
   
+  # in the event that a species has no data, this will replace the NA trait data
+  # from the highest resolution taxonomic group with available data.
+  # e.g. no data for species wingspan, replace species wingspan with the average wingspan
+  # for all species from the same genus.
   species_info <- left_join(species_info, trait_df, by=c("species" = "GBIF_species1")) %>%
     left_join(., genus_id) %>%
     mutate(featureDiversity = ifelse(is.na(featureDiversity), featureDiversityGenus, featureDiversity),
@@ -234,11 +271,28 @@ prep_data <- function(min_species_detections,
            aveWingspan = ifelse(is.na(aveWingspan), aveWingspanFamily, aveWingspan))
   species_info[species_info == ""] <- NA
   
-  ## now add ease of identification info
+  ## now add ease of identification info (prop research grade detections in iNaturalist)
   ease_id_df <- read.csv("./data/lepidoptera_trait_data/ease_of_id/identifiability_by_genus.csv") %>%
     select(genus, research_grade_proportion)
   
   species_info <- left_join(species_info, ease_id_df)
+  
+  ## now add habitat affinity from LepTraits
+  consensus <- read.csv("./data/lepidoptera_trait_data/leptraits/consensus.csv") %>%
+    select(Species, FlightDuration, DiapauseStage, Voltinism, OvipositionStyle, 
+           CanopyAffinity, EdgeAffinity, MoistureAffinity, DisturbanceAffinity,
+           NumberOfHostplantFamilies) %>%
+    rename("LepTraits_name" = "Species") %>%
+    # when there are other names for the species the row will be duplicated but it 
+    # appears that the first row is always the species in the accepted sense, e.g.:
+    # Apodemia virgulti row 1 is Apodemia virgulti
+    # Apodemia virgulti row 2 is Apodemia mormo. 
+    # we want the traits for the closest definition of the species so always take row 1 here.
+    group_by(LepTraits_name) %>%
+    slice(1) %>%
+    ungroup()
+  
+  species_info <- left_join(species_info, consensus, by="LepTraits_name")
   
   # now scale and select all the variables 
   species_info <- species_info %>%
@@ -246,7 +300,12 @@ prep_data <- function(min_species_detections,
            research_grade_proportion_scaled = center_scale(research_grade_proportion),
            featureDiversity_scaled = center_scale(featureDiversity)) %>%
     select(species, genus, family, n_binary_detections, n_detections,
-           aveWingspan_scaled, featureDiversity_scaled, research_grade_proportion_scaled)
+           aveWingspan, aveWingspan_scaled, 
+           featureDiversity, featureDiversity_scaled, 
+           research_grade_proportion, research_grade_proportion_scaled,
+           FlightDuration, DiapauseStage, Voltinism, OvipositionStyle, 
+           CanopyAffinity, EdgeAffinity, MoistureAffinity, DisturbanceAffinity,
+           NumberOfHostplantFamilies)
   
   species_info_plot <- species_info %>%
     mutate(cond1 = ifelse(aveWingspan_scaled > 0, 0, 1),
@@ -281,12 +340,9 @@ prep_data <- function(min_species_detections,
           axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
           axis.title.x=element_blank()) 
   
-  species_info_filtered <- species_info %>%
-    filter(n_binary_detections >= min_species_detections)
-  
   # how many species were detected?
   # and how many binary detections occurred? species/site/year/visit
-  n_species <- length(species_vector <- pull(species_info_filtered %>%
+  n_species <- length(species_vector <- pull(species_info %>%
                                                # group by species ID
                                                group_by(species) %>%
                                                # and take one record
@@ -294,7 +350,7 @@ prep_data <- function(min_species_detections,
                                                select(species)))
   
   # get vector of families for each species
-  n_families <- length(unique((family_vector <- pull(species_info_filtered %>%
+  n_families <- length(unique((family_vector <- pull(species_info %>%
                                                        # group by species ID
                                                        group_by(species) %>%
                                                        # grab one row per species ID
@@ -551,7 +607,7 @@ prep_data <- function(min_species_detections,
     V_detections = V, # community science detection data
     V_NA = V_NA,
 
-    species_info = species_info_filtered, # species sci name, family name, num detections and predictors
+    species_info = species_info, # species sci name, family name, num detections and predictors
     site_data = site_data, # site names and predictors
     
     n_species = n_species, # number of species
