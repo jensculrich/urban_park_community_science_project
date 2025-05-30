@@ -91,7 +91,8 @@ prep_data <- function(city,
     
     # add survey date within year
     group_by(year) %>% 
-    mutate(survey = as.integer(factor(survey)),
+    mutate(survey = as.integer(survey),
+    #mutate(survey = as.integer(factor(survey)),
            year = as.integer(year - 2019)) %>% # used (- 2019) to make 2020 == year 1
     ungroup() %>%
     
@@ -117,7 +118,7 @@ prep_data <- function(city,
     arrange(year, survey) 
   
   # get dimensions of surveys and years
-  survey_vector <- as.vector(levels(as.factor(df$survey)))
+  survey_vector <- seq(1:12) # monthly organization of survey events
   n_surveys <- length(survey_vector)
   
   year_vector <- as.vector(levels(as.factor(df$year)))

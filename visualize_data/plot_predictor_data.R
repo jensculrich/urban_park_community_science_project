@@ -2,6 +2,7 @@ library(tidyverse)
 
 LA_data <- readRDS("./run_model/prepped_data/prepped_data_LA.rds")
 NYC_data <- readRDS("./run_model/prepped_data/prepped_data_NYC.rds")
+SEA_data <- readRDS("./run_model/prepped_data/prepped_data_SEA.rds")
 
 ## --------------------------------------------------
 # site predictors
@@ -11,8 +12,13 @@ LA_site_data <- LA_data$site_data %>%
 NYC_site_data <- NYC_data$site_data %>%
   mutate(city = "NYC")
 
-all_site_data <- rbind(LA_site_data,
-                  NYC_site_data)
+SEA_site_data <- SEA_data$site_data %>%
+  mutate(city = "SEA")
+
+all_site_data <- rbind(
+                  LA_site_data,
+                  NYC_site_data,
+                  SEA_site_data)
 
 # park size
 p1 <- ggplot(all_site_data, aes(x = log_total_green_space_area, 
@@ -78,15 +84,20 @@ cowplot::plot_grid(p1, p2, p3, p4, ncol = 2)
 
 
 ## --------------------------------------------------
-# site predictors
+# species predictors
+
 LA_species_data <- LA_data$species_info %>%
   mutate(city = "LA")
 
 NYC_species_data <- NYC_data$species_info %>%
   mutate(city = "NYC")
 
+SEA_species_data <- SEA_data$species_info %>%
+  mutate(city = "SEA")
+
 all_species_data <- rbind(LA_species_data,
-                          NYC_species_data)
+                          NYC_species_data,
+                          SEA_species_data)
 
 # n binary detection
 q1 <- ggplot(all_species_data, aes(x = n_binary_detections, 
