@@ -8,7 +8,8 @@ butterfly_families <- c("Hesperiidae", "Lycaenidae", "Nymphalidae",
 # list of city names
 city_names <- c(
   "LA", # 1
-  "NYC" # 2
+  "NYC", # 2
+  "SEA" # 3
 )
 
 all_city_df <- matrix(nrow=length(city_names), ncol=2)

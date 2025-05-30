@@ -5,7 +5,8 @@ source("./run_model/prep_data.R")
 # list of city names
 city_names <- c(
   "LA", # 1
-  "NYC" # 2
+  "NYC", # 2
+  "SEA" # 3
 )
 
 # now choose a city (enter the number of the city)
@@ -68,16 +69,16 @@ stan_data <- c("V", "V_NA", "species", "sites", "years", "surveys",
 
 ## Parameters monitored 
 params <- c(
-  #"rho",
-  #"sigma_species",
+  "rho",
+  "sigma_species",
   
   "psi1_0", 
-  "sigma_psi1_species",
+  #"sigma_psi1_species",
   "psi1_wingspan",
   "psi1_park_size",
   "psi1_connectivity",
   "psi1_plant_genera",
-  #"psi1_tree_cover",
+  "psi1_tree_cover",
   
   "gamma0", 
   "sigma_gamma_species",
@@ -85,7 +86,7 @@ params <- c(
   "gamma_park_size",
   "gamma_connectivity",
   "gamma_plant_genera",
-  #"gamma_tree_cover",
+  "gamma_tree_cover",
   #"gamma_wingspan_connectivity",
   
   "phi0", 
@@ -94,10 +95,10 @@ params <- c(
   "phi_park_size",
   "phi_connectivity",
   "phi_plant_genera",
-  #"phi_tree_cover",
+  "phi_tree_cover",
   
   "p0", 
-  "sigma_p_species",
+  #"sigma_p_species",
   "p_wingspan",
   "p_feature_diversity",
   "p_ease_of_id",
@@ -107,10 +108,10 @@ params <- c(
   "sigma_p_species_date_sq",
   
   "W_species_rep",
-  #"species_intercepts",
-  "psi1_species",
-  "gamma_species", "phi_species",
-  "p_species"
+  "species_intercepts",
+  #"psi1_species",
+  "gamma_species", "phi_species"
+  #"p_species"
 )
 
 # MCMC settings
@@ -119,7 +120,7 @@ n_thin <- 1
 n_burnin <- 150
 n_chains <- 4
 n_cores <- n_chains
-delta = 0.95
+delta = 0.99
 
 ## Initial values
 # given the number of parameters, the chains need some decent initial values
@@ -149,7 +150,7 @@ inits <- lapply(1:n_chains, function(i)
 ## --------------------------------------------------
 ### Run model
 
-stan_model <- "./models/dynamic_occupancy_model.stan"
+stan_model <- "./models/dynamic_occupancy_model_build_centered.stan"
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
@@ -168,15 +169,15 @@ saveRDS(stan_out, paste0("./model_outputs/stan_out_", city, "_2km_connectivity_f
 
 print(stan_out, digits = 3, 
       pars = c(
-        #"rho",
-        #"sigma_species",
+        "rho",
+        "sigma_species",
         
         "psi1_0", 
-        "sigma_psi1_species",
+        #"sigma_psi1_species",
         "psi1_wingspan",
         "psi1_park_size",
         "psi1_connectivity",
-        "psi1_plant_genera",
+        #"psi1_plant_genera",
         #"psi1_tree_cover",
         
         "gamma0", 
@@ -184,20 +185,20 @@ print(stan_out, digits = 3,
         "gamma_wingspan",
         "gamma_park_size",
         "gamma_connectivity",
-        "gamma_plant_genera",
+        #"gamma_plant_genera",
         #"gamma_tree_cover",
-        #"gamma_wingspan_connectivity",
+        "gamma_wingspan_connectivity",
         
         "phi0", 
         "sigma_phi_species",
         "phi_wingspan",
         "phi_park_size",
         "phi_connectivity",
-        "phi_plant_genera",
+        #"phi_plant_genera",
         #"phi_tree_cover",
         
         "p0", 
-        "sigma_p_species",
+        #"sigma_p_species",
         "p_wingspan",
         "p_feature_diversity",
         "p_ease_of_id",
@@ -221,25 +222,25 @@ traceplot(stan_out, pars = c(
   "psi1_wingspan",
   "psi1_park_size",
   "psi1_connectivity",
-  #"psi1_plant_genera",
-  #"psi1_tree_cover",
+  "psi1_plant_genera",
+  "psi1_tree_cover",
   
   "gamma0", 
   "sigma_gamma_species",
   "gamma_wingspan",
   "gamma_park_size",
   "gamma_connectivity",
-  #"gamma_plant_genera",
-  #"gamma_tree_cover",
-  "gamma_wingspan_connectivity",
+  "gamma_plant_genera",
+  "gamma_tree_cover",
+  #"gamma_wingspan_connectivity",
   
   "phi0", 
   #"sigma_phi_species",
   "phi_wingspan",
   "phi_park_size",
-  "phi_connectivity"
-  #"phi_plant_genera",
-  #"phi_tree_cover"
+  "phi_connectivity",
+  "phi_plant_genera",
+  "phi_tree_cover"
 ))
 
 traceplot(stan_out, pars = c(
