@@ -5,31 +5,32 @@
 library(rstan)
 library(tidyverse)
 
-source("./run_model/prep_data.R")
-my_data <- process_data(grid_size = 5000,
-                        min_species_detections = 5)
+#city_name <- "los_angeles"
+#my_data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", city_name, ".RDS"))
+
+## --------------------------------------------------
+### Prepare data for model
+# for community sampling events inferred by [taxonomic] family, source this file:
+source("./run_model/april_2025/prep_data2.R")
+
+min_species_detections <- 1 # binary park/year/species detections
+min_species_for_community_sampling_event = 1 
+family_sampling = TRUE
+
+my_data <- prep_data(min_species_detections,
+                     min_species_for_community_sampling_event,
+                     family_sampling
+)
 
 ## --------------------------------------------------
 ### Prepare data for model
 
 # data to feed to the model
-V <- my_data$V 
-
-species_names <- my_data$species_names
-
+V <- my_data$V_detections # detection data
 n_species <- my_data$n_species # number of species
-n_sites <- my_data$n_sites # number of sites
-n_years <- my_data$n_years # number of surveys
-n_years_minus1 <- n_years - 1
-n_surveys <- my_data$n_surveys
+species <- seq(1, n_species, by=1)
+species_names <- my_data$species
 
-species_character <- my_data$species
-sites_character <- my_data$sites
-species <- as.integer(as.factor(my_data$species))
-sites <- as.integer(as.factor(my_data$sites))
-years_full <- as.integer(my_data$years)
-years <- seq(1, n_years_minus1)
-surveys <- as.integer(my_data$surveys)
 
 # Summarize V[i,j,k,l] by species -> to get W[i]
 W_species = vector(length = n_species)
@@ -38,21 +39,20 @@ for(i in 1:n_species){
   W_species[i] = sum(V[i,,,])
 }
 
-
 # for simulated data
-W_df <- as.data.frame(cbind(species, W_species)) %>%
-  mutate(W_species = as.numeric(W_species))
+#W_df <- as.data.frame(cbind(species, W_species)) %>%
+  #mutate(W_species = as.numeric(W_species))
 
 # for real data
 W_df <- as.data.frame(cbind(species_names, W_species)) %>%
   mutate(W_species = as.numeric(W_species))
 
 # get W distributions from model
-#stan_out <- readRDS("./model_outputs/stan_out4.rds")
+stan_out <- readRDS("./model_outputs/stan_out_new2.rds")
+#fit_summary <- rstan::summary(stan_out_sim)
 fit_summary <- rstan::summary(stan_out)
 
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
-
 
 ## --------------------------------------------------
 # 
@@ -66,9 +66,9 @@ c_dark_highlight <- c("#7C0000")
 
 start = 1 # which species to start at (hard to see them all at once)
 # start at 1, 37, and 73 is pretty good for visualization
-n = 50 # how many species to plot (36 is a good number to look at the species in 3 slices)
+n = 65 # how many species to plot (36 is a good number to look at the species in 3 slices)
 
-stan_fit_first_W <- 14 # this changes depending on how many params you tracked
+stan_fit_first_W <- 22 # this changes depending on how many params you tracked
 
 df_estimates <- data.frame(X = numeric(), 
                            Y = numeric(), 
@@ -111,7 +111,7 @@ text(seq(start, start + n - 1, by = 1), par("usr")[3]-0.25,
 
 for(i in 1:n){
   sliced <- df_estimates[i,]
-  W_sliced <- W_df[i+start - 1, 5]
+  W_sliced <- W_df[i+start - 1, 2]
   
   rect(xleft = (sliced$X-0.35), xright=(sliced$X+0.35), 
        ytop = sliced$lower_95, ybottom = sliced$upper_95,
@@ -125,4 +125,3 @@ for(i in 1:n){
   
   points(x=sliced$X, y=W_sliced, pch=1)
 }
-
