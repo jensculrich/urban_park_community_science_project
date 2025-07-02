@@ -164,7 +164,7 @@ stan_out <- stan(stan_model,
                  open_progress = FALSE,
                  cores = n_cores)
 
-saveRDS(stan_out, paste0("./model_outputs/stan_out_", city, "_2km_connectivity_family.rds"))
+saveRDS(stan_out, paste0("./model_outputs/stan_out_", city, "_2km_connectivity_family_100buffers.rds"))
 #stan_out <- readRDS("./model_outputs/stan_out.rds")
 
 print(stan_out, digits = 3, 
@@ -177,25 +177,25 @@ print(stan_out, digits = 3,
         "psi1_wingspan",
         "psi1_park_size",
         "psi1_connectivity",
-        #"psi1_plant_genera",
-        #"psi1_tree_cover",
+        "psi1_plant_genera",
+        "psi1_tree_cover",
         
         "gamma0", 
         "sigma_gamma_species",
         "gamma_wingspan",
         "gamma_park_size",
         "gamma_connectivity",
-        #"gamma_plant_genera",
-        #"gamma_tree_cover",
-        "gamma_wingspan_connectivity",
+        "gamma_plant_genera",
+        "gamma_tree_cover",
+        #"gamma_wingspan_connectivity",
         
         "phi0", 
         "sigma_phi_species",
         "phi_wingspan",
         "phi_park_size",
         "phi_connectivity",
-        #"phi_plant_genera",
-        #"phi_tree_cover",
+        "phi_plant_genera",
+        "phi_tree_cover",
         
         "p0", 
         #"sigma_p_species",
@@ -235,7 +235,7 @@ traceplot(stan_out, pars = c(
   #"gamma_wingspan_connectivity",
   
   "phi0", 
-  #"sigma_phi_species",
+  "sigma_phi_species",
   "phi_wingspan",
   "phi_park_size",
   "phi_connectivity",
@@ -245,12 +245,13 @@ traceplot(stan_out, pars = c(
 
 traceplot(stan_out, pars = c(
   "p0", 
-  "sigma_p_species",
+  #"sigma_p_species",
   "p_wingspan",
   "p_feature_diversity",
   "p_ease_of_id",
   "mu_p_species_date",
   "sigma_p_species_date",
-  "mu_p_species_date_sq"
+  "mu_p_species_date_sq",
+  "sigma_p_species_date_sq"
 ))
 
