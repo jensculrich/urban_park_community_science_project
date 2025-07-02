@@ -2,7 +2,7 @@ library(tidyverse)
 
 LA_data <- readRDS("./run_model/prepped_data/prepped_data_LA.rds")
 NYC_data <- readRDS("./run_model/prepped_data/prepped_data_NYC.rds")
-SEA_data <- readRDS("./run_model/prepped_data/prepped_data_SEA.rds")
+#SEA_data <- readRDS("./run_model/prepped_data/prepped_data_SEA.rds")
 
 ## --------------------------------------------------
 # site predictors
@@ -12,20 +12,22 @@ LA_site_data <- LA_data$site_data %>%
 NYC_site_data <- NYC_data$site_data %>%
   mutate(city = "NYC")
 
-SEA_site_data <- SEA_data$site_data %>%
-  mutate(city = "SEA")
+#SEA_site_data <- SEA_data$site_data %>%
+  #mutate(city = "SEA")
 
 all_site_data <- rbind(
                   LA_site_data,
-                  NYC_site_data,
-                  SEA_site_data)
+                  NYC_site_data#,
+                  #SEA_site_data
+                  )
 
 # park size
 p1 <- ggplot(all_site_data, aes(x = log_total_green_space_area, 
                           colour = city, fill = city)) + 
   geom_histogram(alpha = 0.5, position = "identity") +
+  scale_x_continuous(breaks = c(8, 10, 12, 14, 16, 18)) +
   theme_bw() +
-  xlab("log(greenspace area (m^2)))") + 
+  xlab("log(Park Size in m^2)") + 
   theme(plot.title = element_text(size = 18, face = "bold"),
         legend.text=element_text(size=10),
         axis.text.x = element_text(size = 18),
