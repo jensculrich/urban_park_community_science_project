@@ -1,4 +1,6 @@
-"","size_of_regional_pool","city"
-"1","90","LA"
-"2","90","NYC"
-"3","30","SEA"
+City,n_species
+Dallas,111
+Houston,105
+LA,91
+NYC,73
+SEA,NA

@@ -33,6 +33,7 @@ data {
   vector[n_sites] park_size;
   vector[n_sites] connectivity;
   vector[n_sites] plant_genera;
+  vector[n_sites] tree_cover;
   
 } // end data
 
@@ -45,7 +46,8 @@ parameters {
   real psi1_wingspan;
   real psi1_park_size;
   real psi1_connectivity;
-  real psi1_plant_genera;
+  //real psi1_plant_genera;
+  real psi1_tree_cover;
 
   // colonization
   real gamma0;
@@ -54,7 +56,8 @@ parameters {
   real gamma_wingspan;
   real gamma_park_size;
   real gamma_connectivity;
-  real gamma_plant_genera;
+  //real gamma_plant_genera;
+  real gamma_tree_cover;
 
   // persistence
   real phi0;
@@ -63,7 +66,8 @@ parameters {
   real phi_wingspan;
   real phi_park_size;
   real phi_connectivity;
-  real phi_plant_genera;
+  //real phi_plant_genera;
+  real phi_tree_cover;
 
   // detection
   real p0; // intercept
@@ -109,7 +113,8 @@ transformed parameters {
           psi1_wingspan * wingspan[i] + // a species effect of migratory
           psi1_park_size * park_size[j] + // a site effect of park size
           psi1_connectivity * connectivity[j] + // a site effect of park connectivity
-          psi1_plant_genera * plant_genera[j] // a site effect of tree cover
+          //psi1_plant_genera * plant_genera[j] + // a site effect of tree cover
+          psi1_tree_cover * tree_cover[j] // a site effect of tree cover
           ); // end psi1[j,k]
         
         gamma[i,j,k] = inv_logit( // probability (0-1) of colonization is equal to..
@@ -117,7 +122,8 @@ transformed parameters {
           gamma_wingspan * wingspan[i] + // a species effect of migratory
           gamma_park_size * park_size[j] + // a site effect of park size
           gamma_connectivity * connectivity[j] + // a site effect of park connectivity
-          gamma_plant_genera * plant_genera[j] // a site effect of tree cover
+          //gamma_plant_genera * plant_genera[j] + // a site effect of tree cover
+          gamma_tree_cover * tree_cover[j] // a site effect of tree cover
           ); // end gamma[i,j,k]
                 
         phi[i,j,k] = inv_logit( // probability (0-1) of persistence is equal to..
@@ -125,7 +131,8 @@ transformed parameters {
           phi_wingspan * wingspan[i] + // a species effect of migratory
           phi_park_size * park_size[j] + // a site effect of park size
           phi_connectivity * connectivity[j] + // a site effect of park connectivity
-          phi_plant_genera * plant_genera[j] // a site effect of tree cover
+          //phi_plant_genera * plant_genera[j] + // a site effect of tree cover
+          phi_tree_cover * tree_cover[j] // a site effect of tree cover
           ); // end phi[i,j,k]
           
       } // end loop across all years
@@ -185,11 +192,12 @@ model {
   // initial state
   psi1_0 ~ normal(0, 1); // persistence intercept
   psi1_species_raw ~ std_normal();
-  sigma_psi1_species ~ normal(0, 1);
+  sigma_psi1_species ~ normal(0, 2);
   psi1_wingspan ~ normal(0, 2);
   psi1_park_size ~ normal(0, 2);
   psi1_connectivity ~ normal(0, 2);
-  psi1_plant_genera ~ normal(0, 2);
+  //psi1_plant_genera ~ normal(0, 2);
+  psi1_tree_cover ~ normal(0, 2);
 
   // colonization
   gamma0 ~ normal(0, 1); // persistence intercept
@@ -198,7 +206,8 @@ model {
   gamma_wingspan ~ normal(0, 2);
   gamma_park_size ~ normal(0, 2);
   gamma_connectivity ~ normal(0, 2);
-  gamma_plant_genera ~ normal(0, 2); 
+  //gamma_plant_genera ~ normal(0, 2);
+  gamma_tree_cover ~ normal(0, 2); 
 
   // persistence
   phi0 ~ normal(0, 1); // global intercept
@@ -207,7 +216,8 @@ model {
   phi_wingspan ~ normal(0, 2);
   phi_park_size ~ normal(0, 2);
   phi_connectivity ~ normal(0, 2);
-  phi_plant_genera ~ normal(0, 2);
+  //phi_plant_genera ~ normal(0, 2);
+  phi_tree_cover ~ normal(0, 2);
 
   // detection
   p0 ~ normal(0, 2); // global intercept

@@ -26,8 +26,8 @@ prep_data <- function(city,
   
   # first read the data 
   df <- read.csv(paste0(
-    "./data/", city, "/01_", city,
-    "_observations_park_coord_2km_clipped.csv"
+    "./data/detections_by_city/", city, "/01_100m_", city,
+    "_observations_parkID_2km_clipped.csv"
   ))
   
   # define butterfly families to include
@@ -159,7 +159,7 @@ prep_data <- function(city,
   
   # add connectivity data
   connectivity <- read.csv(paste0(
-    "./data/", city, "/04_", city,
+    "./data/detections_by_city/", city, "/04_100m_", city,
     "_connectivity.csv"
   ))
   
@@ -172,8 +172,8 @@ prep_data <- function(city,
            
   # add park flower data
   flower_data <- read.csv(paste0(
-    "./data/", city, "/03_", city,
-    "_flowers_clipped_park.csv"
+    "./data/detections_by_city/", city, "/03_100m_", city,
+    "_flowers_classified_park.csv"
   )) %>%
   
   # get number of flowering plant genera per site
