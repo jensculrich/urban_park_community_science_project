@@ -7,9 +7,13 @@ butterfly_families <- c("Hesperiidae", "Lycaenidae", "Nymphalidae",
 
 # list of city names
 city_names <- c(
-  "LA", # 1
-  "NYC", # 2
-  "SEA" # 3
+  "Boston", # 1
+  "Dallas", # 2
+  "Houston", # 3
+  "LA", # 4
+  "NYC", # 5
+  "Riverside", # 6
+  "SF" # 7
 )
 
 all_city_df <- matrix(nrow=length(city_names), ncol=2)
@@ -22,7 +26,7 @@ for(i in 1:length(city_names)){
   all_city_df[i,] <- cbind(
     nrow(
       read.csv(paste0(
-        "./data/", city, "/02_", city, "_regional_species_pool.csv")) %>%
+        "./data/detections_by_city/", city, "/02_100m_", city, "_regional_species_pool.csv")) %>%
         filter(species != "") %>%
         filter(family %in% butterfly_families) %>%
         group_by(species) %>%

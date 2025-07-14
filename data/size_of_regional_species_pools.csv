@@ -1,6 +1,8 @@
-City,n_species
-Dallas,111
-Houston,105
-LA,91
-NYC,73
-SEA,NA
+size_of_regional_pool,city
+76,Boston
+111,Dallas
+105,Houston
+91,LA
+73,NYC
+74,Riverside
+72,SF

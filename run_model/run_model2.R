@@ -4,15 +4,17 @@ source("./run_model/prep_data.R")
 
 # list of city names
 city_names <- c(
-  "Dallas", # 1
-  "Houston", # 2
-  "LA", # 3
-  "NYC", # 4
-  "SEA" # 5
+  "Boston", # 1
+  "Dallas", # 2
+  "Houston", # 3
+  "LA", # 4
+  "NYC", # 5
+  "Riverside", # 6
+  "SF" # 7
 )
 
 # now choose a city (enter the number of the city)
-city <- city_names[2]
+city <- city_names[1]
 
 min_species_detections <- 2 # binary park/year/species detections
 min_species_for_community_sampling_event = 1 
@@ -132,7 +134,13 @@ inits <- lapply(1:n_chains, function(i)
        psi1_wingspan = runif(1, -1, 1),
        psi1_park_size = runif(1, -1, 1),
        gamma0 = runif(1, -3, -2),
+       gamma_wingspan = runif(1, 1, 2),
+       gamma_park_size = runif(1, 0, 1),
+       gamma_connectivity = runif(1, -2, -1),
        phi0 = runif(1, 2, 3),
+       phi_wingspan = runif(1, -1, 0),
+       phi_park_size = runif(1, 0, 1),
+       phi_connectivity = runif(1, 1, 2),
        p0 = runif(1, -1, 1),
        sigma_p_species = runif(1, 1, 2),
        #sigma_p_site = runif(1, 0, 1),
@@ -166,7 +174,7 @@ stan_out <- stan(stan_model,
 
 saveRDS(stan_out, paste0("./model_outputs/stan_out_", city, "_2km_connectivity_family_100buffers.rds"))
 
-stan_out <- readRDS( paste0("./model_outputs/stan_out_NYC_2km_connectivity_family_100buffers.rds"))
+#stan_out <- readRDS( paste0("./model_outputs/stan_out_NYC_2km_connectivity_family_100buffers.rds"))
 
 print(stan_out, digits = 3, 
       pars = c(
@@ -175,7 +183,7 @@ print(stan_out, digits = 3,
         "psi1_wingspan",
         "psi1_park_size",
         "psi1_connectivity",
-        "psi1_plant_genera",
+        #"psi1_plant_genera",
         "psi1_tree_cover",
         
         "gamma0", 
@@ -183,7 +191,7 @@ print(stan_out, digits = 3,
         "gamma_wingspan",
         "gamma_park_size",
         "gamma_connectivity",
-        "gamma_plant_genera",
+        #"gamma_plant_genera",
         "gamma_tree_cover",
         #"gamma_wingspan_connectivity",
         
@@ -192,7 +200,7 @@ print(stan_out, digits = 3,
         "phi_wingspan",
         "phi_park_size",
         "phi_connectivity",
-        "phi_plant_genera",
+        #"phi_plant_genera",
         "phi_tree_cover",
         
         "p0", 

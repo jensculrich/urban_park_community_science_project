@@ -202,8 +202,8 @@ model {
   // colonization
   gamma0 ~ normal(0, 1); // persistence intercept
   gamma_species_raw ~ std_normal();
-  sigma_gamma_species ~ normal(0, 1);
-  gamma_wingspan ~ normal(0, 2);
+  sigma_gamma_species ~ normal(0, 0.5);
+  gamma_wingspan ~ normal(0.5, 2);
   gamma_park_size ~ normal(0, 2);
   gamma_connectivity ~ normal(0, 2);
   //gamma_plant_genera ~ normal(0, 2);
@@ -212,8 +212,8 @@ model {
   // persistence
   phi0 ~ normal(0, 1); // global intercept
   phi_species_raw ~ std_normal();
-  sigma_phi_species ~ normal(0, 1);
-  phi_wingspan ~ normal(0, 2);
+  sigma_phi_species ~ normal(0, 0.5);
+  phi_wingspan ~ normal(-0.5, 2);
   phi_park_size ~ normal(0, 2);
   phi_connectivity ~ normal(0, 2);
   //phi_plant_genera ~ normal(0, 2);
