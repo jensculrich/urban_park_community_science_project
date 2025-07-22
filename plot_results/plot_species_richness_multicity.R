@@ -108,11 +108,11 @@ for(city_number in 1:n_cities){
   # get the trait data for species from the particular city
   city_name <- city_names[city_number]
   my_data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", city_name, ".rds"))
-  
-  pred_data <- site_pred_data_list[[city_number]]
-  
   species_data <- my_data$species_info
   n_species <- nrow(species_data)
+  
+  # get the predictor data for the particular city
+  pred_data <- site_pred_data_list[[city_number]]
 
   # construct some arrays to hold the data
   psi1_expected <- array(data = NA, dim=c(n_species, pred_length))
