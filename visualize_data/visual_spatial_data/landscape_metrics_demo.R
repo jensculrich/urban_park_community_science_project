@@ -143,19 +143,21 @@ vm_l_perarea_mn(sf_2)
 # class/landscape level vector metrics
 # I've designated all park units as the same class
 
-land_sf <- sf::read_sf("./visualize_data/visual_spatial_data/New York/New York/NY_100m_buffered_park_2km_regional_pool.shp") %>%
-  mutate(habitat = 1) %>%
-  select(habitat, ParkID, ParkCnt, type, new_id) %>%
-  sample_n(., 120)
-
-sf::write_sf(land_sf, "./visualize_data/visual_spatial_data/New York/New York/NY_100m_buffered_park_2km_regional_pool3.shp")
-
 library(lconnect)
+library(tidyverse)
+
+land_sf <- sf::read_sf("./data/city_shapefiles/NYC/NYC_50_buffered_park_2km_regional_pool.shp") %>%
+  mutate(habitat = 1) %>%
+  select(habitat, ParkID, ParkCnt, type, new_id) #%>%
+ # sample_n(., 120)
+
+sf::write_sf(land_sf, "./data/city_shapefiles/NYC/NYC_50_buffered_park_2km_regional_pool_lconnect.shp")
+
 # Load the landscape data
 
 land <- upload_land(
-  "./visualize_data/visual_spatial_data/New York/New York/NY_100m_buffered_park_2km_regional_pool3.shp", 
-  habitat = 1, max_dist = 2000)
+  "./data/city_shapefiles/NYC/NYC_50_buffered_park_2km_regional_pool_lconnect.shp", 
+  habitat = 1, max_dist = 1000)
 
 # Confirm the class
 class(land)
@@ -174,8 +176,8 @@ class(importance)
 plot(importance, main="Patch Importance - IIC")
 
 # Save these outputs as shapefiles, using the sf package
-sf::st_write(land$landscape, "land.shp")
-sf::st_write(importance$landscape, "importance.shp")
+sf::st_write(land$landscape, "./data/city_shapefiles/NYC/land.shp")
+sf::st_write(importance$landscape, "./data/city_shapefiles/NYC/importance.shp")
 
 ##------------------------------------------------------------------------------
 # class/landscape level vector metrics

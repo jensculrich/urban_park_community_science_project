@@ -1,8 +1,8 @@
-install.packages("lconnect")
+#install.packages("lconnect")
 library(lconnect)
 library(tidyverse)
 
-land_sf <- sf::read_sf("./visualize_data/visual_spatial_data/merged_classified_parks_with_unclassified_parks_sqm_area_LA.shp") %>%
+land_sf <- sf::read_sf("./data/city_shapefiles/merged_classified_parks_with_unclassified_parks_sqm_area_LA.shp") %>%
   filter(type == "classified") %>%
   mutate(habitat = 1) %>%
   select(habitat, ParkID, ParkCnt, type, new_id)

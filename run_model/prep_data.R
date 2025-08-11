@@ -26,7 +26,7 @@ prep_data <- function(city,
   
   # first read the data 
   df <- read.csv(paste0(
-    "./data/detections_by_city/", city, "/01_100m_", city,
+    "./data/detections_by_city/", city, "/01_50m_", city,
     "_observations_parkID_2km_clipped.csv"
   ))
   
@@ -159,20 +159,19 @@ prep_data <- function(city,
   
   # add connectivity data
   connectivity <- read.csv(paste0(
-    "./data/detections_by_city/", city, "/04_100m_", city,
+    "./data/detections_by_city/", city, "/04_50m_", city,
     "_connectivity.csv"
-  ))
+  )) 
   
   # and join the variables we want with the site data by site id
   site_data <- site_data %>%
     left_join(., connectivity, by="new_id") %>%
     mutate(avg_dist_2000m_scaled = center_scale(avg_dist_2000m),
-           avg_dist_1000m = replace_na(avg_dist_1000m, 1000),
-           avg_dist_1000m_scaled = center_scale(avg_dist_1000m))
+           area_weighted_avg_dist_2000m_scaled = center_scale(area_weighted_avg_dist_2000m))
            
   # add park flower data
   flower_data <- read.csv(paste0(
-    "./data/detections_by_city/", city, "/03_100m_", city,
+    "./data/detections_by_city/", city, "/03_50m_", city,
     "_flowers_classified_park.csv"
   )) %>%
   
@@ -192,26 +191,34 @@ prep_data <- function(city,
            plant_genera_density = log_n_plant_genera / log_total_green_space_area) %>%
     mutate(plant_genera_density_scaled = center_scale(plant_genera_density))
   
+  # add edge:area ratio data
+  #patch_shape <- read.csv(paste0(
+    #"./data/detections_by_city/",
+    #city, "/",  
+    #"05_50m_", city,
+    #"_patch_shape.csv")) %>%
+    #rename("new_id" = "id")
+  
+  # and join the variables we want with the site data by site id
+  #site_data <- site_data %>%
+    #left_join(., patch_shape, by="new_id") %>%
+    #mutate(perarea_idx_scaled = center_scale(perarea_idx),
+           #proximity_scaled = center_scale(log(proximity)))
+  
+  
   # plot the spread of the site covariate data
-  par(mfrow=c(1,5))  
+  par(mfrow=c(1,3))  
   hist(site_data$log_total_green_space_area_scaled)
-  hist(site_data$tree_cover_scaled)
-  hist(site_data$plant_genera_density_scaled)
-  hist(site_data$grass_shrub_cover_scaled)
-  hist(site_data$avg_dist_2000m_scaled)
-  #hist(site_data$avg_dist_500m)
-  #hist(site_data$avg_dist_1000m)
+  hist(site_data$area_weighted_avg_dist_2000m_scaled)
+  #hist(site_data$perarea_idx_scaled)
+  #hist(site_data$proximity_scaled)
 
   par(mfrow=c(1,1)) 
   
   # how correlated are the site covariate data
-  cor(site_data$log_total_green_space_area_scaled, site_data$tree_cover_scaled)
-  cor(site_data$log_total_green_space_area_scaled, site_data$plant_genera_density_scaled)
-  cor(site_data$tree_cover_scaled, site_data$plant_genera_density_scaled)
-  cor(site_data$grass_shrub_cover_scaled, site_data$tree_cover_scaled)
-  cor(site_data$grass_shrub_cover_scaled, site_data$log_total_green_space_area_scaled)
-  cor(site_data$log_total_green_space_area_scaled, site_data$avg_dist_2000m)
-  cor(site_data$avg_dist_1000m, site_data$avg_dist_2000m)
+  cor(site_data$log_total_green_space_area_scaled, site_data$area_weighted_avg_dist_2000m_scaled)
+  #cor(site_data$log_total_green_space_area_scaled, site_data$proximity_scaled)
+  #cor(site_data$log_total_green_space_area_scaled, site_data$perarea_idx_scaled)
   
   ## --------------------------------------------------
   ## get species trait data
