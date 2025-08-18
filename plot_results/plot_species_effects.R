@@ -2,8 +2,9 @@ library(rstan)
 library(tidyverse)
 library(gridExtra)
 
-stan_out <- readRDS("./model_outputs/stan_out3.rds")
+stan_out <- readRDS("./model_outputs/stan_out3.2_w_all_species.rds")
 fit_summary <- rstan::summary(stan_out)
+View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
 
 n_species <- nrow(species_names)
 
@@ -15,35 +16,35 @@ y = (rep(1:n_species, times=params)) # species reference
 
 estimate <- c(
   # param 1 
-  rev(fit_summary$summary[83:152,1]),
+  rev(fit_summary$summary[71:128,1]),
   # param 2 
-  rev(fit_summary$summary[153:222,1]),
+  rev(fit_summary$summary[129:186,1]),
   # param 3 
-  rev(fit_summary$summary[223:292,1]), 
+  rev(fit_summary$summary[187:244,1]), 
   # param 4 
-  rev(fit_summary$summary[293:362,1])
+  rev(fit_summary$summary[245:302,1])
 )
 
 lower <-  c(
   # param 1 
-  rev(fit_summary$summary[83:152,4]),
+  rev(fit_summary$summary[71:128,4]),
   # param 2 
-  rev(fit_summary$summary[153:222,4]),
+  rev(fit_summary$summary[129:186,4]),
   # param 3 
-  rev(fit_summary$summary[223:292,4]), 
+  rev(fit_summary$summary[187:244,4]), 
   # param 4 
-  rev(fit_summary$summary[293:362,4])
+  rev(fit_summary$summary[245:302,4])
 )
 
 upper <-  c(
   # param 1 
-  rev(fit_summary$summary[83:152,8]),
+  rev(fit_summary$summary[71:128,8]),
   # param 2 
-  rev(fit_summary$summary[153:222,8]),
+  rev(fit_summary$summary[129:186,8]),
   # param 3 
-  rev(fit_summary$summary[223:292,8]), 
+  rev(fit_summary$summary[187:244,8]), 
   # param 4 
-  rev(fit_summary$summary[293:362,8])
+  rev(fit_summary$summary[245:302,8])
 )
 
 df = as.data.frame(cbind(x,y,estimate, lower, upper)) %>%
