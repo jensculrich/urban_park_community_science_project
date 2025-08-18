@@ -33,12 +33,12 @@ classify_rgb_to_code <- function(r, g, b) {
 # A function to process the raster filtes and spatial join with the iNat data
 process_geotiff_files <- function(city_name, state_name, map_title_city_name) {
   # Create the file paths based on the city name
-  input_path <- paste0("C:/Users/yyjen/Documents/urban_park_community_science_project/data_wrangling/data/urbanwatch_data/01_raw_data/", city_name)
-  output_path_merged <- paste0("C:/Users/yyjen/Documents/urban_park_community_science_project/data_wrangling/data/urbanwatch_data/02_merged_raster_data/", city_name, "_merged_raster.tif")
-  output_path_classified <- paste0("C:/Users/yyjen/Documents/urban_park_community_science_project/data_wrangling/data/urbanwatch_data/03_classified_land_cover_data/", city_name, "_classified_land_cover.tif")
-  output_csv_path <- paste0("C:/Users/yyjen/Documents/urban_park_community_science_project/data_wrangling/data/biodiversity_data_with_land_cover_classification/leps_", city_name, "_data_with_land_classification.csv")
-  output_plot_path <- paste0("C:/Users/yyjen/Documents/urban_park_community_science_project/data_wrangling/data/biodiversity_data_with_land_cover_classification/", city_name, "_Leps_with_Land_Cover_Map.png")
-  biodiversity_data_path <- paste0("C:/Users/yyjen/Documents/urban_park_community_science_project/data_wrangling/data/inat_data/02_filtered_data/leps_data_", state_name, ".csv")
+  input_path <- paste0("data/urbanwatch_data/01_raw_data/", city_name)
+  output_path_merged <- paste0("data/urbanwatch_data/02_merged_raster_data/", city_name, "_merged_raster.tif")
+  output_path_classified <- paste0("data/urbanwatch_data/03_classified_land_cover_data/", city_name, "_classified_land_cover.tif")
+  # output_csv_path <- paste0("C:/Users/yyjen/Documents/urban_park_community_science_project/data_wrangling/data/biodiversity_data_with_land_cover_classification/leps_", city_name, "_data_with_land_classification.csv")
+  # output_plot_path <- paste0("C:/Users/yyjen/Documents/urban_park_community_science_project/data_wrangling/data/biodiversity_data_with_land_cover_classification/", city_name, "_Leps_with_Land_Cover_Map.png")
+  # biodiversity_data_path <- paste0("C:/Users/yyjen/Documents/urban_park_community_science_project/data_wrangling/data/inat_data/02_filtered_data/leps_data_", state_name, ".csv")
   
   # List all GeoTIFF files in the directory
   file_paths <- list.files(path = input_path, pattern = "\\.tif$", full.names = TRUE)
