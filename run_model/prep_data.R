@@ -166,8 +166,7 @@ prep_data <- function(city,
   # and join the variables we want with the site data by site id
   site_data <- site_data %>%
     left_join(., connectivity, by="new_id") %>%
-    mutate(avg_dist_2000m_scaled = center_scale(avg_dist_2000m),
-           area_weighted_avg_dist_2000m_scaled = center_scale(area_weighted_avg_dist_2000m))
+    mutate(connectivity_scaled = center_scale(connectivity))
            
   # add park flower data
   flower_data <- read.csv(paste0(
@@ -209,14 +208,14 @@ prep_data <- function(city,
   # plot the spread of the site covariate data
   par(mfrow=c(1,3))  
   hist(site_data$log_total_green_space_area_scaled)
-  hist(site_data$area_weighted_avg_dist_2000m_scaled)
+  hist(site_data$connectivity_scaled)
   #hist(site_data$perarea_idx_scaled)
   #hist(site_data$proximity_scaled)
 
   par(mfrow=c(1,1)) 
   
   # how correlated are the site covariate data
-  cor(site_data$log_total_green_space_area_scaled, site_data$area_weighted_avg_dist_2000m_scaled)
+  cor(site_data$log_total_green_space_area_scaled, site_data$connectivity_scaled)
   #cor(site_data$log_total_green_space_area_scaled, site_data$proximity_scaled)
   #cor(site_data$log_total_green_space_area_scaled, site_data$perarea_idx_scaled)
   

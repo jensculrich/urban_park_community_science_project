@@ -5,16 +5,20 @@ source("./run_model/prep_data.R")
 # list of city names
 city_names <- c(
   "Boston", # 1
-  "Dallas", # 2
-  "Houston", # 3
-  "LA", # 4
-  "NYC", # 5
-  #"Riverside", # 6
-  "SF" # 7
+  "Charlotte", # 2
+  "Dallas", # 3
+  "Houston", # 4
+  "LA", # 5
+  "Minneapolis", # 6
+  "NYC", # 7
+  "Philadelphia", # 8
+  "Raleigh", # 9
+  "SD", # 10
+  "SF" # 11
 )
 
 # now choose a city (enter the number of the city)
-city <- city_names[3]
+city <- city_names[2]
 
 min_species_detections <- 2 # binary park/year/species detections
 min_species_for_community_sampling_event = 1 
@@ -61,7 +65,7 @@ ease_of_id <- species_info$research_grade_proportion_scaled
 wingspan <- species_info$aveWingspan_scaled
 # site
 park_size <- site_data$log_total_green_space_area_scaled
-connectivity <- site_data$area_weighted_avg_dist_2000m_scaled
+connectivity <- site_data$connectivity_scaled
 
 stan_data <- c("V", "V_NA", "species", "sites", "years", "surveys", 
                "n_species", "n_sites", "n_years", "n_years_minus1", "n_surveys",

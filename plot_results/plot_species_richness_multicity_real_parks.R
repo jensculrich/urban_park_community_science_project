@@ -16,7 +16,7 @@ city_names <- c(
   "Houston", # 3
   "LA", # 4
   "NYC", # 5
-  "Riverside", # 6
+  #"Riverside", # 6
   "SF" # 7
 )
 
@@ -34,7 +34,7 @@ for(city_number in 1:n_cities){
   
   temp <- cbind(as.data.frame(
       readRDS(paste0(
-        "./model_outputs/stan_out_", city, "_2km_connectivity_family_100buffers.rds"))
+        "./model_outputs/stan_out_", city, "_2km_connectivity_family_50buffers_simple.rds"))
   ), city)
   
   mega_list[[city_number]] <- temp
@@ -43,8 +43,10 @@ for(city_number in 1:n_cities){
 
 # read city specific prediction data across loop
 # i.e. only predict diversity in a city across the range of parks actually observed in the specific city
-site_pred_data_list <- vector(mode='list', length=n_cities)
-site_original_data_list <- vector(mode='list', length=n_cities)
+park_size_pred_data_list <- vector(mode='list', length=n_cities)
+park_size_original_data_list <- vector(mode='list', length=n_cities)
+park_connectivity_pred_data_list <- vector(mode='list', length=n_cities)
+park_connectivity_original_data_list <- vector(mode='list', length=n_cities)
 pred_length <- vector(length=n_cities)
 
 for(city_number in 1:n_cities){
@@ -53,16 +55,30 @@ for(city_number in 1:n_cities){
   
   temp <- readRDS( paste0("./run_model/prepped_data/prepped_data_", city, ".rds"))
    
-  pred_data <- temp$site_data$log_total_green_space_area_scaled
-  pred_length[city_number] <- length(pred_data)
+  # get park size data
+  park_size_pred_data <- temp$site_data$log_total_green_space_area_scaled
     
   mean_park_size <- mean(temp$site_data$log_total_green_space_area)
   sd_park_size <- sd(temp$site_data$log_total_green_space_area)
   # now do some algebra to get the scaled data back onto a real life m^2 scale
-  original_scale_park_size_data <- (pred_data * sd_park_size) + mean_park_size
+  original_scale_park_size_data <- (park_size_pred_data * sd_park_size) + mean_park_size
   
-  site_pred_data_list[[city_number]] <- pred_data
-  site_original_data_list[[city_number]] <- original_scale_park_size_data
+  park_size_pred_data_list[[city_number]] <- park_size_pred_data
+  park_size_original_data_list[[city_number]] <- original_scale_park_size_data
+  
+  # get park connectivity data
+  park_connectivity_pred_data <- temp$site_data$area_weighted_avg_dist_2000m_scaled
+  
+  mean_park_connectivity <- mean(temp$site_data$area_weighted_avg_dist_2000m)
+  sd_park_connectivity <- sd(temp$site_data$area_weighted_avg_dist_2000m)
+  # now do some algebra to get the scaled data back onto a real life m^2 scale
+  original_scale_park_connectivity_data <- (park_connectivity_pred_data * sd_park_connectivity) + mean_park_connectivity
+  
+  park_connectivity_pred_data_list[[city_number]] <- park_connectivity_pred_data
+  park_connectivity_original_data_list[[city_number]] <- original_scale_park_connectivity_data
+  
+  # and figure out how many sites in the city
+  pred_length[city_number] <- length(park_size_pred_data)
   
 }
 
@@ -79,7 +95,7 @@ logit <- function(x) log(x/(1-x))
 n_years = 5 # number of years of the study
 n_years_minus1 = n_years - 1 # number of interannual transitions
 
-n_draws = 10 # small number for testing bc it does take a few minutes to simulate results
+n_draws = 20 # small number for testing bc it does take a few minutes to simulate results
 #n_draws = nrow(list_of_draws) # number of samples from the posteriors
 
 max_pred_length = max(pred_length)
@@ -91,7 +107,7 @@ random_draws_from_posterior = sample.int(n=n_draws) # use if not using the full 
 
 # take random draws for psi and predict occurrence, then sum across n species
 richness <- array(data = NA, dim=c(n_cities, max_pred_length, n_years, n_draws))
-jaccard_site <- array(data = NA, dim=c(n_cities, max_pred_length, n_years, n_draws))
+jaccard_site <- array(data = NA, dim=c(n_cities, max_pred_length, max_pred_length, n_years, n_draws))
 
 for(city_number in 1:n_cities){
   
@@ -103,7 +119,7 @@ for(city_number in 1:n_cities){
   first_gamma <- which( colnames(city_estimates)=="gamma_species[1]" )
   first_phi <- which( colnames(city_estimates)=="phi_species[1]" )
   
-  # get the trait data for species from the particular city
+  # get the pred data for species/sites from the particular city
   city_name <- city_names[city_number]
   my_data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", city_name, ".rds"))
   species_data <- my_data$species_info
@@ -112,7 +128,8 @@ for(city_number in 1:n_cities){
   pred_length_city <- pred_length[city_number]
   
   # get the predictor data for the particular city
-  pred_data <- site_pred_data_list[[city_number]]
+  park_size_pred_data <- park_size_pred_data_list[[city_number]]
+  park_connectivity_pred_data <- park_connectivity_pred_data_list[[city_number]]
 
   # construct some arrays to hold the data
   psi1_expected <- array(data = NA, dim=c(n_species, pred_length_city))
@@ -139,36 +156,39 @@ for(city_number in 1:n_cities){
                 # effect of wingspan * wingspan of species i + 
                 city_estimates[rand,3] * species_data$aveWingspan_scaled[i] + 
                 # effect of parksize * parksize of site j + 
-                city_estimates[rand,4] * pred_data[j] 
-              # not adding any other park predictors would keep park at same value
+                city_estimates[rand,4] * park_size_pred_data[j] +
+                # effect of connectivity * connectivity of site j + 
+                city_estimates[rand,5] * park_connectivity_pred_data[j]
             )
           
           gamma_expected[i,j,k-1] = # gamma[,,k-1] yields gamma for the transition between year 1 and 2
             ilogit(#gamma0 +
-              city_estimates[rand,7] + 
+              city_estimates[rand,6] + 
                 #species_effects[species[i],1] + // a species specific intercept
                 # start at first row of species effects
                 # then each next species will be + i
                 city_estimates[rand,(first_gamma+(i-1))] +
                 # effect of wingspan * wingspan of species i + 
-                city_estimates[rand,9] * species_data$aveWingspan_scaled[i] + 
+                city_estimates[rand,8] * species_data$aveWingspan_scaled[i] + 
                 # effect of parksize * parksize of site j + 
-                city_estimates[rand,10] * pred_data[j] 
-              # not adding any other park predictors would keep park at same value
+                city_estimates[rand,9] * park_size_pred_data[j]  +
+                # effect of connectivity * connectivity of site j + 
+                city_estimates[rand,10] * park_connectivity_pred_data[j]
             )
           
           phi_expected[i,j,k-1] = # phi[,,k-1] yields phi for the transition between year 1 and 2
             ilogit(#phi0 +
-              city_estimates[rand,13] + 
+              city_estimates[rand,11] + 
                 #species_effects[species[i],1] + // a species specific intercept
                 # start at first row of species effects
                 # then each next species will be + i
                 city_estimates[rand,(first_phi+(i-1))] +
                 # effect of wingspan * wingspan of species i + 
-                city_estimates[rand,15] * species_data$aveWingspan_scaled[i] + 
+                city_estimates[rand,13] * species_data$aveWingspan_scaled[i] + 
                 # effect of parksize * parksize of site j + 
-                city_estimates[rand,16] * pred_data[j] 
-              # not adding any other park predictors would keep park at same value
+                city_estimates[rand,14] * park_size_pred_data[j]  +
+                # effect of connectivity * connectivity of site j + 
+                city_estimates[rand,15] * park_connectivity_pred_data[j]
             )
           
         } 
@@ -212,14 +232,24 @@ for(city_number in 1:n_cities){
     ## calculate beta diversity of simmed communities
     
     # jaccard index needs a reference level
-    ref_site <- 1
+    #ref_site <- 1
+    # now compute dissimilarity in the occurrence matrix in site i versus site 1
+    #for(j in 1:pred_length_city){ # jaccard index for sites (in terms of shared species)
+    #  for(k in 1:n_years){
+    #    jaccard_site[city_number,j,k,draw] <- sum(occurrence_simmed[,ref_site,k,rand]*occurrence_simmed[,j,k,rand]) /
+    #      (sum(occurrence_simmed[,ref_site,k,rand]) +
+    #         sum(occurrence_simmed[,ref_site,k,rand]) - sum(occurrence_simmed[,ref_site,k,rand]*occurrence_simmed[,j,k,rand]))
+    #  }
+    #}
     
     # now compute dissimilarity in the occurrence matrix in site i versus site 1
     for(j in 1:pred_length_city){ # jaccard index for sites (in terms of shared species)
-      for(k in 1:n_years){
-        jaccard_site[city_number,j,k,draw] <- sum(occurrence_simmed[,ref_site,k,rand]*occurrence_simmed[,j,k,rand]) /
-          (sum(occurrence_simmed[,ref_site,k,rand]) +
-             sum(occurrence_simmed[,ref_site,k,rand]) - sum(occurrence_simmed[,ref_site,k,rand]*occurrence_simmed[,j,k,rand]))
+      for(j2 in 1:pred_length_city){ # jaccard index for sites (in terms of shared species)
+        for(k in 1:n_years){
+          jaccard_site[city_number,j,j2,k,draw] <- sum(occurrence_simmed[,j2,k,rand]*occurrence_simmed[,j,k,rand]) /
+            (sum(occurrence_simmed[,j2,k,rand]) +
+               sum(occurrence_simmed[,j2,k,rand]) - sum(occurrence_simmed[,j2,k,rand]*occurrence_simmed[,j,k,rand]))
+        }
       }
     }
     
@@ -228,7 +258,7 @@ for(city_number in 1:n_cities){
 } # end for city
   
 ## --------------------------------------------------
-# summarize the results
+# summarize the results (species richness)
 
 # collapse across years (average richness by site [array dimension 4] 
 # per rand draw from the posterior [dim 2], across all years [dim 3])
@@ -236,8 +266,27 @@ for(city_number in 1:n_cities){
 #richness <- apply(richness,c(1,2,4),mean) # average across years
 richness <- apply(richness,c(1,2,4), mean, na.rm=TRUE) # average across years
 
-imaginary_city_covariate <- rnorm(n_cities, 0, 1)
-imaginary_city_covariate <- as.data.frame(cbind(city_names, imaginary_city_covariate))
+#imaginary_city_covariate <- rnorm(n_cities, 0, 1)
+#imaginary_city_covariate <- as.data.frame(cbind(city_names, imaginary_city_covariate))
+
+# extract city wide covariates
+city_wide_connectivity <- vector(length = n_cities)
+
+for(city_number in 1:n_cities){
+
+  city_name <- city_names[city_number]
+  
+  city_wide_connectivity[city_number] <- read.csv(paste0(
+    "./data/city_shapefiles/", city_name, 
+    "/", city_name, 
+    "_landscape_metrics.csv"))[1,1] 
+
+}
+
+city_wide_connectivity_scaled <- center_scale(city_wide_connectivity)
+
+city_wide_connectivity_df <- as.data.frame(cbind(
+  city_names, city_wide_connectivity, city_wide_connectivity_scaled))
 
 # initialize df with correct sites per city
 df <- richness[,,1]
@@ -317,20 +366,23 @@ estimates <- as.data.frame(cbind(city_names,
          rel_lower_50 = lower_50 / size_of_regional_pool,
          rel_upper_50 = upper_50 / size_of_regional_pool,
          rel_lower_95 = lower_95 / size_of_regional_pool,
-         rel_upper_95 = upper_95 / size_of_regional_pool) %>%
-  left_join(., imaginary_city_covariate) %>%
-  mutate(imaginary_city_covariate = as.numeric(imaginary_city_covariate))
+         rel_upper_95 = upper_95 / size_of_regional_pool) 
+
+estimates <- estimates %>%
+  left_join(., city_wide_connectivity_df) %>%
+  mutate(city_wide_connectivity = as.numeric(city_wide_connectivity),
+         city_wide_connectivity_scaled = as.numeric(city_wide_connectivity_scaled))
 
 ## --------------------------------------------------
 ## Draw species richness plot
 
-# plot means and variation across cities
-(p <- ggplot(estimates, aes(x=imaginary_city_covariate)) +
+# plot means and variation across city_wide_connectivity_scaled
+(p <- ggplot(estimates, aes(x=city_wide_connectivity_scaled)) +
    theme_bw() +
    scale_y_continuous(str_wrap("Mean Alpha Diversity /\nSize of Regional Species Pool", width = 30),
                       limits = c(0, 1), breaks = c(0, 0.5, 1)) +
-   scale_x_continuous(str_wrap("Imaginary City-Wide Covariate", width = 30),
-                      limits = c(-2, 2), breaks = c(-2, -1, 0, 1, 2)) +
+   scale_x_continuous(str_wrap("City-Wide Connectivity (Scaled)", width = 30),
+                      limits = c(-2, 2.5), breaks = c(-2, -1, 0, 1, 2)) +
    ggtitle("") +
    theme(plot.title = element_text(size = 18, face = "bold"),
          legend.text=element_text(size=10),
@@ -343,11 +395,11 @@ estimates <- as.data.frame(cbind(city_names,
 )
 
 p <- p +
-  geom_errorbar(aes(x=imaginary_city_covariate, ymin=rel_lower_95, ymax=rel_upper_95, colour=city, group=city),
+  geom_errorbar(aes(x=city_wide_connectivity_scaled, ymin=rel_lower_95, ymax=rel_upper_95, colour=city, group=city),
                 position=position_dodge(width=0.5),width=0.1,size=1,alpha=0.5) +
-  geom_errorbar(aes(x=imaginary_city_covariate, ymin=rel_lower_50, ymax=rel_upper_50, colour=city, group=city),
+  geom_errorbar(aes(x=city_wide_connectivity_scaled, ymin=rel_lower_50, ymax=rel_upper_50, colour=city, group=city),
                 position=position_dodge(width=0.5),width=0,size=3,alpha=0.8) +
-  geom_point(aes(x=imaginary_city_covariate, y=mean, colour=city, group=city), 
+  geom_point(aes(x=city_wide_connectivity_scaled, y=mean, colour=city, group=city), 
              position=position_dodge(width=0.5),
              size = 5, alpha = 0.8) 
 p
@@ -355,17 +407,15 @@ p
 ## --------------------------------------------------
 ## Quantify association between species richness and city-wide covariate
 
-imaginary_city_covariate <- rnorm(n_cities, 0, 1)
-imaginary_city_covariate <- as.data.frame(cbind(city_names, imaginary_city_covariate))
 
-df_w_city_covs <- left_join(df, imaginary_city_covariate)
+df_w_city_covs <- left_join(df, city_wide_connectivity_df)
 
 all_posterior_samples <- matrix(nrow=100*n_draws, ncol=2)
 
 for(draw in 1:n_draws){
   # make a for loop across draws
   means_by_city <- df_w_city_covs %>%
-    select(city_names, imaginary_city_covariate, as.character(draw))
+    select(city_names, city_wide_connectivity_scaled, as.character(draw))
   
   colnames(means_by_city)[3] <- "richness"
   
@@ -378,10 +428,10 @@ for(draw in 1:n_draws){
     mutate(city = city_names) %>%
     left_join(., size_of_regional_species_pools, by = "city") %>%
     mutate(rel_mean_alpha_diversity = mean_alpha_diversity / size_of_regional_pool) %>%
-    mutate(imaginary_city_covariate = as.numeric(imaginary_city_covariate))
+    mutate(city_wide_connectivity_scaled = as.numeric(city_wide_connectivity_scaled))
   
   
-  stan_fit <- rstanarm::stan_glm(rel_mean_alpha_diversity ~ imaginary_city_covariate, data = means_by_city)
+  stan_fit <- rstanarm::stan_glm(rel_mean_alpha_diversity ~ city_wide_connectivity_scaled, data = means_by_city)
   
   posterior_samples <- as.matrix(sample_n(as.data.frame(stan_fit)[,1:2], size = 100))
 
@@ -399,12 +449,12 @@ hist(all_posterior_samples_df$slope)
 ## Draw species richness plot
 
 # plot means and variation across cities
-(p <- ggplot(estimates, aes(x=imaginary_city_covariate)) +
+(p <- ggplot(estimates, aes(x=city_wide_connectivity_scaled)) +
    theme_bw() +
    scale_y_continuous(str_wrap("Mean Alpha Diversity /\nSize of Regional Species Pool", width = 30),
                       limits = c(0, 1), breaks = c(0, 0.5, 1)) +
-   scale_x_continuous(str_wrap("Imaginary City-Wide Covariate", width = 30),
-                      limits = c(-1.5, 1.5), breaks = c(-2, -1, 0, 1, 2)) +
+   scale_x_continuous(str_wrap("City-Wide Connectivity (Scaled)", width = 30),
+                      limits = c(-2, 2), breaks = c(-2, -1, 0, 1, 2)) +
    ggtitle("") +
    theme(plot.title = element_text(size = 18, face = "bold"),
          legend.text=element_text(size=10),
@@ -417,11 +467,11 @@ hist(all_posterior_samples_df$slope)
 )
 
 p <- p +
-  geom_errorbar(aes(x=imaginary_city_covariate, ymin=rel_lower_95, ymax=rel_upper_95, colour=city, group=city),
+  geom_errorbar(aes(x=city_wide_connectivity_scaled, ymin=rel_lower_95, ymax=rel_upper_95, colour=city, group=city),
                 position=position_dodge(width=0.5),width=0.1,size=1,alpha=0.5) +
-  geom_errorbar(aes(x=imaginary_city_covariate, ymin=rel_lower_50, ymax=rel_upper_50, colour=city, group=city),
+  geom_errorbar(aes(x=city_wide_connectivity_scaled, ymin=rel_lower_50, ymax=rel_upper_50, colour=city, group=city),
                 position=position_dodge(width=0.5),width=0,size=3,alpha=0.8) +
-  geom_point(aes(x=imaginary_city_covariate, y=mean, colour=city, group=city), 
+  geom_point(aes(x=city_wide_connectivity_scaled, y=mean, colour=city, group=city), 
              position=position_dodge(width=0.5),
              size = 5, alpha = 0.8) 
 p
@@ -434,16 +484,250 @@ for(i in 1:100){
                   alpha = 0.3, colour = "grey")
 }
 
+p
+
+
+## --------------------------------------------------
+# summarize the results (species dissimilarity)
+
+# collapse across years (average richness by site [array dimension 4] 
+# per rand draw from the posterior [dim 2], across all years [dim 3])
+# per city [dim 1],
+#richness <- apply(richness,c(1,2,4),mean) # average across years
+test <- apply(jaccard,c(1,2,4), mean, na.rm=TRUE) # average across years
+
+#imaginary_city_covariate <- rnorm(n_cities, 0, 1)
+#imaginary_city_covariate <- as.data.frame(cbind(city_names, imaginary_city_covariate))
+
+# extract city wide covariates
+city_wide_connectivity <- vector(length = n_cities)
+
+for(city_number in 1:n_cities){
+  
+  city_name <- city_names[city_number]
+  
+  city_wide_connectivity[city_number] <- read.csv(paste0(
+    "./data/city_shapefiles/", city_name, 
+    "/", city_name, 
+    "_landscape_metrics.csv"))[1,1] 
+  
+}
+
+city_wide_connectivity_scaled <- center_scale(city_wide_connectivity)
+
+city_wide_connectivity_df <- as.data.frame(cbind(
+  city_names, city_wide_connectivity, city_wide_connectivity_scaled))
+
+# initialize df with correct sites per city
+df <- richness[,,1]
+
+colnames(df) <- seq(1:max_pred_length)
+
+df <- as.data.frame(df)
+
+df <- df %>%
+  cbind(., city_names) %>%
+  pivot_longer(1:max_pred_length, names_to = "site", values_to = as.character(draw)) %>%
+  filter(!is.na(.[,3])) %>%
+  select(city_names, site)
+
+# now add the richness per site per random draw of param estimates from the posterior distr
+for(draw in 1:n_draws){
+  
+  temp <- richness[,,draw]
+  
+  colnames(temp) <- seq(1:max_pred_length)
+  
+  temp <- as.data.frame(temp)
+  
+  temp <- temp %>%
+    cbind(., city_names) %>%
+    pivot_longer(1:max_pred_length, names_to = "site", values_to = as.character(draw)) %>%
+    filter(!is.na(.[,3]))
+  
+  df <- cbind(df, temp[,3])
+  
+}
+
+# calculate city mean species richness
+mean = matrix(nrow=n_cities)
+lower_50 = matrix(nrow=n_cities)
+upper_50 = matrix(nrow=n_cities)
+lower_95 = matrix(nrow=n_cities)
+upper_95 = matrix(nrow=n_cities)
+
+for(city_number in 1:n_cities){
+  
+  city_name <- city_names[city_number]
+  
+  temp <- filter(df, city_names == city_name) %>%
+    select(-city_names, -site)
+  
+  quants = as.vector(quantile(as.matrix(temp), probs = c(0.05, 0.25, 0.50, 0.75, 0.95)))
+  
+  mean[city_number] = quants[3]
+  lower_50[city_number] = quants[2]
+  upper_50[city_number] = quants[4]
+  lower_95[city_number] = quants[1]
+  upper_95[city_number] = quants[5]
+}
+
+estimates <- as.data.frame(cbind(city_names,
+                                 mean,
+                                 lower_50, 
+                                 upper_50,
+                                 lower_95, 
+                                 upper_95
+                                 
+)) %>%
+  rename("mean" = "V2",
+         "lower_50" = "V3",
+         "upper_50" = "V4",
+         "lower_95" = "V5",
+         "upper_95" = "V6") %>%
+  mutate(city = city_names) %>%
+  left_join(., size_of_regional_species_pools, by = "city") %>%
+  mutate(mean =as.numeric(mean),
+         lower_50 =as.numeric(lower_50),
+         upper_50 =as.numeric(upper_50),
+         lower_95 =as.numeric(lower_95),
+         upper_95 =as.numeric(upper_95)) %>%
+  mutate(rel_mean = mean / size_of_regional_pool,
+         rel_lower_50 = lower_50 / size_of_regional_pool,
+         rel_upper_50 = upper_50 / size_of_regional_pool,
+         rel_lower_95 = lower_95 / size_of_regional_pool,
+         rel_upper_95 = upper_95 / size_of_regional_pool) 
+
+estimates <- estimates %>%
+  left_join(., city_wide_connectivity_df) %>%
+  mutate(city_wide_connectivity = as.numeric(city_wide_connectivity),
+         city_wide_connectivity_scaled = as.numeric(city_wide_connectivity_scaled))
+
+## --------------------------------------------------
+## Draw species richness plot
+
+# plot means and variation across city_wide_connectivity_scaled
+(p <- ggplot(estimates, aes(x=city_wide_connectivity_scaled)) +
+   theme_bw() +
+   scale_y_continuous(str_wrap("Mean Alpha Diversity /\nSize of Regional Species Pool", width = 30),
+                      limits = c(0, 1), breaks = c(0, 0.5, 1)) +
+   scale_x_continuous(str_wrap("City-Wide Connectivity (Scaled)", width = 30),
+                      limits = c(-2, 2.5), breaks = c(-2, -1, 0, 1, 2)) +
+   ggtitle("") +
+   theme(plot.title = element_text(size = 18, face = "bold"),
+         legend.text=element_text(size=10),
+         axis.text.x = element_text(size = 18),
+         axis.text.y = element_text(size = 18),
+         axis.title.x = element_text(size = 18),
+         axis.title.y = element_text(size = 18),
+         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+         panel.background = element_blank(), axis.line = element_line(colour = "black")) 
+)
+
+p <- p +
+  geom_errorbar(aes(x=city_wide_connectivity_scaled, ymin=rel_lower_95, ymax=rel_upper_95, colour=city, group=city),
+                position=position_dodge(width=0.5),width=0.1,size=1,alpha=0.5) +
+  geom_errorbar(aes(x=city_wide_connectivity_scaled, ymin=rel_lower_50, ymax=rel_upper_50, colour=city, group=city),
+                position=position_dodge(width=0.5),width=0,size=3,alpha=0.8) +
+  geom_point(aes(x=city_wide_connectivity_scaled, y=mean, colour=city, group=city), 
+             position=position_dodge(width=0.5),
+             size = 5, alpha = 0.8) 
+p
+
+## --------------------------------------------------
+## Quantify association between species richness and city-wide covariate
+
+
+df_w_city_covs <- left_join(df, city_wide_connectivity_df)
+
+all_posterior_samples <- matrix(nrow=100*n_draws, ncol=2)
+
+for(draw in 1:n_draws){
+  # make a for loop across draws
+  means_by_city <- df_w_city_covs %>%
+    select(city_names, city_wide_connectivity_scaled, as.character(draw))
+  
+  colnames(means_by_city)[3] <- "richness"
+  
+  means_by_city <- means_by_city %>%
+    group_by(city_names) %>%
+    mutate(richness = as.numeric(richness),
+           mean_alpha_diversity = mean(richness)) %>%
+    slice(1) %>%
+    ungroup() %>%
+    mutate(city = city_names) %>%
+    left_join(., size_of_regional_species_pools, by = "city") %>%
+    mutate(rel_mean_alpha_diversity = mean_alpha_diversity / size_of_regional_pool) %>%
+    mutate(city_wide_connectivity_scaled = as.numeric(city_wide_connectivity_scaled))
+  
+  
+  stan_fit <- rstanarm::stan_glm(rel_mean_alpha_diversity ~ city_wide_connectivity_scaled, data = means_by_city)
+  
+  posterior_samples <- as.matrix(sample_n(as.data.frame(stan_fit)[,1:2], size = 100))
+  
+  all_posterior_samples[(1+100*(draw - 1)):(100+100*(draw - 1)),] <- posterior_samples
+}
+
+all_posterior_samples_df <- as.data.frame(all_posterior_samples) %>%
+  rename("intercept" = "V1",
+         "slope" = "V2")
+
+hist(all_posterior_samples_df$slope)
+
+# 
+## --------------------------------------------------
+## Draw species richness plot
+
+# plot means and variation across cities
+(p <- ggplot(estimates, aes(x=city_wide_connectivity_scaled)) +
+   theme_bw() +
+   scale_y_continuous(str_wrap("Mean Alpha Diversity /\nSize of Regional Species Pool", width = 30),
+                      limits = c(0, 1), breaks = c(0, 0.5, 1)) +
+   scale_x_continuous(str_wrap("City-Wide Connectivity (Scaled)", width = 30),
+                      limits = c(-2, 2), breaks = c(-2, -1, 0, 1, 2)) +
+   ggtitle("") +
+   theme(plot.title = element_text(size = 18, face = "bold"),
+         legend.text=element_text(size=10),
+         axis.text.x = element_text(size = 18),
+         axis.text.y = element_text(size = 18),
+         axis.title.x = element_text(size = 18),
+         axis.title.y = element_text(size = 18),
+         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+         panel.background = element_blank(), axis.line = element_line(colour = "black")) 
+)
+
+p <- p +
+  geom_errorbar(aes(x=city_wide_connectivity_scaled, ymin=rel_lower_95, ymax=rel_upper_95, colour=city, group=city),
+                position=position_dodge(width=0.5),width=0.1,size=1,alpha=0.5) +
+  geom_errorbar(aes(x=city_wide_connectivity_scaled, ymin=rel_lower_50, ymax=rel_upper_50, colour=city, group=city),
+                position=position_dodge(width=0.5),width=0,size=3,alpha=0.8) +
+  geom_point(aes(x=city_wide_connectivity_scaled, y=mean, colour=city, group=city), 
+             position=position_dodge(width=0.5),
+             size = 5, alpha = 0.8) 
+p
+
+random_lines <- sample.int(nrow(all_posterior_samples), 100)
+
+for(i in 1:100){
+  p <- p + geom_abline(intercept = all_posterior_samples[random_lines[i],1], 
+                       slope = all_posterior_samples[random_lines[i],2], 
+                       alpha = 0.3, colour = "grey")
+}
+
+p
+
+
+
 
 # draw a plot 
-(p  <- ggplot(data = means_by_city, aes(imaginary_city_covariate, 
+(p  <- ggplot(data = means_by_city, aes(city_wide_connectivity_scaled, 
                                         rel_mean_alpha_diversity,
                                         colour = city)) +
     geom_point(aes(), size = 2) +
     geom_line() +
     ylim(c(0, 1)) +
     theme_classic() +
-    xlab("imaginary_city_covariate") +
+    xlab("city_wide_connectivity_scaled") +
     ylab("Mean Alpha Diversity /\nSize of Regional Species Pool") +
     theme(axis.text.x = element_text(size = 18),
           axis.text.y = element_text(size = 18),
@@ -539,9 +823,9 @@ df <- data.frame()
 for(city_number in 1:n_cities){
   
   city_name <- city_names[city_number]
-  pred_data <- site_pred_data_list[[city_number]]
+  pred_data <- park_size_pred_data_list[[city_number]]
   pred_data <- pred_data[-1]
-  original_scale_park_size_data <- site_original_data_list[[city_number]]
+  original_scale_park_size_data <- park_size_original_data_list[[city_number]]
   original_scale_park_size_data <- original_scale_park_size_data[-1]
   
   temp <- as.data.frame(cbind(pred_data, #original_scale_data,
@@ -661,8 +945,8 @@ cowplot::plot_grid(p, p2, p1, ncol = 1)
 
 # read city specific prediction data across loop
 # i.e. only predict diversity in a city across the range of parks actually observed in the specific city
-site_pred_data_list <- vector(mode='list', length=n_cities)
-site_original_data_list <- vector(mode='list', length=n_cities)
+park_size_pred_data_list <- vector(mode='list', length=n_cities)
+park_size_original_data_list <- vector(mode='list', length=n_cities)
 pred_length <- 30 # something short for testing
 
 for(city_number in 1:n_cities){
@@ -680,8 +964,8 @@ for(city_number in 1:n_cities){
   # now do some algebra to get the scaled data back onto a real life distance scale
   original_scale_isolation_data <- (pred_data * sd_isolation) + mean_isolation
   
-  site_pred_data_list[[city_number]] <- pred_data
-  site_original_data_list[[city_number]] <- original_scale_isolation_data
+  park_size_pred_data_list[[city_number]] <- pred_data
+  park_size_original_data_list[[city_number]] <- original_scale_isolation_data
   
 }
 
@@ -727,7 +1011,7 @@ for(city_number in 1:n_cities){
   city_name <- city_names[city_number]
   my_data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", city_name, ".rds"))
   
-  pred_data <- site_pred_data_list[[city_number]]
+  pred_data <- park_size_pred_data_list[[city_number]]
   
   species_data <- my_data$species_info
   n_species <- nrow(species_data)
@@ -870,8 +1154,8 @@ df <- data.frame()
 for(city_number in 1:n_cities){
   
   city_name <- city_names[city_number]
-  pred_data <- site_pred_data_list[[city_number]]
-  original_scale_isolation_data <- site_original_data_list[[city_number]]
+  pred_data <- park_size_pred_data_list[[city_number]]
+  original_scale_isolation_data <- park_size_original_data_list[[city_number]]
   
   temp <- as.data.frame(cbind(pred_data, #original_scale_data,
                               mean[city_number,],
@@ -980,9 +1264,9 @@ df <- data.frame()
 for(city_number in 1:n_cities){
   
   city_name <- city_names[city_number]
-  pred_data <- site_pred_data_list[[city_number]]
+  pred_data <- park_size_pred_data_list[[city_number]]
   pred_data <- pred_data[-1]
-  original_scale_isolation_data <- site_original_data_list[[city_number]]
+  original_scale_isolation_data <- park_size_original_data_list[[city_number]]
   original_scale_isolation_data <- original_scale_isolation_data[-1]
   
   temp <- as.data.frame(cbind(pred_data, #original_scale_data,
