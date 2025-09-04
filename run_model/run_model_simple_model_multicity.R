@@ -134,8 +134,8 @@ params <- c(
 
   "p0", 
   "sigma_p_species",
-  "p_city",
-  "sigma_p_city",
+  #"p_city",
+  #"sigma_p_city",
   "p_wingspan",
   "p_feature_diversity",
   "p_ease_of_id",
