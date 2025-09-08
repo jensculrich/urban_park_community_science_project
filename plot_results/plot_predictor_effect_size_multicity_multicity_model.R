@@ -3,17 +3,20 @@
 library(tidyverse)
 library(rstan)
 
+# handy for viewing column numbers
+View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
+
 region_names <- c(
-  "northeast",
-  "southeast"
+  "northeast"
 )
 
 n_regions <- length(region_names)
 
 # list of city names
 cities_northeast <- c(
-  "Boston", # 1
-  "NYC", # 7
+  "Boston", 
+  "DC",
+  "NYC", 
   "Philadelphia"
 )
 
@@ -111,44 +114,7 @@ df_estimates$upper_95 <- as.numeric(df_estimates$upper_95)
 df_estimates$lower_50 <- as.numeric(df_estimates$lower_50)
 df_estimates$upper_50 <- as.numeric(df_estimates$upper_50)
 
-## --------------------------------------------------
-## Draw caterpillar plot
 
-(p <- ggplot(df_estimates) +
-    theme_bw() +
-    scale_x_discrete(name="", breaks = seq(1:params),
-                     labels=c(bquote(psi["intercept"]),
-                              bquote(psi["wingspan"]),
-                              bquote(psi["park size"]),
-                              bquote(psi["isolation"])
-                              #bquote(psi["plant richness"]),
-                              #bquote(psi["tree cover"])
-                     )) +
-    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                       limits = c(-5, 5), breaks = c(-4, -2, 0, 2, 4)) +
-    guides(color = guide_legend(title = "city")) +
-    geom_hline(yintercept = 0, lty = "dashed") +
-    ggtitle("Initial Occurrence") +
-    theme(plot.title = element_text(size = 18, face = "bold"),
-          legend.text=element_text(size=10),
-          axis.text.x = element_text(size = 18),
-          axis.text.y = element_text(size = 20, angle=45, vjust=-0.5),
-          axis.title.x = element_text(size = 18),
-          axis.title.y = element_text(size = 18),
-          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-          panel.background = element_blank(), axis.line = element_line(colour = "black")) +
-    coord_flip() 
-)
-
-p <- p +
-  geom_errorbar(aes(x=X, ymin=lower_95, ymax=upper_95, group=city_name, colour=city_name),
-                position=position_dodge(width=0.5),width=0.1,size=1,alpha=0.5) +
-  geom_errorbar(aes(x=X, ymin=lower_50, ymax=upper_50, group=city_name, colour=city_name),
-                position=position_dodge(width=0.5),width=0,size=3,alpha=0.8) +
-  geom_point(aes(x=X, y=Y, group=city_name, colour=city_name), 
-                 position=position_dodge(width=0.5),
-             size = 5, alpha = 0.8) 
-p
 
 
 #-------------------------------------------------------------------------------
@@ -160,11 +126,8 @@ for(i in 1:n_regions){
   # get region
   region_name <- region_names[i]
   
-  # list of city names
-  string <- paste0("cities_", region_name)
-  
-  # assign object from string
-  cities <- 
+  # list of city names # assign object from string
+  cities <- eval(parse(text=paste0("cities_", region_name)))
   
   # get number of cities from the region
   n_cities <- length(cities)
@@ -182,157 +145,373 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_northeast_2km_connectivity_family_50buffers_simple.rds"))
+    "./model_outputs/stan_out_", region_name, "_2km_connectivity_family_50buffers_simple.rds"))
   fit_summary <- rstan::summary(stan_out)
   
+  for(j in 1:n_cities){
+    
+    city <- cities[j]
+    
+    index_lower <- 1 + ((j-1) * params)
+    index_upper <- 1 + ((j-1) * params) + (params - 1)
+    
+    Y[index_lower:index_upper] <- c(
+      fit_summary$summary[1,1] + fit_summary$summary[3+(j-1),1], # psi1 - intercept
+      fit_summary$summary[8,1] + fit_summary$summary[14+(j-1),1], # psi1 - wingspan
+      fit_summary$summary[10,1] + fit_summary$summary[18+(j-1),1], # psi1 - park size
+      fit_summary$summary[12,1] + fit_summary$summary[22+(j-1),1] # psi1 - isolation
+    )
+    
+    lower_95[index_lower:index_upper] <- c(
+      fit_summary$summary[1,4] + fit_summary$summary[3+(j-1),4], # psi1 - intercept
+      fit_summary$summary[8,4] + fit_summary$summary[14+(j-1),4], # psi1 - wingspan
+      fit_summary$summary[10,4] + fit_summary$summary[18+(j-1),4], # psi1 - park size
+      fit_summary$summary[12,4] + fit_summary$summary[22+(j-1),4] # psi1 - isolation
+    )
+    
+    upper_95[index_lower:index_upper] <- c(
+      fit_summary$summary[1,8] + fit_summary$summary[3+(j-1),8], # psi1 - intercept
+      fit_summary$summary[8,8] + fit_summary$summary[14+(j-1),8], # psi1 - wingspan
+      fit_summary$summary[10,8] + fit_summary$summary[18+(j-1),8], # psi1 - park size
+      fit_summary$summary[12,8] + fit_summary$summary[22+(j-1),8] # psi1 - isolation
+    )
+    
+    lower_50[index_lower:index_upper] <- c(
+      fit_summary$summary[1,5] + fit_summary$summary[3+(j-1),5], # psi1 - intercept
+      fit_summary$summary[8,5] + fit_summary$summary[14+(j-1),5], # psi1 - wingspan
+      fit_summary$summary[10,5] + fit_summary$summary[18+(j-1),5], # psi1 - park size
+      fit_summary$summary[12,5] + fit_summary$summary[22+(j-1),5] # psi1 - isolation
+    )
+    
+    upper_50[index_lower:index_upper] <- c(
+      fit_summary$summary[1,7] + fit_summary$summary[3+(j-1),7], # psi1 - intercept
+      fit_summary$summary[8,7] + fit_summary$summary[14+(j-1),7], # psi1 - wingspan
+      fit_summary$summary[10,7] + fit_summary$summary[18+(j-1),7], # psi1 - park size
+      fit_summary$summary[12,7] + fit_summary$summary[22+(j-1),7] # psi1 - isolation
+    )
+    
+  }
+  
+  df_estimates <- as.data.frame(cbind(X, city_name, Y, lower_95, upper_95, lower_50, upper_50))
+  
+  df_estimates$X <- as.factor(df_estimates$X)
+  df_estimates$city_name <- as.factor(df_estimates$city_name)
+  df_estimates$Y <- as.numeric(df_estimates$Y)
+  df_estimates$lower_95 <- as.numeric(df_estimates$lower_95)
+  df_estimates$upper_95 <- as.numeric(df_estimates$upper_95)
+  df_estimates$lower_50 <- as.numeric(df_estimates$lower_50)
+  df_estimates$upper_50 <- as.numeric(df_estimates$upper_50)
+  
+  
 }
 
-
-for(i in 1:n_cities_northeast){
-  city <- cities_northeast[i]
+# try a way that pulls out the region means simultaneously
+for(i in 1:n_regions){
   
-  index_lower <- 1 + ((i-1) * params)
-  index_upper <- 1 + ((i-1) * params) + (params - 1)
+  # get region
+  region_name <- region_names[i]
   
-  Y[index_lower:index_upper] <- c(
-    fit_summary$summary[1,1], # psi1 - intercept
-    fit_summary$summary[3,1], # psi1 - wingspan
-    fit_summary$summary[8+(i-1),1], # psi1 - park size
-    fit_summary$summary[11+(i-1),1] # psi1 - isolation
-    #fit_summary$summary[8,1], # psi1 - plant richness
-    #fit_summary$summary[6,1] # psi1 - tree cover
-  )
+  # list of city names # assign object from string
+  cities <- eval(parse(text=paste0("cities_", region_name)))
   
-  lower_95[index_lower:index_upper] <- c(
-    fit_summary$summary[1,4], # psi1 - intercept
-    fit_summary$summary[3,4], # psi1 - wingspan
-    fit_summary$summary[8+(i-1),4], # psi1 - park size
-    fit_summary$summary[11+(i-1),4] # psi1 - isolation
-    #fit_summary$summary[8,4], # psi1 - plant richness
-    #fit_summary$summary[6,4] # psi1 - tree cover
-  )
+  # get number of cities from the region
+  cities <- c(cities, region_name)
+  n_cities <- length(cities)
   
-  upper_95[index_lower:index_upper] <- c(
-    fit_summary$summary[1,8], # psi1 - intercept
-    fit_summary$summary[3,8], # psi1 - wingspan
-    fit_summary$summary[8+(i-1),8], # psi1 - park size
-    fit_summary$summary[11+(i-1),8] # psi1 - isolation
-    #fit_summary$summary[8,8], # psi1 - plant richness
-    #fit_summary$summary[6,8] # psi1 - tree cover
-  )
+  # ecological params
+  # number of params to plot
+  params <- 4
+  X <- rep(seq(1:params), times=n_cities) #  ecological params of interest
+  Y <- vector(length = n_cities*params)
+  lower_95 <- vector(length = n_cities*params)
+  upper_95 <- vector(length = n_cities*params)
+  lower_50 <- vector(length = n_cities*params)
+  upper_50 <- vector(length = n_cities*params)
   
-  lower_50[index_lower:index_upper] <- c(
-    fit_summary$summary[1,5], # psi1 - intercept
-    fit_summary$summary[3,5], # psi1 - wingspan
-    fit_summary$summary[8+(i-1),5], # psi1 - park size
-    fit_summary$summary[11+(i-1),5] # psi1 - isolation
-    #fit_summary$summary[8,5, # psi1 - plant richness
-    #fit_summary$summary[6,5] # psi1 - tree cover
-  )
+  city_name <- rep(cities, each=(params)) 
   
-  upper_50[index_lower:index_upper] <- c(
-    fit_summary$summary[1,7], # psi1 - intercept
-    fit_summary$summary[3,7], # psi1 - wingspan
-    fit_summary$summary[8+(i-1),7], # psi1 - park size
-    fit_summary$summary[11+(i-1),7] # psi1 - isolation
-    #fit_summary$summary[8,7], # psi1 - plant richness
-    #fit_summary$summary[6,7] # psi1 - tree cover
-  )
+  stan_out <- readRDS(paste0(
+    "./model_outputs/stan_out_", region_name, "_2km_connectivity_family_50buffers_simple.rds"))
+  fit_summary <- rstan::summary(stan_out)
+  
+  for(j in 1:(n_cities-1)){
+    
+    city <- cities[j]
+    
+    index_lower <- 1 + ((j-1) * params)
+    index_upper <- 1 + ((j-1) * params) + (params - 1)
+    
+    Y[index_lower:index_upper] <- c(
+      fit_summary$summary[1,1] + fit_summary$summary[3+(j-1),1], # psi1 - intercept
+      fit_summary$summary[14+(j-1),1], # psi1 - wingspan
+      fit_summary$summary[18+(j-1),1], # psi1 - park size
+      fit_summary$summary[22+(j-1),1] # psi1 - isolation
+    )
+    
+    lower_95[index_lower:index_upper] <- c(
+      fit_summary$summary[1,4] + fit_summary$summary[3+(j-1),4], # psi1 - intercept
+      fit_summary$summary[14+(j-1),4], # psi1 - wingspan
+      fit_summary$summary[18+(j-1),4], # psi1 - park size
+      fit_summary$summary[22+(j-1),4] # psi1 - isolation
+    )
+    
+    upper_95[index_lower:index_upper] <- c(
+      fit_summary$summary[1,8] + fit_summary$summary[3+(j-1),8], # psi1 - intercept
+      fit_summary$summary[14+(j-1),8], # psi1 - wingspan
+      fit_summary$summary[18+(j-1),8], # psi1 - park size
+      fit_summary$summary[22+(j-1),8] # psi1 - isolation
+    )
+    
+    lower_50[index_lower:index_upper] <- c(
+      fit_summary$summary[1,5] + fit_summary$summary[3+(j-1),5], # psi1 - intercept
+      fit_summary$summary[14+(j-1),5], # psi1 - wingspan
+      fit_summary$summary[18+(j-1),5], # psi1 - park size
+      fit_summary$summary[22+(j-1),5] # psi1 - isolation
+    )
+    
+    upper_50[index_lower:index_upper] <- c(
+      fit_summary$summary[1,7] + fit_summary$summary[3+(j-1),7], # psi1 - intercept
+      fit_summary$summary[14+(j-1),7], # psi1 - wingspan
+      fit_summary$summary[18+(j-1),7], # psi1 - park size
+      fit_summary$summary[22+(j-1),7] # psi1 - isolation
+    )
+    
+  }
+  
+  for(j in 5){
+    
+    city <- cities[j]
+    
+    index_lower <- 1 + ((j-1) * params)
+    index_upper <- 1 + ((j-1) * params) + (params - 1)
+    
+    Y[index_lower:index_upper] <- c(
+      fit_summary$summary[1,1], 
+      fit_summary$summary[8,1] ,
+      fit_summary$summary[10,1],
+      fit_summary$summary[12,1]
+    )
+    
+    lower_95[index_lower:index_upper] <- c(
+      fit_summary$summary[1,4], 
+      fit_summary$summary[8,4], 
+      fit_summary$summary[10,4], 
+      fit_summary$summary[12,4]
+    )
+    
+    upper_95[index_lower:index_upper] <- c(
+      fit_summary$summary[1,8],
+      fit_summary$summary[8,8],
+      fit_summary$summary[10,8],
+      fit_summary$summary[12,8]
+    )
+    
+    lower_50[index_lower:index_upper] <- c(
+      fit_summary$summary[1,5],
+      fit_summary$summary[8,5],
+      fit_summary$summary[10,5],
+      fit_summary$summary[12,5]
+    )
+    
+    upper_50[index_lower:index_upper] <- c(
+      fit_summary$summary[1,7],
+      fit_summary$summary[8,7],
+      fit_summary$summary[10,7],
+      fit_summary$summary[12,7]
+    )
+    
+  }
+  
+  df_estimates <- as.data.frame(cbind(X, city_name, Y, lower_95, upper_95, lower_50, upper_50))
+  
+  df_estimates$X <- as.factor(df_estimates$X)
+  df_estimates$city_name <- as.factor(df_estimates$city_name)
+  df_estimates$Y <- as.numeric(df_estimates$Y)
+  df_estimates$lower_95 <- as.numeric(df_estimates$lower_95)
+  df_estimates$upper_95 <- as.numeric(df_estimates$upper_95)
+  df_estimates$lower_50 <- as.numeric(df_estimates$lower_50)
+  df_estimates$upper_50 <- as.numeric(df_estimates$upper_50)
+  
   
 }
 
-df_estimates <- as.data.frame(cbind(X, city_name, Y, lower_95, upper_95, lower_50, upper_50))
+df_estimates$city_name <- fct_relevel(df_estimates$city_name, 'northeast')
+                                                     
 
-df_estimates$X <- as.factor(df_estimates$X)
-df_estimates$city_name <- as.factor(df_estimates$city_name)
-df_estimates$Y <- as.numeric(df_estimates$Y)
-df_estimates$lower_95 <- as.numeric(df_estimates$lower_95)
-df_estimates$upper_95 <- as.numeric(df_estimates$upper_95)
-df_estimates$lower_50 <- as.numeric(df_estimates$lower_50)
-df_estimates$upper_50 <- as.numeric(df_estimates$upper_50)
+## --------------------------------------------------
+## Draw caterpillar plot
+
+(p <- ggplot(df_estimates) +
+   theme_bw() +
+   scale_x_discrete(name="", breaks = seq(1:params),
+                    labels=c(bquote(psi["intercept"]),
+                             bquote(psi["wingspan"]),
+                             bquote(psi["park size"]),
+                             bquote(psi["isolation"])
+                             #bquote(psi["plant richness"]),
+                             #bquote(psi["tree cover"])
+                    )) +
+   scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
+                      limits = c(-4, 4), breaks = c(-4, -2, 0, 2, 4)) +
+   guides(color = guide_legend(title = "city")) +
+   scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9")) + 
+   geom_hline(yintercept = 0, lty = "dashed") +
+   ggtitle("Initial Occurrence") +
+   theme(plot.title = element_text(size = 18, face = "bold"),
+         legend.text=element_text(size=10),
+         axis.text.x = element_text(size = 18),
+         axis.text.y = element_text(size = 20, angle=45, vjust=-0.5),
+         axis.title.x = element_text(size = 18),
+         axis.title.y = element_text(size = 18),
+         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+         panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+   coord_flip() 
+)
+
+p <- p +
+  geom_errorbar(aes(x=X, ymin=lower_95, ymax=upper_95, group=city_name, colour=city_name),
+                position=position_dodge(width=0.5),width=0.1,size=1,alpha=0.5) +
+  geom_errorbar(aes(x=X, ymin=lower_50, ymax=upper_50, group=city_name, colour=city_name),
+                position=position_dodge(width=0.5),width=0,size=3,alpha=0.8) +
+  geom_point(aes(x=X, y=Y, group=city_name, colour=city_name), 
+             position=position_dodge(width=0.5),
+             size = 5, alpha = 0.8) 
+p
+
 
 #-------------------------------------------------------------------------------
 # colonization (gamma)
 
-# ecological params
-# number of params to plot
-params <- 4
-X <- rep(seq(1:params), 2) #  ecological params of interest
-Y <- vector(length = n_cities*params)
-lower_95 <- vector(length = n_cities*params)
-upper_95 <- vector(length = n_cities*params)
-lower_50 <- vector(length = n_cities*params)
-upper_50 <- vector(length = n_cities*params)
-
-city_name <- rep(city_names, each=(params)) 
-
-for(i in 1:n_cities){
-  city <- city_names[i]
+for(i in 1:n_regions){
+  
+  # get region
+  region_name <- region_names[i]
+  
+  # list of city names # assign object from string
+  cities <- eval(parse(text=paste0("cities_", region_name)))
+  
+  # get number of cities from the region
+  cities <- c(cities, region_name)
+  n_cities <- length(cities)
+  
+  # ecological params
+  # number of params to plot
+  params <- 4
+  X <- rep(seq(1:params), times=n_cities) #  ecological params of interest
+  Y <- vector(length = n_cities*params)
+  lower_95 <- vector(length = n_cities*params)
+  upper_95 <- vector(length = n_cities*params)
+  lower_50 <- vector(length = n_cities*params)
+  upper_50 <- vector(length = n_cities*params)
+  
+  city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", 
-    city, "_2km_connectivity_family_50buffers_simple.rds"))
+    "./model_outputs/stan_out_", region_name, "_2km_connectivity_family_50buffers_simple.rds"))
   fit_summary <- rstan::summary(stan_out)
   
-  index_lower <- 1 + ((i-1) * params)
-  index_upper <- 1 + ((i-1) * params) + (params - 1)
+  for(j in 1:(n_cities-1)){
+    
+    city <- cities[j]
+    
+    index_lower <- 1 + ((j-1) * params)
+    index_upper <- 1 + ((j-1) * params) + (params - 1)
+    
+    Y[index_lower:index_upper] <- c(
+      fit_summary$summary[26,1] + fit_summary$summary[28+(j-1),1], # gamma - intercept
+      fit_summary$summary[39+(j-1),1], # gamma - wingspan
+      fit_summary$summary[43+(j-1),1], # gamma - park size
+      fit_summary$summary[47+(j-1),1] # gamma - isolation
+    )
+    
+    lower_95[index_lower:index_upper] <- c(
+      fit_summary$summary[26,4] + fit_summary$summary[28+(j-1),4], # gamma - intercept
+      fit_summary$summary[39+(j-1),4], # gamma - wingspan
+      fit_summary$summary[43+(j-1),4], # gamma - park size
+      fit_summary$summary[47+(j-1),4] # gamma - isolation
+    )
+    
+    upper_95[index_lower:index_upper] <- c(
+      fit_summary$summary[26,8] + fit_summary$summary[28+(j-1),8], # gamma - intercept
+      fit_summary$summary[39+(j-1),8], # gamma - wingspan
+      fit_summary$summary[43+(j-1),8], # gamma - park size
+      fit_summary$summary[47+(j-1),8] # gamma - isolation
+    )
+    
+    lower_50[index_lower:index_upper] <- c(
+      fit_summary$summary[26,5] + fit_summary$summary[28+(j-1),5], # gamma - intercept
+      fit_summary$summary[39+(j-1),5], # gamma - wingspan
+      fit_summary$summary[43+(j-1),5], # gamma - park size
+      fit_summary$summary[47+(j-1),5] # gamma - isolation
+    )
+    
+    upper_50[index_lower:index_upper] <- c(
+      fit_summary$summary[26,7] + fit_summary$summary[28+(j-1),7], # gamma - intercept
+      fit_summary$summary[39+(j-1),7], # gamma - wingspan
+      fit_summary$summary[43+(j-1),7], # gamma - park size
+      fit_summary$summary[47+(j-1),7] # gamma - isolation
+    )
+    
+  }
   
-  Y[index_lower:index_upper] <- c(
-    fit_summary$summary[6,1], # gamma - intercept
-    fit_summary$summary[8,1], # gamma - wingspan
-    fit_summary$summary[9,1], # gamma - park size
-    fit_summary$summary[10,1] # gamma - connectivity
-    #fit_summary$summary[8,1], # gamma - plant richness
-    #fit_summary$summary[12,1] # gamma - tree cover
-  )
+  for(j in 5){
+    
+    city <- cities[j]
+    
+    index_lower <- 1 + ((j-1) * params)
+    index_upper <- 1 + ((j-1) * params) + (params - 1)
+    
+    Y[index_lower:index_upper] <- c(
+      fit_summary$summary[26,1],
+      fit_summary$summary[39,1], # gamma - wingspan
+      fit_summary$summary[43,1], # gamma - park size
+      fit_summary$summary[47,1] # gamma - isolation
+    )
+    
+    lower_95[index_lower:index_upper] <- c(
+      fit_summary$summary[26,4],
+      fit_summary$summary[39,4], # gamma - wingspan
+      fit_summary$summary[43,4], # gamma - park size
+      fit_summary$summary[47,4] # gamma - isolation
+    )
+    
+    upper_95[index_lower:index_upper] <- c(
+      fit_summary$summary[26,8],
+      fit_summary$summary[39,8], # gamma - wingspan
+      fit_summary$summary[43,8], # gamma - park size
+      fit_summary$summary[47,8] # gamma - isolation
+    )
+    
+    lower_50[index_lower:index_upper] <- c(
+      fit_summary$summary[26,5],
+      fit_summary$summary[39,5], # gamma - wingspan
+      fit_summary$summary[43,5], # gamma - park size
+      fit_summary$summary[47,5] # gamma - isolation
+    )
+    
+    upper_50[index_lower:index_upper] <- c(
+      fit_summary$summary[26,7],
+      fit_summary$summary[39,7], # gamma - wingspan
+      fit_summary$summary[43,7], # gamma - park size
+      fit_summary$summary[47,7] # gamma - isolation
+    )
+    
+  }
   
-  lower_95[index_lower:index_upper] <- c(
-    fit_summary$summary[6,4], # gamma - intercept
-    fit_summary$summary[8,4], # gamma - wingspan
-    fit_summary$summary[9,4], # gamma - park size
-    fit_summary$summary[10,4] # gamma - connectivity
-    #fit_summary$summary[8,1], # gamma - plant richness
-    #fit_summary$summary[12,1] # gamma - tree cover
-  )
+  df_estimates <- as.data.frame(cbind(X, city_name, Y, lower_95, upper_95, lower_50, upper_50))
   
-  upper_95[index_lower:index_upper] <- c(
-    fit_summary$summary[6,8], # gamma - intercept
-    fit_summary$summary[8,8], # gamma - wingspan
-    fit_summary$summary[9,8], # gamma - park size
-    fit_summary$summary[10,8] # gamma - connectivity
-    #fit_summary$summary[8,1], # gamma - plant richness
-    #fit_summary$summary[12,1] # gamma - tree cover
-  )
+  df_estimates$X <- as.factor(df_estimates$X)
+  df_estimates$city_name <- as.factor(df_estimates$city_name)
+  df_estimates$Y <- as.numeric(df_estimates$Y)
+  df_estimates$lower_95 <- as.numeric(df_estimates$lower_95)
+  df_estimates$upper_95 <- as.numeric(df_estimates$upper_95)
+  df_estimates$lower_50 <- as.numeric(df_estimates$lower_50)
+  df_estimates$upper_50 <- as.numeric(df_estimates$upper_50)
   
-  lower_50[index_lower:index_upper] <- c(
-    fit_summary$summary[6,5], # gamma - intercept
-    fit_summary$summary[8,5], # gamma - wingspan
-    fit_summary$summary[9,5], # gamma - park size
-    fit_summary$summary[10,5] # gamma - connectivity
-    #fit_summary$summary[8,1], # gamma - plant richness
-    #fit_summary$summary[12,1] # gamma - tree cover
-  )
-  
-  upper_50[index_lower:index_upper] <- c(
-    fit_summary$summary[6,7], # gamma - intercept
-    fit_summary$summary[8,7], # gamma - wingspan
-    fit_summary$summary[9,7], # gamma - park size
-    fit_summary$summary[10,7] # gamma - connectivity
-    #fit_summary$summary[8,1], # gamma - plant richness
-    #fit_summary$summary[12,1] # gamma - tree cover
-  )
   
 }
 
-df_estimates <- as.data.frame(cbind(X, city_name, Y, lower_95, upper_95, lower_50, upper_50))
-
-df_estimates$X <- as.factor(df_estimates$X)
-df_estimates$city_name <- as.factor(df_estimates$city_name)
-df_estimates$Y <- as.numeric(df_estimates$Y)
-df_estimates$lower_95 <- as.numeric(df_estimates$lower_95)
-df_estimates$upper_95 <- as.numeric(df_estimates$upper_95)
-df_estimates$lower_50 <- as.numeric(df_estimates$lower_50)
-df_estimates$upper_50 <- as.numeric(df_estimates$upper_50)
+df_estimates$city_name <- fct_relevel(df_estimates$city_name, 'northeast')
 
 ## --------------------------------------------------
 ## Draw caterpillar plot
@@ -343,13 +522,14 @@ df_estimates$upper_50 <- as.numeric(df_estimates$upper_50)
                     labels=c(bquote(gamma["intercept"]),
                              bquote(gamma["wingspan"]),
                              bquote(gamma["park size"]),
-                             bquote(gamma["connectivity"])
+                             bquote(gamma["isolation"])
                              #bquote(gamma["plant richness"]),
                              #bquote(gamma["tree cover"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-6, 6), breaks = c(-6, -4, -2, 0, 2, 4)) +
+                      limits = c(-8, 12), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
+   scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9")) + 
    geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("Colonization") +
    theme(plot.title = element_text(size = 18, face = "bold"),
@@ -619,3 +799,4 @@ s <- s +
 s
 
 cowplot::plot_grid(p, q, r, s, ncol = 2)
+cowplot::plot_grid(p, q, ncol = 2)

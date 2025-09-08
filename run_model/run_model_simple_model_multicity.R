@@ -120,7 +120,6 @@ params <- c(
   
   "psi1_0", 
   "sigma_psi1_species",
-  "psi1_city",
   "sigma_psi1_city",
   "mu_psi1_wingspan",
   "sigma_psi1_wingspan",
@@ -128,13 +127,9 @@ params <- c(
   "sigma_psi1_park_size",
   "mu_psi1_connectivity",
   "sigma_psi1_connectivity",
-  "psi1_wingspan",
-  "psi1_park_size",
-  "psi1_connectivity",
 
   "gamma0", 
   "sigma_gamma_species",
-  "gamma_city",
   "sigma_gamma_city",
   "mu_gamma_wingspan",
   "sigma_gamma_wingspan",
@@ -142,13 +137,9 @@ params <- c(
   "sigma_gamma_park_size",
   "mu_gamma_connectivity",
   "sigma_gamma_connectivity",
-  "gamma_wingspan",
-  "gamma_park_size",
-  "gamma_connectivity",
 
   "phi0", 
   "sigma_phi_species",
-  "phi_city",
   "sigma_phi_city",
   "mu_phi_wingspan",
   "sigma_phi_wingspan",
@@ -156,13 +147,9 @@ params <- c(
   "sigma_phi_park_size",
   "mu_phi_connectivity",
   "sigma_phi_connectivity",
-  "phi_wingspan",
-  "phi_park_size",
-  "phi_connectivity",
-
+  
   "p0", 
   "sigma_p_species",
-  "p_city",
   "sigma_p_city",
   "p_wingspan",
   "p_feature_diversity",
@@ -172,6 +159,22 @@ params <- c(
   "mu_p_species_date_sq",
   "sigma_p_species_date_sq",
   
+  # city effects
+  "psi1_city",
+  "psi1_wingspan",
+  "psi1_park_size",
+  "psi1_connectivity",
+  "gamma_city",
+  "gamma_wingspan",
+  "gamma_park_size",
+  "gamma_connectivity",
+  "phi_city",
+  "phi_wingspan",
+  "phi_park_size",
+  "phi_connectivity",
+  "p_city",
+  
+  # species effects and PPC
   "W_species_rep",
   "psi1_species",
   "gamma_species", "phi_species",
