@@ -10,7 +10,7 @@ regions <- c(
   "southwest"
 )
 
-region <- regions[2]
+region <- regions[3]
 
 # list of city names
 
@@ -38,14 +38,14 @@ if(region == regions[2]){
 # southeast
 if(region == regions[3]){
   city_names <- c(
-    #"Atlanta",
+    "Atlanta",
     "Charlotte",
     "Dallas",
     "Denton",
     "Houston",
-    #"Miami",
-    "Raleigh"
-    #"Tampa"
+    "Miami",
+    "Raleigh",
+    "Tampa"
   )
 }
 
@@ -60,7 +60,10 @@ if(region == regions[4]){
   )
 } 
 
-min_species_detections <- 2 # binary park/year/species detections
+# or choose one city
+city_names <- "Philadelphia"
+
+min_species_detections <- 1 # binary park/year/species detections
 min_species_for_community_sampling_event = 1 
 family_sampling = TRUE # Should enter either TRUE or FALSE 
 # family_sampling:

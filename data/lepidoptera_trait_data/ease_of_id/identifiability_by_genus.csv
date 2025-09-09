@@ -1,5 +1,6 @@
 genus,research_grade_detections,total_detections,research_grade_proportion,date_data_obtained,notes
 Abaeis,23076,24107,0.957232339,11.1.2024,
+Amblyscirtes,8440,12149,0.694707383,9.9.2025,
 Anaea,8590,9218,0.931872424,7.3.2025,
 Ancyloxypha,14452,14706,0.982728138,5.12.2024,
 Anthanassa,5937,6152,0.965052016,7.4.2025,
@@ -47,6 +48,7 @@ Libytheana,25494,25569,0.997066761,5.12.2024,
 Limenitis,101903,105428,0.966564859,11.4.2024,
 Lon,52808,55572,0.950262722,11.4.2024,
 Lycaena,9871,10479,0.941979196,7.13.2025,
+Mastor,8440,12149,0.694707383,9.9.2025,"Using the genus name ""Amblyscirtes"" as is accepted on iNaturalist"
 Ministrymon,1788,1823,0.980800878,8.13.2025,
 Mitoura,12014,12608,0.952887056,7.3.2025,"Using the subgenus name ""Mitoua"" instead of genus ""Callophrys"" as is accepted on iNaturalist"
 Nastra,2168,2910,0.745017182,5.12.2024,
