@@ -34,6 +34,7 @@ data {
   vector[n_sites] connectivity;
   int<lower=0> n_cities; // number of cities
   int<lower=1> city[n_sites]; // vector of city identities
+  int<lower=0> ranges[n_species, n_sites]; // matrix to constrain analysis within species ranges
 
 } // end data
 
@@ -308,7 +309,9 @@ model {
     for (j in 1:n_sites){
       for (k in 1:n_years){
         
-        if(sum(V_NA[i,j,k]) > 0){
+        if(ranges[i,j] > 0){ // if the site [determined by city] is in range of species...
+          
+          if(sum(V_NA[i,j,k]) > 0){
           
           if (sum(V[i,j,k]) > 0){ // lp observed 
             // detection on each visit given detection rate on each visit
@@ -350,6 +353,8 @@ model {
           } // end if/else
           
         } // end if (any in year not NA)
+        
+        } // end if(site is in species range)
   
       } // end loop across all years
     } // end loop across all sites   

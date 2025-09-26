@@ -1,31 +1,26 @@
 library(tidyverse)
 
-LA_data <- readRDS("./run_model/prepped_data/prepped_data_LA.rds")
-NYC_data <- readRDS("./run_model/prepped_data/prepped_data_NYC.rds")
-#SEA_data <- readRDS("./run_model/prepped_data/prepped_data_SEA.rds")
+# select a region
+regions <- c(
+  "midwest",
+  "northeast",
+  "southeast",
+  "southwest"
+)
+
+region <- regions[4]
+
+data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))
 
 ## --------------------------------------------------
 # site predictors
-LA_site_data <- LA_data$site_data %>%
-  mutate(city = "LA")
-
-NYC_site_data <- NYC_data$site_data %>%
-  mutate(city = "NYC")
-
-#SEA_site_data <- SEA_data$site_data %>%
-  #mutate(city = "SEA")
-
-all_site_data <- rbind(
-                  LA_site_data,
-                  NYC_site_data#,
-                  #SEA_site_data
-                  )
+site_data <- data$site_data 
 
 # park size
-p1 <- ggplot(all_site_data, aes(x = log_total_green_space_area, 
+p1 <- ggplot(site_data, aes(x = log_total_green_space_area, 
                           colour = city, fill = city)) + 
   geom_histogram(alpha = 0.5, position = "identity") +
-  scale_x_continuous(breaks = c(8, 10, 12, 14, 16, 18)) +
+  scale_x_continuous(limits = c(4, 20), breaks = c(4, 6, 8, 10, 12, 14, 16, 18, 20)) +
   theme_bw() +
   xlab("log(Park Size in m^2)") + 
   theme(plot.title = element_text(size = 18, face = "bold"),
@@ -35,14 +30,15 @@ p1 <- ggplot(all_site_data, aes(x = log_total_green_space_area,
         axis.title.x = element_text(size = 18),
         axis.title.y = element_text(size = 18),
         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"))
+        panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  facet_wrap(~city)
   
 #  connectivity
-p2 <- ggplot(all_site_data, aes(x = avg_dist_2000m, 
+p2 <- ggplot(site_data, aes(x = connectivity, 
                           colour = city, fill = city)) + 
   geom_histogram(alpha = 0.5, position = "identity") +
   theme_bw() +
-  xlab("average distance to other parks within 2km") + 
+  xlab("isolation from other parks within 2km") + 
   theme(plot.title = element_text(size = 18, face = "bold"),
         legend.text=element_text(size=10),
         axis.text.x = element_text(size = 18),
@@ -50,10 +46,11 @@ p2 <- ggplot(all_site_data, aes(x = avg_dist_2000m,
         axis.title.x = element_text(size = 18),
         axis.title.y = element_text(size = 18),
         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"))
+        panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  facet_wrap(~city)
 
 #  tree cover
-p3 <- ggplot(all_site_data, aes(x = tree_percent_cover, 
+p3 <- ggplot(site_data, aes(x = tree_percent_cover, 
                           colour = city, fill = city)) + 
   geom_histogram(alpha = 0.5, position = "identity") +
   theme_bw() +
@@ -65,10 +62,11 @@ p3 <- ggplot(all_site_data, aes(x = tree_percent_cover,
         axis.title.x = element_text(size = 18),
         axis.title.y = element_text(size = 18),
         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"))
+        panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  facet_wrap(~city)
 
 #  plant genus density
-p4 <- ggplot(all_site_data, aes(x = plant_genera_density, 
+p4 <- ggplot(site_data, aes(x = plant_genera_density, 
                           colour = city, fill = city)) + 
   geom_histogram(alpha = 0.5, position = "identity") +
   theme_bw() +
@@ -80,10 +78,14 @@ p4 <- ggplot(all_site_data, aes(x = plant_genera_density,
         axis.title.x = element_text(size = 18),
         axis.title.y = element_text(size = 18),
         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"))
+        panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  facet_wrap(~city)
 
-cowplot::plot_grid(p1, p2, p3, p4, ncol = 2)
-
+# cowplot::plot_grid(p1, p2, p3, p4, ncol = 2)
+p1
+p2
+p3
+p4
 
 ## --------------------------------------------------
 # species predictors

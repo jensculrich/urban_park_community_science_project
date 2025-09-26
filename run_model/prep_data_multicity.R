@@ -642,6 +642,37 @@ prep_data <- function(city_names,
   }
   
   ## --------------------------------------------------
+  # Get species ranges
+  
+  # source the prep function
+  source("./run_model/get_species_ranges.R")
+  
+  ranges_raw <- get_species_ranges(city_names)
+  
+  all_species_city_combos <- as.data.frame(cbind(
+    rep(species_info$species, times = length(city_names)),
+    rep(city_names, each = n_species)
+  )) %>%
+    rename("species" = "V1",
+           "city" = "V2")
+  
+  temp <- select(species_info, species)
+  temp <- left_join(temp, ranges_raw, by = "species") %>%
+    mutate(in_range = 1)
+  
+  ranges <- full_join(temp, all_species_city_combos) %>%
+    mutate(in_range = replace_na(in_range, 0))
+  
+  temp2 <- select(site_data, city, multicity_site_id)
+  
+  ranges <- left_join(temp2, ranges, by = "city")
+  
+  # now spread into 4 dimensions
+  #sort data frame by multiple columns alphabetically
+  ranges <- ranges[with(ranges, order(multicity_site_id, species)), ]
+  ranges <- array(data = ranges$in_range, dim = c(n_species, n_sites ))
+  
+  ## --------------------------------------------------
   # Return stuff
   return(list(
     
@@ -661,7 +692,9 @@ prep_data <- function(city_names,
     families = family_vector, 
     sites = site_vector,
     years = year_vector,
-    surveys = survey_vector
+    surveys = survey_vector,
+    
+    ranges = ranges
 
   ))
 

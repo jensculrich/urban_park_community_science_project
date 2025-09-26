@@ -1,7 +1,4 @@
 
-# for community sampling events inferred by [taxonomic] family, source this file:
-source("./run_model/prep_data_multicity.R")
-
 # select a region
 regions <- c(
   "midwest",
@@ -10,7 +7,7 @@ regions <- c(
   "southwest"
 )
 
-region <- regions[3]
+region <- regions[1]
 
 # list of city names
 
@@ -18,10 +15,11 @@ region <- regions[3]
 if(region == regions[1]){
   city_names <- c(
     "Chicago",
+    "Denver",
     "Des_Moines",
     "Detroit", 
     "Minneapolis",
-    "St. Louis"
+    "St_Louis"
   )
 }
 
@@ -43,9 +41,7 @@ if(region == regions[3]){
     "Dallas",
     "Denton",
     "Houston",
-    "Miami",
-    "Raleigh",
-    "Tampa"
+    "Raleigh"
   )
 }
 
@@ -61,14 +57,17 @@ if(region == regions[4]){
 } 
 
 # or choose one city
-city_names <- "Philadelphia"
+# city_names <- "Philadelphia"
 
-min_species_detections <- 1 # binary park/year/species detections
+min_species_detections <- 2 # binary park/year/species detections
 min_species_for_community_sampling_event = 1 
 family_sampling = TRUE # Should enter either TRUE or FALSE 
 # family_sampling:
 # if false infer sampling event for all butterflies if any butterflies detected
 # if true only infer sampling event for butterflies in same family as any butterflies detected
+
+# for community sampling events inferred by [taxonomic] family, source this file:
+source("./run_model/prep_data_multicity.R")
 
 my_data <- prep_data(city_names,
                      min_species_detections,
@@ -112,10 +111,14 @@ connectivity <- site_data$connectivity_scaled
 city <- as.integer(as.factor(site_data$city))
 n_cities <- length(unique(city))
 
+## ranges
+ranges <- my_data$ranges
+
 stan_data <- c("V", "V_NA", "species", "sites", "years", "surveys", 
                "n_species", "n_sites", "n_years", "n_years_minus1", "n_surveys",
                "feature_diversity", "ease_of_id", "wingspan",
-               "park_size", "connectivity", "city", "n_cities"
+               "park_size", "connectivity", "city", "n_cities",
+               "ranges"
 ) 
 
 ## Parameters monitored 
@@ -248,36 +251,37 @@ print(stan_out, digits = 3,
       pars = c(
         "psi1_0", 
         "sigma_psi1_species",
-        "psi1_wingspan",
+        "sigma_psi1_city",
+        "mu_psi1_wingspan",
+        "sigma_psi1_wingspan",
         "mu_psi1_park_size",
         "sigma_psi1_park_size",
         "mu_psi1_connectivity",
         "sigma_psi1_connectivity",
-        "psi1_park_size",
-        "psi1_connectivity",
         
         "gamma0", 
         "sigma_gamma_species",
-        "gamma_wingspan",
+        "sigma_gamma_city",
+        "mu_gamma_wingspan",
+        "sigma_gamma_wingspan",
         "mu_gamma_park_size",
         "sigma_gamma_park_size",
         "mu_gamma_connectivity",
         "sigma_gamma_connectivity",
-        "gamma_park_size",
-        "gamma_connectivity",
         
         "phi0", 
         "sigma_phi_species",
-        "phi_wingspan",
+        "sigma_phi_city",
+        "mu_phi_wingspan",
+        "sigma_phi_wingspan",
         "mu_phi_park_size",
         "sigma_phi_park_size",
         "mu_phi_connectivity",
         "sigma_phi_connectivity",
-        "phi_park_size",
-        "phi_connectivity",
         
         "p0", 
         "sigma_p_species",
+        "sigma_p_city",
         "p_wingspan",
         "p_feature_diversity",
         "p_ease_of_id",
@@ -285,6 +289,21 @@ print(stan_out, digits = 3,
         "sigma_p_species_date",
         "mu_p_species_date_sq",
         "sigma_p_species_date_sq",
+        
+        # city effects
+        "psi1_city",
+        "psi1_wingspan",
+        "psi1_park_size",
+        "psi1_connectivity",
+        "gamma_city",
+        "gamma_wingspan",
+        "gamma_park_size",
+        "gamma_connectivity",
+        "phi_city",
+        "phi_wingspan",
+        "phi_park_size",
+        "phi_connectivity",
+        "p_city"
       ))
 
 print(stan_out, digits = 3, 
