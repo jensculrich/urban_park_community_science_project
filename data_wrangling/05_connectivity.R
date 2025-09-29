@@ -5,7 +5,7 @@ library(tidyverse)
 #library(landscapemetrics)
 
 #Define the city
-city<-"la"
+city<-"denton"
 buffer_size<-50
 # Load the park shape file
 parks_data <- readRDS(paste0("E:/phd_study/urban_park_community_science_project/data/parks/", buffer_size, "m_merged_classified_parks_with_unclassified_parks_sqm_area_", city, ".rds"))
@@ -179,11 +179,14 @@ connectivity_fun <- function(parks_sf) {
       
       # Global area-weighted average
       parks_sf$connectivity[i] <- 
-        sum(log(neighbor_areas) / distances+1)
+        sum((log(neighbor_areas + 1) / (distances+1)))
     }
   }
   return(parks_sf)
 }
+
+
+
 #handling the 2km buffer surrounding all the classified parks
 # Create a 2km buffer around classified parks
 classified_parks <- parks_data[parks_data$type == "classified", ]
@@ -224,7 +227,7 @@ dist_matrix_numeric <- units::drop_units(dist_matrix)
 parks_with_connectivity <- connectivity_fun(result_parks)
 
 # Create final connectivity dataframe
-final_connectivity_df <- parks_with_all_metrics %>%
+final_connectivity_df <- parks_with_connectivity%>%
   st_drop_geometry() %>%
   filter(type == "classified") %>%
   dplyr::select(

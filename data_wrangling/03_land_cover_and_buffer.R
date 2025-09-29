@@ -10,12 +10,32 @@ library(igraph)
 ## Load the park shapefile
 parks <- st_read("E:/phd_study/urban_park_community_science_project/data/Parkserve_Shapefiles_05212024/ParkServe_Parks.shp")
 
+#park shapefile of the Essex County in Ontario, Canada (needed for Detroit)
+#essex_parks <- st_read("E:/phd_study/urban_park_community_science_project/data/essex_county_Recreational_Areas/Recreational_Areas.shp")
+#plot(st_geometry(essex_parks))
+
 ##Define the city (dallas, houston, sf, riverside, sd)
-city <- "san_diego"
-state <- "California"
+city <- "denton"
+state <- "Texas"
 
 #filter the park shapefile by state, check to see if the city is close to the state line. If so, may need to include the state next to it.
-parks_filtered <- parks %>% filter(Park_State == state | Park_State == "New Jersey")
+parks_filtered <- parks %>% filter(Park_State == state)
+
+table(parks_filtered$Park_State)
+
+# Select only ID and geometry columns with differentiation
+#parks_filtered <- parks_filtered %>%
+  #select(ParkID, geometry, state = Park_State)
+
+#essex_parks <- essex_parks %>%
+  #select(ParkID = OBJECTID, geometry) %>%
+  #mutate(state = "Essex_Ontario")
+
+#align CRS
+#essex_parks <- st_transform(essex_parks, st_crs(parks_filtered))
+
+#parks_filtered <- rbind(parks_filtered, essex_parks)
+
 
 #Make sure the shapefile matches with the city/state
 plot(st_geometry(parks_filtered))
@@ -79,6 +99,25 @@ filter_parks_by_mode <- function(parks, land_cover_raster) {
 #Apply the function to classify parks (classified vs. unclassified) based on land cover value
 park_classification <- filter_parks_by_mode(st_make_valid(parks_reproj), aggregated_land_cover)
 
+##For DC, we have to convert one classified park to unclassified because it is in Maryland
+#park_classification$unclassified <- rbind(park_classification$unclassified, park_classification$classified%>%filter(ParkID=="2485100-0002"))
+
+#park_classification$classified<-park_classification$classified%>%filter(ParkID!="2485100-0002")
+#table(park_classification$classified$Park_State)
+
+#Check to see if that park is merged correctly
+#park_classification$unclassified%>%filter(ParkID=="2485100-0002")
+
+
+##For Denton County, we have to convert one classified park to unclassified because it is in Maryland
+park_classification$unclassified <- rbind(park_classification$unclassified, park_classification$classified%>%filter(ParkID %in% c("69400-0002", "4872530-0037")))
+
+park_classification$classified<-park_classification$classified%>%filter(!ParkID %in% c("69400-0002", "4872530-0037"))
+#table(park_classification$classified$Park_State)
+
+#Check to see if that park is merged correctly
+#park_classification$unclassified%>%filter(ParkID=="2485100-0002")
+
 saveRDS(park_classification, paste0("data/processing_data/classified_parks_urbanwatch/park_classification_", city, ".RData"))
 
 park_classification <-readRDS(paste0("data/processing_data/classified_parks_urbanwatch/park_classification_", city, ".RData"))
@@ -86,7 +125,7 @@ park_classification <-readRDS(paste0("data/processing_data/classified_parks_urba
 # Plot the park classification
 plot(st_geometry(park_classification$classified), col = "blue", pch = 20, cex = 1.5)
 plot(st_geometry(park_classification$unclassified), add = TRUE, col = "red", pch = 20, cex = 1.5)
-
+     
 #Create buffer around all the classified parks
 buffer_size<-50
 parks_buffered <- st_buffer(park_classification$classified, dist = buffer_size)
@@ -247,6 +286,7 @@ classified_unclassified_parks$agriculture_area <- sapply(exact_areas, function(d
   # Sum up the covered areas
   sum(unclassified_df$coverage_fraction * 100, na.rm = TRUE)
 })
+
 classified_unclassified_parks$other_area <- sapply(exact_areas, function(df) {
   # Filter for only the cells with value 0 (unclassified)
   unclassified_df <- df[df$value == 9, ]

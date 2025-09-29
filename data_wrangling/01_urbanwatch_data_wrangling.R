@@ -6,7 +6,7 @@ library(sf)
 library(ggplot2)
 
 ###Merge the data from seperated tif files from Urbanwatch
-city<-"philadelphia" #The city I want to work on, all in lowercase letters
+city<-"denton" #The city I want to work on, all in lowercase letters
 
 ### List all GeoTIFF files in the directory
 file_paths <- list.files(path = paste0("data/urbanwatch_data/01_raw_data/",city), pattern = "\\.tif$", full.names = TRUE)
@@ -14,6 +14,7 @@ file_paths <- list.files(path = paste0("data/urbanwatch_data/01_raw_data/",city)
 rasters <- lapply(file_paths, rast)
 # Merging rasters
 merged_raster <- do.call(merge, rasters)
+
 # Visual inspection to confirm the merge has been successful
 plot(merged_raster, main=paste0(city, ", Merged Raster"))
 #### Save the Merged Raster
@@ -76,6 +77,7 @@ plot(classified_raster, col=c("black", "grey",  "lightgreen", "darkgreen", "red"
 
 ### Save the classified raster 
 writeRaster(classified_raster, paste0("data/urbanwatch_data/03_classified_land_cover_data/", city, "_classified_land_cover.tif"), overwrite=TRUE)
+
 
 
 

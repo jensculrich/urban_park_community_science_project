@@ -7,13 +7,18 @@ library(prettymapr)
 
 
 # Load the LA park shape file (LA, NY, Seattle, dalla, houston, sf, riverside, sd)
-city <-"sd"
-state <- "SD"
+city <-"denton"
+state <- "TX"
 buffer_size<-50
 parks_data <- readRDS(paste0("E:/phd_study/urban_park_community_science_project/data/parks/", buffer_size , "m_merged_classified_parks_with_unclassified_parks_sqm_area_", city, ".rds"))
 
 # Load the biodiversity data
 leps_data <- read.csv(paste0("data/inat_data/02_filtered_data/Leps/leps_", state, "_data_coordUncertainty_cleaned.csv"))
+#For Detroit we also need data from Canada
+#leps_data_essex <-read.csv("data/inat_data/02_filtered_data/Leps/leps_Essex_data_coordUncertainty_cleaned.csv")
+
+#leps_data<- rbind(leps_data, leps_data_essex)
+
 table(leps_data$stateProvince)
 # Convert the biodiversity data to spatial points 
 observation_coords <-st_as_sf(leps_data, 
@@ -63,6 +68,7 @@ ggplot() +
   theme_minimal() 
 
 st_write(result_parks, paste0("E:/phd_study/urban_park_community_science_project/data/shapefile_", buffer_size, "m_buffered_park_2km_regional_pool/", city, "_", buffer_size, "_buffered_park_2km_regional_pool.shp"))
+
 
 #join the clipped parks with the iNat Observation
 #observations_with_parks_clipped <- st_join(LA_observation_coords, la_buffer_combined, join = st_intersects)
@@ -140,7 +146,7 @@ geom_sf(data = result_parks, aes(fill = type), inherit.aes = FALSE) +
   geom_sf(data= observations_with_parks_20km_clipped, color ="red", size=0.1) +
   scale_fill_viridis_d() +  # Use viridis color palette
   theme_minimal() +
-  labs(title = "SD, 20km Regional Species Pool") +
+  labs(title = "20km Regional Species Pool") +
   theme(legend.position = "right")
 
 length(unique(observations_with_parks_20km_clipped$gbifID))

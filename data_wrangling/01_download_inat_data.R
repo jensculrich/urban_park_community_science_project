@@ -23,7 +23,8 @@ download_key <- occ_download(
   pred("taxonKey", leps_taxon_key),
   pred("datasetKey", dataset_key),  # iNaturalist Research-grade dataset
   #pred("country", country_code),  # United States
-  pred("gadm","MEX.3_1"), #for San Deigo only (we need observations in Baja California)
+  #pred("gadm","MEX.3_1"), #for San Deigo only (we need observations in Baja California)
+  pred("gadm","CAN.9.9_1"), #for Detroit, we need essex county in Canada
   pred("hasCoordinate", TRUE),  # Only records with coordinates
   #pred("hasGeospatialIssue", TRUE),  # Include records with geospatial issues
   pred_gte("eventDate", start_date),  # Event date greater than or equal to start_date
@@ -43,7 +44,8 @@ download_key <- occ_download(
     pred("taxonKey", flower_class_key[2])),
   pred("datasetKey", dataset_key),  # iNaturalist Research-grade dataset
   #pred("country", country_code),  # United States
-  pred("gadm","MEX.3_1"), #for San Deigo only (we need observations in Baja California)
+  #pred("gadm","MEX.3_1"), #for San Deigo only (we need observations in Baja California)
+  pred("gadm","CAN.9.9_1"), #for Detroit, we need essex county in Canada
   pred("hasCoordinate", TRUE),  # Only records with coordinates
   #pred("hasGeospatialIssue", TRUE),  # Include records with geospatial issues
   pred_gte("eventDate", start_date),  # Event date greater than or equal to start_date
@@ -129,7 +131,34 @@ leps_data_DC <- leps_us_data%>%
   filter(stateProvince=="District of Columbia" | stateProvince=="Maryland" | stateProvince=="Virginia")
 write.csv(leps_data_DC, "data/inat_data/02_filtered_data/Leps/leps_data_DC.csv")
 
+leps_data_NC <- leps_us_data%>%
+  filter(stateProvince=="North Carolina" | stateProvince=="South Carolina")
+write.csv(leps_data_NC, "data/inat_data/02_filtered_data/Leps/leps_data_NC.csv")
 
+leps_data_MN <- leps_us_data%>%
+  filter(stateProvince=="Minnesota")
+write.csv(leps_data_MN, "data/inat_data/02_filtered_data/Leps/leps_data_MN.csv")
+
+leps_data_MI <- leps_us_data%>%
+  filter(stateProvince=="Michigan")
+write.csv(leps_data_MI, "data/inat_data/02_filtered_data/Leps/leps_data_MI.csv")
+
+leps_data_AZ <- leps_us_data%>%
+  filter(stateProvince=="Arizona")
+write.csv(leps_data_AZ, "data/inat_data/02_filtered_data/Leps/leps_data_AZ.csv")
+
+leps_data_IL <- leps_us_data%>%
+  filter(stateProvince=="Illinois" | stateProvince=="Indiana")
+table(leps_data_IL$stateProvince)
+write.csv(leps_data_AZ, "data/inat_data/02_filtered_data/Leps/leps_data_AZ.csv")
+
+leps_data_IA <- leps_us_data%>%
+  filter(stateProvince=="Iowa")
+write.csv(leps_data_IA, "data/inat_data/02_filtered_data/Leps/leps_data_IA.csv")
+
+leps_data_MO <- leps_us_data%>%
+  filter(stateProvince=="Illinois" | stateProvince=="Missouri")
+write.csv(leps_data_MO, "data/inat_data/02_filtered_data/Leps/leps_data_MO.csv")
 
 
 
@@ -191,6 +220,40 @@ write.csv(flowers_SD_data, "E:/phd_study/urban_park_community_science_project/da
 flowers_DC_data <- flowers_us_data%>%
   filter(stateProvince=="District of Columbia" | stateProvince=="Maryland" | stateProvince=="Virginia")
 write.csv(flowers_DC_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_DC.csv")
+
+flowers_NC_data <- flowers_us_data%>%
+  filter(stateProvince=="North Carolina"| stateProvince=="South Carolina")
+write.csv(flowers_NC_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_NC.csv")
+
+flowers_MN_data <- flowers_us_data%>%
+  filter(stateProvince=="Minnesota")
+write.csv(flowers_MN_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_MN.csv")
+
+flowers_MI_data <- flowers_us_data%>%
+  filter(stateProvince=="Michigan")
+write.csv(flowers_MI_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_MI.csv")
+
+flowers_AZ_data <- flowers_us_data%>%
+  filter(stateProvince=="Arizona")
+write.csv(flowers_AZ_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_AZ.csv")
+
+
+flowers_IL_data <- flowers_us_data%>%
+  filter(stateProvince=="Illinois" | stateProvince=="Indiana")
+write.csv(flowers_IL_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_AZ.csv")
+
+flowers_IA_data <- flowers_us_data%>%
+  filter(stateProvince=="Iowa")
+write.csv(flowers_IA_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_IA.csv")
+
+flowers_MO_data <- flowers_us_data%>%
+  filter(stateProvince=="Illinois" | stateProvince=="Missouri")
+write.csv(flowers_MO_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_MO.csv")
+
+
+
+
+
 
 
 
