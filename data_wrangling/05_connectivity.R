@@ -24,8 +24,7 @@ isolation_fun <- function(parks_sf) {
     # Find parks within buffer (excluding current park)
     in_buffer <- st_intersects(buffer, parks_sf, sparse = FALSE)[1,]
     in_buffer[i] <- FALSE  # Exclude the current park
-    if (sum(in_buffer) > 0) {
-      
+
       #Index the other parks
       other_parks <-which(in_buffer)
       
@@ -39,7 +38,6 @@ isolation_fun <- function(parks_sf) {
       other_parks_distance <- dist_matrix_numeric[i, other_parks]
       
       parks_sf$isolation[i] <- 1/sum(1+log(other_parks_area + 1)/(other_parks_distance + 1))
-    }
   }
   return(parks_sf)
 }
