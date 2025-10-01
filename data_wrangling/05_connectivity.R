@@ -4,7 +4,7 @@ library(terra)
 library(tidyverse)
 library(lconnect)
 
-city<-"philadelphia"
+city<-"houston"
 buffer_size<-50
 # Load the park shape file
 parks_data <- readRDS(paste0("data/data_for_calculating_connectivity/", buffer_size, "m_merged_classified_parks_with_unclassified_parks_sqm_area_", city, ".rds"))
@@ -37,6 +37,11 @@ isolation_fun <- function(parks_sf) {
       #calculate the distance between i and each other park
       other_parks_distance <- dist_matrix_numeric[i, other_parks]
       
+      if (length(other_parks)== 0 ){
+        other_parks_area = 0.0
+        other_parks_distance = 0.0
+      }
+      
       parks_sf$isolation[i] <- 1/sum(1+log(other_parks_area + 1)/(other_parks_distance + 1))
   }
   return(parks_sf)
@@ -59,9 +64,9 @@ parks_with_isolation%>%
   ggplot() +
   geom_sf(fill ="lightblue")+
   geom_sf(data=parks_with_isolation%>%
-            filter(new_id==340), fill="red" )+ #highest isolation
+            filter(new_id==3)%>%st_buffer(1000), fill="red")+ #highest isolation
   geom_sf(data=parks_with_isolation%>%
-            filter(new_id==16), fill="blue" ) #lowest isolation
+            filter(new_id==56)%>%st_buffer(1000), fill="blue" ) #lowest isolation
 
 # Create final connectivity dataframe
 final_connectivity_df <- parks_with_isolation%>%
@@ -77,7 +82,8 @@ head(final_connectivity_df)
 summary(final_connectivity_df)
 View(final_connectivity_df)
 sum(is.na(final_connectivity_df$isolation))
+sum(final_connectivity_df$isolation==Inf)
 write.csv(final_connectivity_df, paste0("data/final_merged_data/04_", buffer_size , "m_", city, "_isolation.csv"), row.names = FALSE)
 
-
+final_connectivity_df<-read.csv(paste0("data/final_merged_data/04_", buffer_size , "m_", city, "_isolation.csv"))
 
