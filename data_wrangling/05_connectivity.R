@@ -1,252 +1,89 @@
+#Here we calculate the isolation metrics for each classified parks within its 2km buffer
 library(sf)
 library(terra)
 library(tidyverse)
 library(lconnect)
-library(landscapemetrics)
 
-# Load the LA park shape file
-parks_data <- readRDS("E:/phd_study/urban_park_community_science_project/data/parks/50m_merged_classified_parks_with_unclassified_parks_sqm_area_LA.rds")
-
-#handling the 2km buffer surrounding all the classified parks
-
-# Create a 2km buffer around classified parks
-classified_parks <- parks_data[parks_data$type == "classified", ]
-buffer_2km <- st_buffer(classified_parks, dist = 2000)  # 2000 meters = 2km
-
-# Combine all buffers into a single multipolygon
-buffer_combined <- st_union(buffer_2km)
-
-# Select unclassified parks
-unclassified_parks <- parks_data[parks_data$type == "unclassified", ]
-
-# Clip unclassified parks to only include areas within the buffer
-# st_intersection will keep only the parts that overlap with the buffer
-unclassified_parks_clipped <- st_intersection(unclassified_parks, buffer_combined)
-
-#check overkapping between classified and unclassified parks
-#id_to_be_removed<-st_intersection(unclassified_parks_clipped, classified_parks)%>%
-#  dplyr::select(new_id)%>%
-#  pull(new_id)
-
-#remove unclassified parks that overlaps with the classified ones, we dont want to include this in the connectivity calculation
-#unclassified_parks_clean <- unclassified_parks_clipped %>%
-#  filter( !new_id %in% id_to_be_removed)
-
-#combine both datasets back together
-result_parks <- rbind(
-  classified_parks,
-  unclassified_parks_clipped)
-
-ggplot(result_parks) +
-  geom_sf(aes(fill = type))
-
-# Calculate distance matrix between all parks
-dist_matrix <- st_distance(result_parks)
-dist_matrix_numeric <- units::drop_units(dist_matrix)
-
-# Calculate nearest neighbor distance for each park
-diag(dist_matrix_numeric) <- Inf  # Exclude self-distances
-result_parks$nearest_dist <- apply(dist_matrix_numeric, 1, min)
-
-# Calculate average distance to all other parks
-result_parks$avg_dist_all <- rowMeans(replace(dist_matrix_numeric, 
-                                              cbind(1:nrow(dist_matrix_numeric), 
-                                                    1:nrow(dist_matrix_numeric)), 
-                                              NA), na.rm = TRUE)
-
-# Function to calculate average distance within specific buffers
-calc_avg_dist_in_buffer <- function(parks_sf, buffer_dists = c(100, 500, 1000, 2000)) {
-  for (buffer_dist in buffer_dists) {
-    col_name <- paste0("avg_dist_", buffer_dist, "m")
-    parks_sf[[col_name]] <- NA_real_ #NA_real_ explicitly creates a numeric/double type NA value
+city<-"houston"
+buffer_size<-50
+# Load the park shape file
+parks_data <- readRDS(paste0("data/data_for_calculating_connectivity/", buffer_size, "m_merged_classified_parks_with_unclassified_parks_sqm_area_", city, ".rds"))
+# Function required to calculate the isolation metrics
+isolation_fun <- function(parks_sf) {
+  
+  parks_sf$isolation <- NA_real_
+  
+  # Get indices of classified parks only
+  classified_idx <- which(parks_sf$type == "classified")
+  
+  for (i in classified_idx) {
     
-    for (i in 1:nrow(parks_sf)) {
-      # Create buffer around current park
-      buffer <- st_buffer(parks_sf[i,], buffer_dist)
+    # Create buffer around current park
+    buffer <- st_buffer(parks_sf[i,], 2000)
+    
+    # Find parks within buffer (excluding current park)
+    in_buffer <- st_intersects(buffer, parks_sf, sparse = FALSE)[1,]
+    in_buffer[i] <- FALSE  # Exclude the current park
+
+      #Index the other parks
+      other_parks <-which(in_buffer)
       
-      # Find parks within buffer (excluding current park)
-      in_buffer <- st_intersects(buffer, parks_sf, sparse = FALSE)[1,]
-      in_buffer[i] <- FALSE  # Exclude the current park
+      # clip parks within buffer (excluding current park)
+      other_parks_sf <- st_intersection(parks_sf[other_parks,], buffer)
       
-      # If parks found in buffer, calculate average distance
-      if (sum(in_buffer) > 0) {
-        parks_sf[[col_name]][i] <- mean(dist_matrix_numeric[i, in_buffer])
+      #calculate the clpped area of each park
+      other_parks_area <- as.numeric(st_area(other_parks_sf))
+      
+      #calculate the distance between i and each other park
+      other_parks_distance <- dist_matrix_numeric[i, other_parks]
+      
+      if (length(other_parks)== 0 ){
+        other_parks_area = 0.0
+        other_parks_distance = 0.0
       }
-    }
+      
+      parks_sf$isolation[i] <- 1/sum(1+log(other_parks_area + 1)/(other_parks_distance + 1))
   }
   return(parks_sf)
 }
 
-# Apply the function to calculate all buffer distances
-parks_with_metrics <- calc_avg_dist_in_buffer(result_parks)
-
-final_connectivity_df<-parks_with_metrics%>%
-  st_drop_geometry()%>%
-  filter(type=="classified")%>%
-  dplyr::select(new_id, nearest_dist, avg_dist_all, avg_dist_100m, avg_dist_500m, avg_dist_1000m, avg_dist_2000m)
-
-write.csv(final_connectivity_df, "data/final_merged_data/04_50m_LA_connectivity.csv")
-
-
-
-#New York
-# Load the NY park shape file
-parks_data <- readRDS("E:/phd_study/urban_park_community_science_project/data/parks/50m_merged_classified_parks_with_unclassified_parks_sqm_area_NY.rds")
-#handling the 2km buffer surrounding all the classified parks
-
-# Create a 2km buffer around classified parks
-classified_parks <- parks_data[parks_data$type == "classified", ]
-buffer_2km <- st_buffer(classified_parks, dist = 2000)  # 2000 meters = 2km
-
-# Combine all buffers into a single multipolygon
-buffer_combined <- st_union(buffer_2km)
-
-# Select unclassified parks
-unclassified_parks <- parks_data[parks_data$type == "unclassified", ]
-
-# Clip unclassified parks to only include areas within the buffer
-# st_intersection will keep only the parts that overlap with the buffer
-unclassified_parks_clipped <- st_intersection(unclassified_parks, buffer_combined)
-
-#check overkapping between classified and unclassified parks
-st_intersection(unclassified_parks_clipped, classified_parks)
-
-#combine both datasets back together
-result_parks <- rbind(
-  classified_parks,
-  unclassified_parks_clipped)
-
-#Check the visualization
-ggplot(result_parks) +
+#A visullization to make sure we have th correct data
+ggplot(parks_data) +
   geom_sf(aes(fill = type))
 
-
 # Calculate distance matrix between all parks
-dist_matrix <- st_distance(result_parks)
+#dist_matrix <- st_distance(result_parks)
+dist_matrix <- st_distance(st_centroid(parks_data)) #distance is calculated based on centroid
 dist_matrix_numeric <- units::drop_units(dist_matrix)
 
-# Calculate nearest neighbor distance for each park
-diag(dist_matrix_numeric) <- Inf  # Exclude self-distances
-result_parks$nearest_dist <- apply(dist_matrix_numeric, 1, min)
+#distance-based metrics
+parks_with_isolation <- isolation_fun(parks_data)
 
-# Calculate average distance to all other parks
-result_parks$avg_dist_all <- rowMeans(replace(dist_matrix_numeric, 
-                                              cbind(1:nrow(dist_matrix_numeric), 
-                                                    1:nrow(dist_matrix_numeric)), 
-                                              NA), na.rm = TRUE)
-
-# Function to calculate average distance within specific buffers
-calc_avg_dist_in_buffer <- function(parks_sf, buffer_dists = c(100, 500, 1000, 2000)) {
-  for (buffer_dist in buffer_dists) {
-    col_name <- paste0("avg_dist_", buffer_dist, "m")
-    parks_sf[[col_name]] <- NA_real_ #NA_real_ explicitly creates a numeric/double type NA value
-    
-    for (i in 1:nrow(parks_sf)) {
-      # Create buffer around current park
-      buffer <- st_buffer(parks_sf[i,], buffer_dist)
-      
-      # Find parks within buffer (excluding current park)
-      in_buffer <- st_intersects(buffer, parks_sf, sparse = FALSE)[1,]
-      in_buffer[i] <- FALSE  # Exclude the current park
-      
-      # If parks found in buffer, calculate average distance
-      if (sum(in_buffer) > 0) {
-        parks_sf[[col_name]][i] <- mean(dist_matrix_numeric[i, in_buffer])
-      }
-    }
-  }
-  return(parks_sf)
-}
-
-# Apply the function to calculate all buffer distances
-parks_with_metrics <- calc_avg_dist_in_buffer(result_parks)
-
-final_connectivity_df<-parks_with_metrics%>%
-  st_drop_geometry()%>%
+parks_with_isolation%>%
   filter(type=="classified")%>%
-  dplyr::select(new_id, nearest_dist, avg_dist_all, avg_dist_100m, avg_dist_500m, avg_dist_1000m, avg_dist_2000m)
+  ggplot() +
+  geom_sf(fill ="lightblue")+
+  geom_sf(data=parks_with_isolation%>%
+            filter(new_id==3)%>%st_buffer(1000), fill="red")+ #highest isolation
+  geom_sf(data=parks_with_isolation%>%
+            filter(new_id==56)%>%st_buffer(1000), fill="blue" ) #lowest isolation
 
-write.csv(final_connectivity_df, "data/final_merged_data/04_50m_NYC_connectivity.csv")
-
-
-#Seattle
-# Load the Seattle park shape file
-parks_data <- readRDS("E:/phd_study/urban_park_community_science_project/data/parks/50m_merged_classified_parks_with_unclassified_parks_sqm_area_seattle.rds")
-#handling the 2km buffer surrounding all the classified parks
-
-# Create a 2km buffer around classified parks
-classified_parks <- parks_data[parks_data$type == "classified", ]
-buffer_2km <- st_buffer(classified_parks, dist = 2000)  # 2000 meters = 2km
-
-# Combine all buffers into a single multipolygon
-buffer_combined <- st_union(buffer_2km)
-
-# Select unclassified parks
-unclassified_parks <- parks_data[parks_data$type == "unclassified", ]
-
-# Clip unclassified parks to only include areas within the buffer
-# st_intersection will keep only the parts that overlap with the buffer
-unclassified_parks_clipped <- st_intersection(unclassified_parks, buffer_combined)
-
-#check overkapping between classified and unclassified parks
-st_intersection(unclassified_parks_clipped, classified_parks)
-
-#combine both datasets back together
-result_parks <- rbind(
-  classified_parks,
-  unclassified_parks_clipped)
-
-#Check the visualization
-ggplot(result_parks) +
-  geom_sf(aes(fill = type))
+# Create final connectivity dataframe
+final_connectivity_df <- parks_with_isolation%>%
+  st_drop_geometry() %>%
+  filter(type == "classified") %>%
+  dplyr::select(
+    new_id, total_area_sqm:isolation)
 
 
-# Calculate distance matrix between all parks
-dist_matrix <- st_distance(result_parks)
-dist_matrix_numeric <- units::drop_units(dist_matrix)
 
-# Calculate nearest neighbor distance for each park
-diag(dist_matrix_numeric) <- Inf  # Exclude self-distances
-result_parks$nearest_dist <- apply(dist_matrix_numeric, 1, min)
+# View results
+head(final_connectivity_df)
+summary(final_connectivity_df)
+View(final_connectivity_df)
+sum(is.na(final_connectivity_df$isolation))
+sum(final_connectivity_df$isolation==Inf)
+write.csv(final_connectivity_df, paste0("data/final_merged_data/04_", buffer_size , "m_", city, "_isolation.csv"), row.names = FALSE)
 
-# Calculate average distance to all other parks
-result_parks$avg_dist_all <- rowMeans(replace(dist_matrix_numeric, 
-                                              cbind(1:nrow(dist_matrix_numeric), 
-                                                    1:nrow(dist_matrix_numeric)), 
-                                              NA), na.rm = TRUE)
-
-# Function to calculate average distance within specific buffers
-calc_avg_dist_in_buffer <- function(parks_sf, buffer_dists = c(100, 500, 1000, 2000)) {
-  for (buffer_dist in buffer_dists) {
-    col_name <- paste0("avg_dist_", buffer_dist, "m")
-    parks_sf[[col_name]] <- NA_real_ #NA_real_ explicitly creates a numeric/double type NA value
-    
-    for (i in 1:nrow(parks_sf)) {
-      # Create buffer around current park
-      buffer <- st_buffer(parks_sf[i,], buffer_dist)
-      
-      # Find parks within buffer (excluding current park)
-      in_buffer <- st_intersects(buffer, parks_sf, sparse = FALSE)[1,]
-      in_buffer[i] <- FALSE  # Exclude the current park
-      
-      # If parks found in buffer, calculate average distance
-      if (sum(in_buffer) > 0) {
-        parks_sf[[col_name]][i] <- mean(dist_matrix_numeric[i, in_buffer])
-      }
-    }
-  }
-  return(parks_sf)
-}
-
-# Apply the function to calculate all buffer distances
-parks_with_metrics <- calc_avg_dist_in_buffer(result_parks)
-
-final_connectivity_df<-parks_with_metrics%>%
-  st_drop_geometry()%>%
-  filter(type=="classified")%>%
-  dplyr::select(new_id, nearest_dist, avg_dist_all, avg_dist_100m, avg_dist_500m, avg_dist_1000m, avg_dist_2000m)
-
-write.csv(final_connectivity_df, "data/final_merged_data/04_50m_Seattle_connectivity.csv")
-
-
+final_connectivity_df<-read.csv(paste0("data/final_merged_data/04_", buffer_size , "m_", city, "_isolation.csv"))
 
