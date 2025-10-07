@@ -1,7 +1,6 @@
 library(tidyverse)
 
-get_species_ranges <- function(city_names
-) {
+get_species_ranges <- function(city_names) {
   
   ranges <- as.data.frame(matrix(nrow = 0, ncol = 70))
   

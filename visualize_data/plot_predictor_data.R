@@ -8,7 +8,7 @@ regions <- c(
   "southwest"
 )
 
-region <- regions[4]
+region <- regions[2]
 
 data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))
 
@@ -20,7 +20,7 @@ site_data <- data$site_data
 p1 <- ggplot(site_data, aes(x = log_total_green_space_area, 
                           colour = city, fill = city)) + 
   geom_histogram(alpha = 0.5, position = "identity") +
-  scale_x_continuous(limits = c(4, 20), breaks = c(4, 6, 8, 10, 12, 14, 16, 18, 20)) +
+  #scale_x_continuous(limits = c(4, 20), breaks = c(4, 6, 8, 10, 12, 14, 16, 18, 20)) +
   theme_bw() +
   xlab("log(Park Size in m^2)") + 
   theme(plot.title = element_text(size = 18, face = "bold"),
@@ -34,11 +34,11 @@ p1 <- ggplot(site_data, aes(x = log_total_green_space_area,
   facet_wrap(~city)
   
 #  connectivity
-p2 <- ggplot(site_data, aes(x = connectivity, 
+p2 <- ggplot(site_data, aes(x = isolation, 
                           colour = city, fill = city)) + 
   geom_histogram(alpha = 0.5, position = "identity") +
   theme_bw() +
-  xlab("isolation from other parks within 2km") + 
+  xlab("log(size and distance weighted isolation\nfrom other parks within 2km)") + 
   theme(plot.title = element_text(size = 18, face = "bold"),
         legend.text=element_text(size=10),
         axis.text.x = element_text(size = 18),

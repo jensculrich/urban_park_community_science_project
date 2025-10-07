@@ -7,7 +7,7 @@ regions <- c(
   "southwest"
 )
 
-region <- regions[1]
+region <- regions[2]
 
 # list of city names
 
@@ -62,6 +62,7 @@ if(region == regions[4]){
 min_species_detections <- 2 # binary park/year/species detections
 min_species_for_community_sampling_event = 1 
 family_sampling = TRUE # Should enter either TRUE or FALSE 
+remove_outlier_parks = TRUE
 # family_sampling:
 # if false infer sampling event for all butterflies if any butterflies detected
 # if true only infer sampling event for butterflies in same family as any butterflies detected
@@ -72,7 +73,8 @@ source("./run_model/prep_data_multicity.R")
 my_data <- prep_data(city_names,
                      min_species_detections,
                      min_species_for_community_sampling_event,
-                     family_sampling
+                     family_sampling,
+                     remove_outlier_parks
 )
 
 saveRDS(my_data, paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))
@@ -80,6 +82,10 @@ my_data <- readRDS( paste0("./run_model/prepped_data/prepped_data_", region, ".r
 
 # prepare to fit occupncy model
 library(rstan)
+
+center_scale <- function(x) {
+  (x - mean(x)) / sd(x)
+}
 
 # data to feed to the model
 # detection data
@@ -107,17 +113,23 @@ ease_of_id <- species_info$research_grade_proportion_scaled
 wingspan <- species_info$aveWingspan_scaled
 # site
 park_size <- site_data$log_total_green_space_area_scaled
-connectivity <- site_data$connectivity_scaled
+isolation <- center_scale(site_data$isolation)
 city <- as.integer(as.factor(site_data$city))
 n_cities <- length(unique(city))
 
 ## ranges
 ranges <- my_data$ranges
 
+# plot
+ggplot(site_data, aes(
+  x = park_size, y = center_scale(isolation), colour = city)) +
+  geom_point()
+
+
 stan_data <- c("V", "V_NA", "species", "sites", "years", "surveys", 
                "n_species", "n_sites", "n_years", "n_years_minus1", "n_surveys",
                "feature_diversity", "ease_of_id", "wingspan",
-               "park_size", "connectivity", "city", "n_cities",
+               "park_size", "isolation", "city", "n_cities",
                "ranges"
 ) 
 
@@ -131,8 +143,8 @@ params <- c(
   "sigma_psi1_wingspan",
   "mu_psi1_park_size",
   "sigma_psi1_park_size",
-  "mu_psi1_connectivity",
-  "sigma_psi1_connectivity",
+  "mu_psi1_isolation",
+  "sigma_psi1_isolation",
 
   "gamma0", 
   "sigma_gamma_species",
@@ -141,8 +153,8 @@ params <- c(
   "sigma_gamma_wingspan",
   "mu_gamma_park_size",
   "sigma_gamma_park_size",
-  "mu_gamma_connectivity",
-  "sigma_gamma_connectivity",
+  "mu_gamma_isolation",
+  "sigma_gamma_isolation",
 
   "phi0", 
   "sigma_phi_species",
@@ -151,8 +163,8 @@ params <- c(
   "sigma_phi_wingspan",
   "mu_phi_park_size",
   "sigma_phi_park_size",
-  "mu_phi_connectivity",
-  "sigma_phi_connectivity",
+  "mu_phi_isolation",
+  "sigma_phi_isolation",
   
   "p0", 
   "sigma_p_species",
@@ -169,15 +181,15 @@ params <- c(
   "psi1_city",
   "psi1_wingspan",
   "psi1_park_size",
-  "psi1_connectivity",
+  "psi1_isolation",
   "gamma_city",
   "gamma_wingspan",
   "gamma_park_size",
-  "gamma_connectivity",
+  "gamma_isolation",
   "phi_city",
   "phi_wingspan",
   "phi_park_size",
-  "phi_connectivity",
+  "phi_isolation",
   "p_city",
   
   # species effects and PPC
@@ -207,11 +219,11 @@ inits <- lapply(1:n_chains, function(i)
        gamma0 = runif(1, -3, -2),
        gamma_wingspan = runif(1, 1, 2),
        #gamma_park_size = runif(1, 0, 1),
-       #gamma_connectivity = runif(1, -2, -1),
+       #gamma_isolation = runif(1, -2, -1),
        phi0 = runif(1, 2, 3),
        phi_wingspan = runif(1, -1, 0),
        #phi_park_size = runif(1, 0, 1),
-       #phi_connectivity = runif(1, 1, 2),
+       #phi_isolation = runif(1, 1, 2),
        p0 = runif(1, -1, 1),
        sigma_p_species = runif(1, 1, 2),
        #sigma_p_site = runif(1, 0, 1),
@@ -243,9 +255,9 @@ stan_out <- stan(stan_model,
                  open_progress = FALSE,
                  cores = n_cores)
 
-saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "_2km_connectivity_family_50buffers_simple.rds"))
+saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "_2km_isolation_family_50buffers_simple.rds"))
 
-#stan_out <- readRDS( paste0("./model_outputs/stan_out_NYC_2km_connectivity_family_100buffers.rds"))
+stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, "_2km_isolation_family_50buffers_simple.rds"))
 
 print(stan_out, digits = 3, 
       pars = c(
@@ -256,8 +268,8 @@ print(stan_out, digits = 3,
         "sigma_psi1_wingspan",
         "mu_psi1_park_size",
         "sigma_psi1_park_size",
-        "mu_psi1_connectivity",
-        "sigma_psi1_connectivity",
+        "mu_psi1_isolation",
+        "sigma_psi1_isolation",
         
         "gamma0", 
         "sigma_gamma_species",
@@ -266,8 +278,8 @@ print(stan_out, digits = 3,
         "sigma_gamma_wingspan",
         "mu_gamma_park_size",
         "sigma_gamma_park_size",
-        "mu_gamma_connectivity",
-        "sigma_gamma_connectivity",
+        "mu_gamma_isolation",
+        "sigma_gamma_isolation",
         
         "phi0", 
         "sigma_phi_species",
@@ -276,8 +288,8 @@ print(stan_out, digits = 3,
         "sigma_phi_wingspan",
         "mu_phi_park_size",
         "sigma_phi_park_size",
-        "mu_phi_connectivity",
-        "sigma_phi_connectivity",
+        "mu_phi_isolation",
+        "sigma_phi_isolation",
         
         "p0", 
         "sigma_p_species",
@@ -294,15 +306,15 @@ print(stan_out, digits = 3,
         "psi1_city",
         "psi1_wingspan",
         "psi1_park_size",
-        "psi1_connectivity",
+        "psi1_isolation",
         "gamma_city",
         "gamma_wingspan",
         "gamma_park_size",
-        "gamma_connectivity",
+        "gamma_isolation",
         "phi_city",
         "phi_wingspan",
         "phi_park_size",
-        "phi_connectivity",
+        "phi_isolation",
         "p_city"
       ))
 
@@ -320,10 +332,10 @@ traceplot(stan_out, pars = c(
   "sigma_psi1_wingspan",
   "mu_psi1_park_size",
   "sigma_psi1_park_size",
-  "mu_psi1_connectivity",
-  "sigma_psi1_connectivity",
+  "mu_psi1_isolation",
+  "sigma_psi1_isolation",
   "psi1_park_size",
-  "psi1_connectivity"
+  "psi1_isolation"
   
 ))
 
@@ -336,10 +348,10 @@ traceplot(stan_out, pars = c(
   "sigma_gamma_wingspan",
   "mu_gamma_park_size",
   "sigma_gamma_park_size",
-  "mu_gamma_connectivity",
-  "sigma_gamma_connectivity",
+  "mu_gamma_isolation",
+  "sigma_gamma_isolation",
   "gamma_park_size",
-  "gamma_connectivity"
+  "gamma_isolation"
 ))  
 
 traceplot(stan_out, pars = c(
@@ -351,10 +363,10 @@ traceplot(stan_out, pars = c(
   "sigma_phi_wingspan",
   "mu_phi_park_size",
   "sigma_phi_park_size",
-  "mu_phi_connectivity",
-  "sigma_phi_connectivity",
+  "mu_phi_isolation",
+  "sigma_phi_isolation",
   "phi_park_size",
-  "phi_connectivity"
+  "phi_isolation"
 ))
 
 traceplot(stan_out, pars = c(

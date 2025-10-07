@@ -11,7 +11,8 @@ library(tidyverse) # data organization
 prep_data <- function(city_names,
                       min_species_detections,
                       min_species_for_community_sampling_event,
-                      family_sampling
+                      family_sampling,
+                      remove_outlier_parks
                       ) {
   
   ## --------------------------------------------------
@@ -146,82 +147,39 @@ prep_data <- function(city_names,
   ## --------------------------------------------------
   ## get site covariate data
   
-  # n sites and site vector
-  n_sites <- (nrow(site_data <- df %>%
-                     group_by(city, new_id) %>%
-                     slice(1) %>%
-                     ungroup() %>%
-                     mutate(multicity_site_id = row_number()) %>%
-                     select(city, new_id, multicity_site_id,
-                            total_green_space_area, 
-                            tree_percent_cover, 
-                            grass_shrub__percent_cover)  
-                    ))
+  # source the prep function
+  source("./run_model/get_site_data.R")
   
+  site_data_temp <- get_site_data(city_names)
+  
+  site_data <- df %>%
+    group_by(city, new_id) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(city, new_id)
+  
+  site_data <- left_join(site_data, site_data_temp, by = c("city", "new_id"))
+  
+  if(remove_outlier_parks == TRUE){
+    site_data <- site_data %>%
+      filter(isolation < 0.1)
+  }
+  
+  site_data <- site_data %>%
+    group_by(city) %>%
+    mutate(log_total_green_space_area_scaled_2 = center_scale(log_total_green_space_area),
+           log_isolation_scaled_2 = center_scale(log(isolation))) %>%
+    ungroup()
+  
+  n_sites <- nrow(site_data <- site_data %>%
+    mutate(multicity_site_id = row_number()))
+    
   # get a vector of site names
   site_vector <- site_data %>%
     pull(multicity_site_id)
   
-  # get scaled versions of the site covariate data
-  site_data <- site_data %>%
-    mutate(log_total_green_space_area = log(total_green_space_area),
-           log_total_green_space_area_scaled = center_scale(log_total_green_space_area),
-           tree_cover_scaled = center_scale(tree_percent_cover),
-           grass_shrub_cover_scaled = center_scale(grass_shrub__percent_cover))
-  
-  connectivity <- as.data.frame(matrix(nrow = 0, ncol = 4))
-  for(i in 1:length(city_names)){
-    
-    city <- city_names[i]
-    
-    # first read the data 
-    temp <- cbind(city, read.csv(paste0(
-      "./data/detections_by_city/", city, "/04_50m_", city,
-      "_connectivity.csv"
-    )))
-    
-    connectivity <- rbind(connectivity, temp)
-    
-  }
-  
-  # and join the variables we want with the site data by site id
-  site_data <- site_data %>%
-    left_join(., connectivity, by=c("city", "new_id")) %>%
-    mutate(connectivity_scaled = center_scale(connectivity))
-           
-  # add park flower data
-  flower_data <- as.data.frame(matrix(nrow = 0, ncol = 70))
-  for(i in 1:length(city_names)){
-    
-    city <- city_names[i]
-    
-    # first read the data 
-    temp <- cbind(city, read.csv(paste0(
-      "./data/detections_by_city/", city, "/03_50m_", city,
-      "_flowers_classified_park.csv"
-    ))) %>%
-      
-      # get number of flowering plant genera per site
-      group_by(new_id, genus) %>%
-      # only need one row per genus in each site to count number of genera at each site
-      slice(1) %>%
-      ungroup() %>%
-      group_by(city, new_id) %>%
-      summarise(n_plant_genera = n())
-    
-    flower_data <- rbind(flower_data, temp)
-    
-  }
-  
-  # and join the variables we want with the site data by site id
-  site_data <- site_data %>%
-    left_join(., flower_data, by=c("city", "new_id")) %>%
-    mutate(n_plant_genera = replace_na(n_plant_genera, 0),
-           log_n_plant_genera = log(n_plant_genera+1),
-           plant_genera_density = log_n_plant_genera / log_total_green_space_area) %>%
-    mutate(plant_genera_density_scaled = center_scale(plant_genera_density))
-  
-  # add edge:area ratio data
+
+    # add edge:area ratio data
   #patch_shape <- read.csv(paste0(
     #"./data/detections_by_city/",
     #city, "/",  
@@ -237,18 +195,21 @@ prep_data <- function(city_names,
   
   
   # plot the spread of the site covariate data
-  par(mfrow=c(1,3))  
+  par(mfrow=c(1,4))  
   hist(site_data$log_total_green_space_area_scaled)
-  hist(site_data$connectivity_scaled)
+  hist(site_data$log_isolation_scaled)  
+  hist(site_data$log_total_green_space_area_scaled_2)
+  hist(site_data$log_isolation_scaled_2)
   #hist(site_data$perarea_idx_scaled)
   #hist(site_data$proximity_scaled)
 
   par(mfrow=c(1,1)) 
   
   # how correlated are the site covariate data
-  cor(site_data$log_total_green_space_area_scaled, site_data$connectivity_scaled)
-  #cor(site_data$log_total_green_space_area_scaled, site_data$proximity_scaled)
-  #cor(site_data$log_total_green_space_area_scaled, site_data$perarea_idx_scaled)
+  cor(site_data$log_total_green_space_area_scaled, site_data$log_isolation_scaled)
+  cor(site_data$log_total_green_space_area_scaled_2, site_data$log_isolation_scaled_2)
+
+  plot(site_data$log_total_green_space_area_scaled_2, site_data$log_isolation_scaled_2)
   
   ## --------------------------------------------------
   ## get species trait data
@@ -450,7 +411,8 @@ prep_data <- function(city_names,
   # sampling event occurred at the site in a year
   temp <- select(site_data, city, new_id, multicity_site_id)
   df <- df %>%
-    left_join(., temp, (by=c("city", "new_id")))
+    left_join(., temp, (by=c("city", "new_id"))) %>%
+    filter(!is.na(multicity_site_id))
   
   # make a 4 dimensional array
   V <- array(data = NA, dim = c(n_species, n_sites, n_years, n_surveys))
