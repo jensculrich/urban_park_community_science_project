@@ -1,151 +1,48 @@
+#Here we calculate the isolation metrics for each classified parks within its 2km buffer
 library(sf)
 library(terra)
 library(tidyverse)
 library(lconnect)
-library(landscapemetrics)
 
-city<-"NY"
+city<-"houston"
 buffer_size<-50
 # Load the park shape file
-parks_data <- readRDS(paste0("E:/phd_study/urban_park_community_science_project/data/parks/", buffer_size, "m_merged_classified_parks_with_unclassified_parks_sqm_area_", city, ".rds"))
-# Function required to calculate the connectivity metrics
-# FUNCTION 1: DISTANCE-BASED metrics within buffers
-calc_avg_dist_in_buffer <- function(parks_sf, buffer_dists = c(100, 500, 1000, 2000)) {
-  for (buffer_dist in buffer_dists) {
-    col_name <- paste0("avg_dist_", buffer_dist, "m")
-    parks_sf[[col_name]] <- NA_real_
-    for (i in 1:nrow(parks_sf)) {
-      # Create buffer around current park
-      buffer <- st_buffer(parks_sf[i,], buffer_dist)
-      # Find parks within buffer (excluding current park)
-      in_buffer <- st_intersects(buffer, parks_sf, sparse = FALSE)[1,]
-      in_buffer[i] <- FALSE  # Exclude the current park
-      # If parks found in buffer, calculate average distance
-      if (sum(in_buffer) > 0) {
-        parks_sf[[col_name]][i] <- mean(dist_matrix_numeric[i, in_buffer])
+parks_data <- readRDS(paste0("data/data_for_calculating_connectivity/", buffer_size, "m_merged_classified_parks_with_unclassified_parks_sqm_area_", city, ".rds"))
+# Function required to calculate the isolation metrics
+isolation_fun <- function(parks_sf) {
+  
+  parks_sf$isolation <- NA_real_
+  
+  # Get indices of classified parks only
+  classified_idx <- which(parks_sf$type == "classified")
+  
+  for (i in classified_idx) {
+    
+    # Create buffer around current park
+    buffer <- st_buffer(parks_sf[i,], 2000)
+    
+    # Find parks within buffer (excluding current park)
+    in_buffer <- st_intersects(buffer, parks_sf, sparse = FALSE)[1,]
+    in_buffer[i] <- FALSE  # Exclude the current park
+
+      #Index the other parks
+      other_parks <-which(in_buffer)
+      
+      # clip parks within buffer (excluding current park)
+      other_parks_sf <- st_intersection(parks_sf[other_parks,], buffer)
+      
+      #calculate the clpped area of each park
+      other_parks_area <- as.numeric(st_area(other_parks_sf))
+      
+      #calculate the distance between i and each other park
+      other_parks_distance <- dist_matrix_numeric[i, other_parks]
+      
+      if (length(other_parks)== 0 ){
+        other_parks_area = 0.0
+        other_parks_distance = 0.0
       }
-    }
-  }
-  return(parks_sf)
-}
-# FUNCTION 2: IFM connectivity within BUFFERS
-calc_ifm_connectivity_in_buffers <- function(parks_sf, buffer_dists = c(100, 500, 1000, 2000),
-                                             alpha = 0.005, b = 0.3, c = 0.3) {
-  # Get areas for IFM calculation - UPDATED TO USE CORRECT COLUMN
-  areas <- parks_sf$total_area_sqm
-  for (buffer_dist in buffer_dists) {
-    # Column name for IFM connectivity within this buffer
-    ifm_conn_col <- paste0("ifm_connectivity_", buffer_dist, "m")
-    # Initialize column
-    parks_sf[[ifm_conn_col]] <- NA_real_
-    for (i in 1:nrow(parks_sf)) {
-      # Create buffer around current park
-      buffer <- st_buffer(parks_sf[i,], buffer_dist)
-      # Find parks within buffer (excluding current park)
-      in_buffer <- st_intersects(buffer, parks_sf, sparse = FALSE)[1,]
-      in_buffer[i] <- FALSE  # Exclude the current park
-      # If parks found in buffer, calculate IFM connectivity
-      if (sum(in_buffer) > 0) {
-        # Focal patch area term: A_i^c
-        focal_area_term <- areas[i]^c
-        # Calculate connectivity from all source patches within buffer
-        source_connectivity_sum <- 0
-        neighbor_indices <- which(in_buffer)
-        for (j in neighbor_indices) {
-          # Distance decay: exp(-alpha * d_ij)
-          distance_decay <- exp(-alpha * dist_matrix_numeric[i, j])
-          # Source area scaling: A_j^b
-          source_area_term <- areas[j]^b
-          # Add to sum: exp(-alpha * d_ij) * A_j^b
-          source_connectivity_sum <- source_connectivity_sum +
-            (distance_decay * source_area_term)
-        }
-        # Complete IFM formula: I_i = A_i^c * sum
-        parks_sf[[ifm_conn_col]][i] <- focal_area_term * source_connectivity_sum
-      }
-    }
-  }
-  return(parks_sf)
-}
-# FUNCTION 3: GLOBAL IFM connectivity (no distance limit)
-calc_global_ifm_connectivity <- function(parks_sf, alpha = 0.005, b = 0.3, c = 0.3) {
-  # UPDATED TO USE CORRECT COLUMN
-  areas <- parks_sf$total_area_sqm
-  n_patches <- nrow(parks_sf)
-  connectivity <- numeric(n_patches)
-  for (i in 1:n_patches) {
-    # Focal patch area term: A_i^c
-    focal_area_term <- areas[i]^c
-    # Sum connectivity from ALL other patches
-    source_connectivity_sum <- 0
-    for (j in 1:n_patches) {
-      if (i != j) {  # exclude self
-        # Distance decay: exp(-alpha * d_ij)
-        distance_decay <- exp(-alpha * dist_matrix_numeric[i, j])
-        # Source area scaling: A_j^b
-        source_area_term <- areas[j]^b
-        # Add to sum
-        source_connectivity_sum <- source_connectivity_sum +
-          (distance_decay * source_area_term)
-      }
-    }
-    # Complete IFM formula: I_i = A_i^c * sum
-    connectivity[i] <- focal_area_term * source_connectivity_sum
-  }
-  parks_sf$ifm_connectivity_global <- connectivity
-  return(parks_sf)
-}
-# FUNCTION 4: Simple area-weighted average distance within buffers
-calc_area_weighted_avg_dist <- function(parks_sf, buffer_dists = c(100, 500, 1000, 2000)) {
-  areas <- parks_sf$total_area_sqm
-  for (buffer_dist in buffer_dists) {
-    col_name <- paste0("area_weighted_avg_dist_", buffer_dist, "m")
-    parks_sf[[col_name]] <- NA_real_
-    for (i in 1:nrow(parks_sf)) {
-      buffer <- st_buffer(parks_sf[i,], buffer_dist)
-      in_buffer <- st_intersects(buffer, parks_sf, sparse = FALSE)[1,]
-      in_buffer[i] <- FALSE
-      if (sum(in_buffer) > 0) {
-        distances <- dist_matrix_numeric[i, in_buffer]
-        neighbor_areas <- areas[in_buffer]
-        # Area-weighted average: Σ(distance_i × area_i) / Σ(area_i)
-        parks_sf[[col_name]][i] <- sum(distances * neighbor_areas) / sum(neighbor_areas)
-      }
-    }
-  }
-  return(parks_sf)
-}
-# FUNCTION 5: Simple area-weighted average distance (no distance limit)
-calc_global_area_weighted_avg_dist <- function(parks_sf) {
-  areas <- parks_sf$total_area_sqm
-  parks_sf$area_weighted_avg_dist_global <- NA_real_
-  for (i in 1:nrow(parks_sf)) {
-    # All other parks (no buffer limit)
-    other_parks <- setdiff(1:nrow(parks_sf), i)
-    if (length(other_parks) > 0) {
-      distances <- dist_matrix_numeric[i, other_parks]
-      neighbor_areas <- areas[other_parks]
-      # Global area-weighted average
-      parks_sf$area_weighted_avg_dist_global[i] <-
-        sum(distances * neighbor_areas) / sum(neighbor_areas)
-    }
-  }
-  return(parks_sf)
-}
-# FUNCTION 6: Simple area to distance ratio (no distance limit)
-connectivity_fun <- function(parks_sf) {
-  areas <- parks_sf$total_area_sqm
-  parks_sf$connectivity <- NA_real_
-  for (i in 1:nrow(parks_sf)) {
-    # All other parks (no buffer limit)
-    other_parks <- setdiff(1:nrow(parks_sf), i)
-    if (length(other_parks) > 0) {
-      distances <- dist_matrix_numeric[i, other_parks]
-      neighbor_areas <- areas[other_parks]
-      # Global area-weighted average
-      parks_sf$connectivity[i] <-
-        sum((log(neighbor_areas + 1) / (distances+1)))
-    }
+      
+      parks_sf$isolation[i] <- 1/sum(1+log(other_parks_area + 1)/(other_parks_distance + 1))
   }
   return(parks_sf)
 }
@@ -164,30 +61,42 @@ result_parks <- rbind(
   classified_parks,
   unclassified_parks)
 ggplot(result_parks) +
+
+#A visullization to make sure we have th correct data
+ggplot(parks_data) +
   geom_sf(aes(fill = type))
+
 # Calculate distance matrix between all parks
 #dist_matrix <- st_distance(result_parks)
-dist_matrix <- st_distance(st_centroid(result_parks)) #distance is calculated based on centroid
+dist_matrix <- st_distance(st_centroid(parks_data)) #distance is calculated based on centroid
 dist_matrix_numeric <- units::drop_units(dist_matrix)
+
 #distance-based metrics
-parks_with_connectivity <- connectivity_fun(result_parks)
+parks_with_isolation <- isolation_fun(parks_data)
+
+parks_with_isolation%>%
+  filter(type=="classified")%>%
+  ggplot() +
+  geom_sf(fill ="lightblue")+
+  geom_sf(data=parks_with_isolation%>%
+            filter(new_id==3)%>%st_buffer(1000), fill="red")+ #highest isolation
+  geom_sf(data=parks_with_isolation%>%
+            filter(new_id==56)%>%st_buffer(1000), fill="blue" ) #lowest isolation
+
 # Create final connectivity dataframe
-final_connectivity_df <- parks_with_connectivity%>%
+final_connectivity_df <- parks_with_isolation%>%
   st_drop_geometry() %>%
   filter(type == "classified") %>%
   dplyr::select(
-    new_id, total_area_sqm, connectivity)
+    new_id, total_area_sqm:isolation)
+
+
+
 # View results
-head(final_connectivity_df)
-summary(final_connectivity_df)
-View(final_connectivity_df)
-write.csv(final_connectivity_df, paste0("data/final_merged_data/04_", buffer_size , "m_", city, "_connectivity.csv"), row.names = FALSE)
 
+sum(is.na(final_connectivity_df$isolation))
+sum(final_connectivity_df$isolation==Inf)
+write.csv(final_connectivity_df, paste0("data/final_merged_data/04_", buffer_size , "m_", city, "_isolation.csv"), row.names = FALSE)
 
-final_connectivity_df<-read.csv(paste0("data/final_merged_data/04_", buffer_size , "m_", city, "_connectivity.csv"))
-
-
-
-
-
+final_connectivity_df<-read.csv(paste0("data/final_merged_data/04_", buffer_size , "m_", city, "_isolation.csv"))
 

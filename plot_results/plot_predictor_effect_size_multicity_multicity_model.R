@@ -7,7 +7,7 @@ library(rstan)
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
 
 region_names <- c(
-  "southeast"
+  "northeast"
 )
 
 n_regions <- length(region_names)
@@ -62,7 +62,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_connectivity_family_50buffers_simple.rds"))
+    "./model_outputs/stan_out_", region_name, "_2km_isolation_family_50buffers_simple.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -70,11 +70,11 @@ for(i in 1:n_regions){
   psi1_0 <- which( rownames(estimates)=="psi1_0" )
   psi1_wingspan <- which( rownames(estimates)=="mu_psi1_wingspan" )
   psi1_parksize <- which( rownames(estimates)=="mu_psi1_park_size" )
-  psi1_isolation <- which( rownames(estimates)=="mu_psi1_connectivity" )
+  psi1_isolation <- which( rownames(estimates)=="mu_psi1_isolation" )
   first_psi1_city <- which( rownames(estimates)=="psi1_city[1]" )
   first_psi1_wingspan <- which( rownames(estimates)=="psi1_wingspan[1]" )
   first_psi1_parksize <- which( rownames(estimates)=="psi1_park_size[1]" )
-  first_psi1_isolation <- which( rownames(estimates)=="psi1_connectivity[1]" )
+  first_psi1_isolation <- which( rownames(estimates)=="psi1_isolation[1]" )
   
   for(j in 1:(n_cities-1)){
     
@@ -192,7 +192,7 @@ df_estimates$city_name <- fct_relevel(df_estimates$city_name, region_name)
                              bquote(psi["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-4, 8), breaks = c(-4, -2, 0, 2, 4, 6, 8)) +
+                      limits = c(-5, 3), breaks = c(-6, -4, -2, 0, 2, 4, 6, 8)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
                                       "#1a5acd", "#E69F90", "#FFFF00")) + 
@@ -249,7 +249,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_connectivity_family_50buffers_simple.rds"))
+    "./model_outputs/stan_out_", region_name, "_2km_isolation_family_50buffers_simple.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -257,11 +257,11 @@ for(i in 1:n_regions){
   gamma0 <- which( rownames(estimates)=="gamma0" )
   gamma_wingspan <- which( rownames(estimates)=="mu_gamma_wingspan" )
   gamma_parksize <- which( rownames(estimates)=="mu_gamma_park_size" )
-  gamma_isolation <- which( rownames(estimates)=="mu_gamma_connectivity" )
+  gamma_isolation <- which( rownames(estimates)=="mu_gamma_isolation" )
   first_gamma_city <- which( rownames(estimates)=="gamma_city[1]" )
   first_gamma_wingspan <- which( rownames(estimates)=="gamma_wingspan[1]" )
   first_gamma_parksize <- which( rownames(estimates)=="gamma_park_size[1]" )
-  first_gamma_isolation <- which( rownames(estimates)=="gamma_connectivity[1]" )
+  first_gamma_isolation <- which( rownames(estimates)=="gamma_isolation[1]" )
   
   for(j in 1:(n_cities-1)){
     
@@ -379,7 +379,7 @@ df_estimates$city_name <- fct_relevel(df_estimates$city_name, region_name)
                              bquote(gamma["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-13, 6), breaks = c(-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-8, 4), breaks = c(-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
                                       "#E69F90", "#1a5acd", "#FFFF00")) + 
@@ -436,7 +436,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_connectivity_family_50buffers_simple.rds"))
+    "./model_outputs/stan_out_", region_name, "_2km_isolation_family_50buffers_simple.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -444,11 +444,11 @@ for(i in 1:n_regions){
   phi0 <- which( rownames(estimates)=="phi0" )
   phi_wingspan <- which( rownames(estimates)=="mu_phi_wingspan" )
   phi_parksize <- which( rownames(estimates)=="mu_phi_park_size" )
-  phi_isolation <- which( rownames(estimates)=="mu_phi_connectivity" )
+  phi_isolation <- which( rownames(estimates)=="mu_phi_isolation" )
   first_phi_city <- which( rownames(estimates)=="phi_city[1]" )
   first_phi_wingspan <- which( rownames(estimates)=="phi_wingspan[1]" )
   first_phi_parksize <- which( rownames(estimates)=="phi_park_size[1]" )
-  first_phi_isolation <- which( rownames(estimates)=="phi_connectivity[1]" )
+  first_phi_isolation <- which( rownames(estimates)=="phi_isolation[1]" )
   
   for(j in 1:(n_cities-1)){
     
@@ -566,7 +566,7 @@ df_estimates$city_name <- fct_relevel(df_estimates$city_name, region_name)
                              bquote(phi["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-6, 12), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-3, 7), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
                                       "#E69F90", "#1a5acd", "#FFFF00")) + 
@@ -623,7 +623,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_connectivity_family_50buffers_simple.rds"))
+    "./model_outputs/stan_out_", region_name, "_2km_isolation_family_50buffers_simple.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -757,7 +757,7 @@ df_estimates <- rbind(df_estimates1, df_estimates2)
                              bquote(p["phenology decay"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-4, 2), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-4, 4), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
                                       "#E69F90", "#1a5acd", "#FFFF00")) + 
