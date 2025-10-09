@@ -4,7 +4,7 @@ library(tidyverse)
 library(lconnect)
 library(landscapemetrics)
 
-city<-"des_moines"
+city<-"NY"
 buffer_size<-50
 # Load the park shape file
 parks_data <- readRDS(paste0("E:/phd_study/urban_park_community_science_project/data/parks/", buffer_size, "m_merged_classified_parks_with_unclassified_parks_sqm_area_", city, ".rds"))
@@ -157,12 +157,12 @@ buffer_2km <- st_buffer(classified_parks, dist = 2000)  # 2000 meters = 2km
 buffer_combined <- st_union(buffer_2km)
 # Select unclassified parks
 unclassified_parks <- parks_data[parks_data$type == "unclassified", ]
-# Clip unclassified parks to only include areas within the buffer
+# Clip unclassified parks to only include unclassified within the buffer
 unclassified_parks_clipped <- st_intersection(unclassified_parks, buffer_combined)
 #combine both datasets back together
 result_parks <- rbind(
   classified_parks,
-  unclassified_parks_clipped)
+  unclassified_parks)
 ggplot(result_parks) +
   geom_sf(aes(fill = type))
 # Calculate distance matrix between all parks
@@ -182,3 +182,12 @@ head(final_connectivity_df)
 summary(final_connectivity_df)
 View(final_connectivity_df)
 write.csv(final_connectivity_df, paste0("data/final_merged_data/04_", buffer_size , "m_", city, "_connectivity.csv"), row.names = FALSE)
+
+
+final_connectivity_df<-read.csv(paste0("data/final_merged_data/04_", buffer_size , "m_", city, "_connectivity.csv"))
+
+
+
+
+
+

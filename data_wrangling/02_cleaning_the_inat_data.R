@@ -21,27 +21,127 @@ calculate_threshold <- function(latitude) {
 }
 
 leps_CA_data_filtered <- leps_CA_data%>%
-mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
-filter(!is.na(coordinateUncertaintyInMeters))%>%
-filter(coordinateUncertaintyInMeters < uncertainty_threshold)
-
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
 write.csv(leps_CA_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_CA_data_coordUncertainty_cleaned.csv")
 
 leps_WA_data_filtered <- leps_WA_data%>%
   mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
   filter(!is.na(coordinateUncertaintyInMeters))%>%
   filter(coordinateUncertaintyInMeters < uncertainty_threshold)
-
 write.csv(leps_WA_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_WA_data_coordUncertainty_cleaned.csv")
 
 leps_NY_data_filtered <- leps_data_NY%>%
   mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
   filter(!is.na(coordinateUncertaintyInMeters))%>%
   filter(coordinateUncertaintyInMeters < uncertainty_threshold)
-
 write.csv(leps_NY_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_NY_data_coordUncertainty_cleaned.csv")
 
+leps_TX_data_filtered <- leps_data_TX%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+write.csv(leps_TX_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_TX_data_coordUncertainty_cleaned.csv")
 
+leps_CO_data_filtered <- leps_data_CO%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+write.csv(leps_CO_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_CO_data_coordUncertainty_cleaned.csv")
+
+leps_FL_data_filtered <- leps_data_FL%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+write.csv(leps_FL_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_FL_data_coordUncertainty_cleaned.csv")
+
+leps_MA_data_filtered <- leps_data_MA%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+write.csv(leps_MA_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_MA_data_coordUncertainty_cleaned.csv")
+
+leps_PA_data_filtered <- leps_data_PA%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+write.csv(leps_PA_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_PA_data_coordUncertainty_cleaned.csv")
+
+leps_SD_data_filtered <- leps_data_SD%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+write.csv(leps_SD_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_SD_data_coordUncertainty_cleaned.csv")
+
+leps_DC_data_filtered <- leps_data_DC%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+write.csv(leps_DC_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_DC_data_coordUncertainty_cleaned.csv")
+
+leps_NC_data_filtered <- leps_data_NC%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(leps_NC_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_NC_data_coordUncertainty_cleaned.csv")
+
+leps_MN_data_filtered <- leps_data_MN%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(leps_MN_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_MN_data_coordUncertainty_cleaned.csv")
+
+leps_Essex_data_filtered <- fread("data/inat_data/01_raw_data/iNat_leps_essex.csv")%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(leps_Essex_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_Essex_data_coordUncertainty_cleaned.csv")
+
+leps_MI_data_filtered <- leps_data_MI%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(leps_MI_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_MI_data_coordUncertainty_cleaned.csv")
+
+leps_data_GA<- read.csv("data/inat_data/02_filtered_data/Leps/leps_data_GA.csv")
+leps_GA_data_filtered <- leps_data_GA%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+write.csv(leps_GA_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_GA_data_coordUncertainty_cleaned.csv")
+
+leps_AZ_data_filtered <- leps_data_AZ%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+write.csv(leps_AZ_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_AZ_data_coordUncertainty_cleaned.csv")
+
+
+
+leps_IL_data_filtered <- leps_data_IL%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+write.csv(leps_IL_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_IL_data_coordUncertainty_cleaned.csv")
+
+
+leps_IA_data_filtered <- leps_data_IA%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+write.csv(leps_IA_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_IA_data_coordUncertainty_cleaned.csv")
+
+
+leps_MO_data_filtered <- leps_data_MO%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+write.csv(leps_MO_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Leps/leps_MO_data_coordUncertainty_cleaned.csv")
 
 ###Flowering Plants
 flowers_CA_data_filtered <- flowers_CA_data%>%
@@ -58,6 +158,133 @@ flowers_NY_data_filtered <- flowers_NY_data%>%
 
 write.csv(flowers_NY_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_NY_data_coordUncertainty_cleaned.csv")
 
+
+flowers_WA_data_filtered <- flowers_WA_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_WA_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_WA_data_coordUncertainty_cleaned.csv")
+
+flowers_TX_data_filtered <- flowers_TX_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_TX_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_TX_data_coordUncertainty_cleaned.csv")
+
+flowers_CO_data_filtered <- flowers_CO_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_CO_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_CO_data_coordUncertainty_cleaned.csv")
+
+
+flowers_FL_data_filtered <- flowers_FL_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_FL_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_FL_data_coordUncertainty_cleaned.csv")
+
+
+flowers_MA_data_filtered <- flowers_MA_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_MA_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_MA_data_coordUncertainty_cleaned.csv")
+
+flowers_PA_data_filtered <- flowers_PA_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_PA_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_PA_data_coordUncertainty_cleaned.csv")
+
+flowers_SD_data_filtered <- flowers_SD_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_SD_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_SD_data_coordUncertainty_cleaned.csv")
+
+
+flowers_DC_data_filtered <- flowers_DC_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_DC_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_DC_data_coordUncertainty_cleaned.csv")
+
+
+
+flowers_NC_data_filtered <- flowers_NC_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_NC_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_NC_data_coordUncertainty_cleaned.csv")
+
+
+flowers_MN_data_filtered <- flowers_MN_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_MN_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_MN_data_coordUncertainty_cleaned.csv")
+
+flowers_Essex_data_filtered <- fread("data/inat_data/01_raw_data/iNat_flowering_plants_essex.csv")%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_Essex_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_Essex_data_coordUncertainty_cleaned.csv")
+
+flowers_MI_data_filtered <- flowers_MI_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_MI_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_MI_data_coordUncertainty_cleaned.csv")
+
+flowers_GA_data <- read.csv("data/inat_data/02_filtered_data/Plants/inat_flowers_GA.csv")
+
+flowers_GA_data_filtered <- flowers_GA_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_GA_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_GA_data_coordUncertainty_cleaned.csv")
+
+flowers_AZ_data_filtered <- flowers_AZ_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_AZ_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_AZ_data_coordUncertainty_cleaned.csv")
+
+flowers_IL_data_filtered <- flowers_IL_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_IL_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_IL_data_coordUncertainty_cleaned.csv")
+
+flowers_IA_data_filtered <- flowers_IA_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_IA_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_IA_data_coordUncertainty_cleaned.csv")
+
+flowers_MO_data_filtered <- flowers_MO_data%>%
+  mutate(uncertainty_threshold = calculate_threshold(decimalLatitude)) %>%
+  filter(!is.na(coordinateUncertaintyInMeters))%>%
+  filter(coordinateUncertaintyInMeters < uncertainty_threshold)
+
+write.csv(flowers_MO_data_filtered,"E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/flowers_MO_data_coordUncertainty_cleaned.csv")
 
 # # Create comparison with subspecies information
 # comparison_CA <- leps_CA_data_filtered %>%
