@@ -33,7 +33,7 @@ prep_data <- function(city_names,
     
     # first read the data 
     temp <- cbind(city, read.csv(paste0(
-      "./data/detections_by_city/", city, "/01_50m_", city,
+      "./data/detections_by_city/", city, "/01_0m_", city,
       "_observations_parkID_2km_clipped.csv"))
     )
     
@@ -110,7 +110,6 @@ prep_data <- function(city_names,
     
     # for now, reducing down to mandatory data columns
     dplyr::select(city, species, family, new_id, 
-                  total_green_space_area, tree_percent_cover, grass_shrub__percent_cover,
                   survey, year, n_detections) %>%
     
     # turn into binary detections (for occupancy rather than abundance)
@@ -162,12 +161,14 @@ prep_data <- function(city_names,
   
   if(remove_outlier_parks == TRUE){
     site_data <- site_data %>%
-      filter(isolation < 0.1)
+      filter(log_total_green_space_area_scaled > -2) %>%
+      filter(log_isolation_scaled < 3)
   }
   
   site_data <- site_data %>%
     group_by(city) %>%
-    mutate(log_total_green_space_area_scaled_2 = center_scale(log_total_green_space_area),
+    mutate(isolation_scaled_2 = center_scale(isolation),
+           log_total_green_space_area_scaled_2 = center_scale(log_total_green_space_area),
            log_isolation_scaled_2 = center_scale(log(isolation))) %>%
     ungroup()
   
@@ -412,6 +413,7 @@ prep_data <- function(city_names,
   temp <- select(site_data, city, new_id, multicity_site_id)
   df <- df %>%
     left_join(., temp, (by=c("city", "new_id"))) %>%
+    # remove detections from any sites that were potentially filtered out
     filter(!is.na(multicity_site_id))
   
   # make a 4 dimensional array

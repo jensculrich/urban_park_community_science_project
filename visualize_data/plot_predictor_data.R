@@ -34,7 +34,7 @@ p1 <- ggplot(site_data, aes(x = log_total_green_space_area,
   facet_wrap(~city)
   
 #  connectivity
-p2 <- ggplot(site_data, aes(x = isolation, 
+p2 <- ggplot(site_data, aes(x = log(isolation), 
                           colour = city, fill = city)) + 
   geom_histogram(alpha = 0.5, position = "identity") +
   theme_bw() +

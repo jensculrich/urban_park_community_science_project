@@ -83,10 +83,6 @@ my_data <- readRDS( paste0("./run_model/prepped_data/prepped_data_", region, ".r
 # prepare to fit occupncy model
 library(rstan)
 
-center_scale <- function(x) {
-  (x - mean(x)) / sd(x)
-}
-
 # data to feed to the model
 # detection data
 V <- my_data$V_detections # detections (1==detected)
@@ -112,8 +108,8 @@ feature_diversity <- species_info$featureDiversity_scaled
 ease_of_id <- species_info$research_grade_proportion_scaled
 wingspan <- species_info$aveWingspan_scaled
 # site
-park_size <- site_data$log_total_green_space_area_scaled
-isolation <- center_scale(site_data$isolation)
+park_size <- site_data$log_total_green_space_area_scaled_2
+isolation <- site_data$isolation_scaled_2
 city <- as.integer(as.factor(site_data$city))
 n_cities <- length(unique(city))
 
@@ -122,7 +118,7 @@ ranges <- my_data$ranges
 
 # plot
 ggplot(site_data, aes(
-  x = park_size, y = center_scale(isolation), colour = city)) +
+  x = log_total_green_space_area_scaled_2, y = isolation_scaled_2, colour = city)) +
   geom_point()
 
 

@@ -9,7 +9,7 @@ center_scale <- function(x) {
 
 get_site_data <- function(city_names) {
   
-  site_data <- data.frame(matrix(ncol = 15, nrow = 0))
+  site_data <- data.frame(matrix(ncol = 16, nrow = 0))
   
   for(i in 1:length(city_names)){
     
@@ -17,15 +17,17 @@ get_site_data <- function(city_names) {
     
     # first read the data 
     temp <- cbind(city, read.csv(paste0(
-      "./data/detections_by_city/", city, "/04_50m_", city,
+      "./data/detections_by_city/", city, "/04_0m_", city,
       "_isolation.csv"
     ))) %>%
     
-    # get scaled (log) green space area  
-    filter(total_green_space_area > 0) %>%
+    # standardize infitsimely small greenspace areas
+    mutate(total_green_space_area = ifelse(total_green_space_area < 0.1, 0.1, total_green_space_area)) %>%
+    #   get scaled covariate values
     select(city, new_id, total_green_space_area, isolation, tree_percent_cover, grass_shrub__percent_cover) %>%
-    mutate(log_total_green_space_area = log(total_green_space_area),
+    mutate(log_total_green_space_area = log(total_green_space_area + 0.0),
            log_total_green_space_area_scaled = center_scale(log_total_green_space_area),
+           isolation_scaled = center_scale(isolation),
            log_isolation_scaled = center_scale(log(isolation)),
            tree_cover_scaled = center_scale(tree_percent_cover),
            grass_shrub_cover_scaled = center_scale(grass_shrub__percent_cover))
