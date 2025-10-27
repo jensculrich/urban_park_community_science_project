@@ -201,7 +201,7 @@ n_thin <- 1
 n_burnin <- 150
 n_chains <- 4
 n_cores <- n_chains
-delta = 0.97
+delta = 0.975
 
 ## Initial values
 # given the number of parameters, the chains need some decent initial values
@@ -211,18 +211,18 @@ inits <- lapply(1:n_chains, function(i)
   list(psi1_0 = runif(1, -1, 1),
        sigma_psi1_species = runif(1, 1, 2),
        psi1_wingspan = runif(1, -1, 1),
-       #psi1_park_size = runif(1, -1, 1),
+       mu_psi1_park_size = runif(1, 0, 1),
        gamma0 = runif(1, -3, -2),
        gamma_wingspan = runif(1, 1, 2),
-       #gamma_park_size = runif(1, 0, 1),
+       mu_gamma_park_size = runif(1, 0, 1),
        #gamma_isolation = runif(1, -2, -1),
        phi0 = runif(1, 2, 3),
        phi_wingspan = runif(1, -1, 0),
-       #phi_park_size = runif(1, 0, 1),
+       mu_phi_park_size = runif(1, 0, 1),
        #phi_isolation = runif(1, 1, 2),
        p0 = runif(1, -1, 1),
        sigma_p_species = runif(1, 1, 2),
-       #sigma_p_site = runif(1, 0, 1),
+       sigma_p_city = runif(1, 0, 1),
        p_wingspan = runif(1, -1, 1),
        p_feature_diversity = runif(1, -1, 1),
        p_ease_of_id = runif(1, -1, 1),
@@ -251,7 +251,7 @@ stan_out <- stan(stan_model,
                  open_progress = FALSE,
                  cores = n_cores)
 
-saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "_2km_isolation_family_50buffers_simple.rds"))
+saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple2.rds"))
 
 stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, "_2km_isolation_family_50buffers_simple.rds"))
 

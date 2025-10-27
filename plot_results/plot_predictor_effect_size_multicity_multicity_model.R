@@ -62,7 +62,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_isolation_family_50buffers_simple.rds"))
+    "./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -84,35 +84,35 @@ for(i in 1:n_regions){
     index_upper <- 1 + ((j-1) * params) + (params - 1)
     
     Y[index_lower:index_upper] <- c(
-      fit_summary$summary[psi1_0,1] + fit_summary$summary[first_psi1_city+(j-1),1], # psi1 - intercept
+      fit_summary$summary[first_psi1_city+(j-1),1], # psi1 - intercept
       fit_summary$summary[first_psi1_wingspan+(j-1),1],  # psi1 - wingspan
       fit_summary$summary[first_psi1_parksize+(j-1),1],  # psi1 - park size
       fit_summary$summary[first_psi1_isolation+(j-1),1]  # psi1 - isolation
     )
     
     lower_95[index_lower:index_upper] <- c(
-      fit_summary$summary[psi1_0,4] + fit_summary$summary[first_psi1_city+(j-1),4], # psi1 - intercept
+      fit_summary$summary[first_psi1_city+(j-1),4], # psi1 - intercept
       fit_summary$summary[first_psi1_wingspan+(j-1),4],  # psi1 - wingspan
       fit_summary$summary[first_psi1_parksize+(j-1),4],  # psi1 - park size
       fit_summary$summary[first_psi1_isolation+(j-1),4]  # psi1 - isolation
     )
     
     upper_95[index_lower:index_upper] <- c(
-      fit_summary$summary[psi1_0,8] + fit_summary$summary[first_psi1_city+(j-1),8], # psi1 - intercept
+      fit_summary$summary[first_psi1_city+(j-1),8], # psi1 - intercept
       fit_summary$summary[first_psi1_wingspan+(j-1),8],  # psi1 - wingspan
       fit_summary$summary[first_psi1_parksize+(j-1),8],  # psi1 - park size
       fit_summary$summary[first_psi1_isolation+(j-1),8]  # psi1 - isolation
     )
     
     lower_50[index_lower:index_upper] <- c(
-      fit_summary$summary[psi1_0,5] + fit_summary$summary[first_psi1_city+(j-1),5], # psi1 - intercept
+      fit_summary$summary[first_psi1_city+(j-1),5], # psi1 - intercept
       fit_summary$summary[first_psi1_wingspan+(j-1),5],  # psi1 - wingspan
       fit_summary$summary[first_psi1_parksize+(j-1),5],  # psi1 - park size
       fit_summary$summary[first_psi1_isolation+(j-1),5]  # psi1 - isolation
     )
     
     upper_50[index_lower:index_upper] <- c(
-      fit_summary$summary[psi1_0,7] + fit_summary$summary[first_psi1_city+(j-1),7], # psi1 - intercept
+      fit_summary$summary[first_psi1_city+(j-1),7], # psi1 - intercept
       fit_summary$summary[first_psi1_wingspan+(j-1),7],  # psi1 - wingspan
       fit_summary$summary[first_psi1_parksize+(j-1),7],  # psi1 - park size
       fit_summary$summary[first_psi1_isolation+(j-1),7]  # psi1 - isolation
@@ -192,7 +192,7 @@ df_estimates$city_name <- fct_relevel(df_estimates$city_name, region_name)
                              bquote(psi["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-5, 3), breaks = c(-6, -4, -2, 0, 2, 4, 6, 8)) +
+                      limits = c(-4, 4), breaks = c(-6, -4, -2, 0, 2, 4, 6, 8)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
                                       "#1a5acd", "#E69F90", "#FFFF00")) + 
@@ -249,7 +249,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_isolation_family_50buffers_simple.rds"))
+    "./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -271,35 +271,35 @@ for(i in 1:n_regions){
     index_upper <- 1 + ((j-1) * params) + (params - 1)
     
     Y[index_lower:index_upper] <- c(
-      fit_summary$summary[gamma0,1] + fit_summary$summary[first_gamma_city+(j-1),1], # gamma - intercept
+      fit_summary$summary[first_gamma_city+(j-1),1], # gamma - intercept
       fit_summary$summary[first_gamma_wingspan+(j-1),1],  # gamma - wingspan
       fit_summary$summary[first_gamma_parksize+(j-1),1],  # gamma - park size
       fit_summary$summary[first_gamma_isolation+(j-1),1]  # gamma - isolation
     )
     
     lower_95[index_lower:index_upper] <- c(
-      fit_summary$summary[gamma0,4] + fit_summary$summary[first_gamma_city+(j-1),4], # gamma - intercept
+      fit_summary$summary[first_gamma_city+(j-1),4], # gamma - intercept
       fit_summary$summary[first_gamma_wingspan+(j-1),4],  # gamma - wingspan
       fit_summary$summary[first_gamma_parksize+(j-1),4],  # gamma - park size
       fit_summary$summary[first_gamma_isolation+(j-1),4]  # gamma - isolation
     )
     
     upper_95[index_lower:index_upper] <- c(
-      fit_summary$summary[gamma0,8] + fit_summary$summary[first_gamma_city+(j-1),8], # gamma - intercept
+      fit_summary$summary[first_gamma_city+(j-1),8], # gamma - intercept
       fit_summary$summary[first_gamma_wingspan+(j-1),8],  # gamma - wingspan
       fit_summary$summary[first_gamma_parksize+(j-1),8],  # gamma - park size
       fit_summary$summary[first_gamma_isolation+(j-1),8]  # gamma - isolation
     )
     
     lower_50[index_lower:index_upper] <- c(
-      fit_summary$summary[gamma0,5] + fit_summary$summary[first_gamma_city+(j-1),5], # gamma - intercept
+      fit_summary$summary[first_gamma_city+(j-1),5], # gamma - intercept
       fit_summary$summary[first_gamma_wingspan+(j-1),5],  # gamma - wingspan
       fit_summary$summary[first_gamma_parksize+(j-1),5],  # gamma - park size
       fit_summary$summary[first_gamma_isolation+(j-1),5]  # gamma - isolation
     )
     
     upper_50[index_lower:index_upper] <- c(
-      fit_summary$summary[gamma0,7] + fit_summary$summary[first_gamma_city+(j-1),7], # gamma - intercept
+      fit_summary$summary[first_gamma_city+(j-1),7], # gamma - intercept
       fit_summary$summary[first_gamma_wingspan+(j-1),7],  # gamma - wingspan
       fit_summary$summary[first_gamma_parksize+(j-1),7],  # gamma - park size
       fit_summary$summary[first_gamma_isolation+(j-1),7]  # gamma - isolation
@@ -436,7 +436,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_isolation_family_50buffers_simple.rds"))
+    "./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -458,35 +458,35 @@ for(i in 1:n_regions){
     index_upper <- 1 + ((j-1) * params) + (params - 1)
     
     Y[index_lower:index_upper] <- c(
-      fit_summary$summary[phi0,1] + fit_summary$summary[first_phi_city+(j-1),1], # phi - intercept
+      fit_summary$summary[first_phi_city+(j-1),1], # phi - intercept
       fit_summary$summary[first_phi_wingspan+(j-1),1],  # phi - wingspan
       fit_summary$summary[first_phi_parksize+(j-1),1],  # phi - park size
       fit_summary$summary[first_phi_isolation+(j-1),1]  # phi - isolation
     )
     
     lower_95[index_lower:index_upper] <- c(
-      fit_summary$summary[phi0,4] + fit_summary$summary[first_phi_city+(j-1),4], # phi - intercept
+      fit_summary$summary[first_phi_city+(j-1),4], # phi - intercept
       fit_summary$summary[first_phi_wingspan+(j-1),4],  # phi - wingspan
       fit_summary$summary[first_phi_parksize+(j-1),4],  # phi - park size
       fit_summary$summary[first_phi_isolation+(j-1),4]  # phi - isolation
     )
     
     upper_95[index_lower:index_upper] <- c(
-      fit_summary$summary[phi0,8] + fit_summary$summary[first_phi_city+(j-1),8], # phi - intercept
+      fit_summary$summary[first_phi_city+(j-1),8], # phi - intercept
       fit_summary$summary[first_phi_wingspan+(j-1),8],  # phi - wingspan
       fit_summary$summary[first_phi_parksize+(j-1),8],  # phi - park size
       fit_summary$summary[first_phi_isolation+(j-1),8]  # phi - isolation
     )
     
     lower_50[index_lower:index_upper] <- c(
-      fit_summary$summary[phi0,5] + fit_summary$summary[first_phi_city+(j-1),5], # phi - intercept
+      fit_summary$summary[first_phi_city+(j-1),5], # phi - intercept
       fit_summary$summary[first_phi_wingspan+(j-1),5],  # phi - wingspan
       fit_summary$summary[first_phi_parksize+(j-1),5],  # phi - park size
       fit_summary$summary[first_phi_isolation+(j-1),5]  # phi - isolation
     )
     
     upper_50[index_lower:index_upper] <- c(
-      fit_summary$summary[phi0,7] + fit_summary$summary[first_phi_city+(j-1),7], # phi - intercept
+      fit_summary$summary[first_phi_city+(j-1),7], # phi - intercept
       fit_summary$summary[first_phi_wingspan+(j-1),7],  # phi - wingspan
       fit_summary$summary[first_phi_parksize+(j-1),7],  # phi - park size
       fit_summary$summary[first_phi_isolation+(j-1),7]  # phi - isolation
@@ -566,7 +566,7 @@ df_estimates$city_name <- fct_relevel(df_estimates$city_name, region_name)
                              bquote(phi["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-3, 7), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-3, 8), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
                                       "#E69F90", "#1a5acd", "#FFFF00")) + 
@@ -623,7 +623,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_isolation_family_50buffers_simple.rds"))
+    "./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -644,23 +644,23 @@ for(i in 1:n_regions){
     index_upper <- 1 + ((j-1) * params) + (params - 1)
     
     Y[index_lower:index_upper] <- c(
-      fit_summary$summary[p0,1] + fit_summary$summary[first_p_city+(j-1),1] # p - intercept
+      fit_summary$summary[first_p_city+(j-1),1] # p - intercept
     )
     
     lower_95[index_lower:index_upper] <- c(
-      fit_summary$summary[p0,4] + fit_summary$summary[first_p_city+(j-1),4] # p - intercept
+      fit_summary$summary[first_p_city+(j-1),4] # p - intercept
     )
     
     upper_95[index_lower:index_upper] <- c(
-      fit_summary$summary[p0,8] + fit_summary$summary[first_p_city+(j-1),8] # p - intercept
+      fit_summary$summary[first_p_city+(j-1),8] # p - intercept
     )
     
     lower_50[index_lower:index_upper] <- c(
-      fit_summary$summary[p0,5] + fit_summary$summary[first_p_city+(j-1),5] # p - intercept
+      fit_summary$summary[first_p_city+(j-1),5] # p - intercept
     )
     
     upper_50[index_lower:index_upper] <- c(
-      fit_summary$summary[p0,7] + fit_summary$summary[first_p_city+(j-1),7] # p - intercept
+      fit_summary$summary[first_p_city+(j-1),7] # p - intercept
     )
     
   }
@@ -757,7 +757,7 @@ df_estimates <- rbind(df_estimates1, df_estimates2)
                              bquote(p["phenology decay"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-4, 4), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-3, 3), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
                                       "#E69F90", "#1a5acd", "#FFFF00")) + 
