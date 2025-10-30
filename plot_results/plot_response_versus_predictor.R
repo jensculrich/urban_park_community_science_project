@@ -1,8 +1,8 @@
 # plot effects of predictors on occurrence and detection
 
+# load libraries
 library(tidyverse)
 library(rstan)
-
 
 region <- "northeast"
 
@@ -14,11 +14,12 @@ city_names <- c(
   "Philadelphia"
 )
 
-n_cities <- length(cities_northeast)
+# number of cities
+n_cities <- length(city_names)
 
 ## get param estimates from the region
 stan_out <- readRDS(paste0(
-  "./model_outputs/stan_out_", region, "_2km_isolation_family_50buffers_simple.rds"))
+  "./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple2.rds"))
 tmp <- as.data.frame(stan_out) # take estimates from each HMC step as a df
 #n_samp <- 10 # how many samples do we have from the HMC run?
 n_samp <- length(tmp[,1]) # how many samples do we have from the HMC run?
@@ -29,7 +30,8 @@ View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see whic
 
 ## get data from region
 df <- readRDS( paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))$site_data
-  
+
+# get length of stan fit object (HMC iterations * n_chains)  
 pred_length <- nrow(df)
 
 ## ilogit and logit functions
@@ -39,6 +41,7 @@ logit <- function(x) log(x/(1-x))
 #-------------------------------------------------------------------------------
 # get some prediction data
 
+# these are a sequence of scaled values of park sizes (what the model sees)
 size_pred <- seq(from = -2, to = 2, length.out = pred_length)
 
 #-------------------------------------------------------------------------------
@@ -53,9 +56,9 @@ for(i in 1:n_samp){
   
   # community means don't depend on city effects
   predMean[,i] <- ilogit( # park size trend
-    # psi1_0 +
+    # psi1_0 + # the initial occurrence rate at a completely average park
     tmp[i,1] + 
-      # psi1_ +
+      # psi1_park_size # the effect of park size on the initial occurrence rate
       tmp[i,6]*size_pred
   )
     
@@ -63,11 +66,12 @@ for(i in 1:n_samp){
 
 # posterior means by community average 
 criMean <- apply(predMean, c(1), function(x) quantile(x, 
-              prob = c(0.05, 0.25, 0.5, 0.75, 0.95)))
+              prob = c(0.05, 0.25, 0.5, 0.75, 0.95))) # get 50 and 90% BCIs
 
 #-------------------------------------------------------------------------------
 
 # community plot - park size - psi1
+# organize the mean, 50 and 90% BCIs into a data frame
 size_df <- as.data.frame(cbind(size_pred, criMean[3,], 
                                criMean[1,], criMean[5,],
                                criMean[2,], criMean[4,]),
@@ -79,6 +83,7 @@ size_df <- as.data.frame(cbind(size_pred, criMean[3,],
          "psi1_size_community_lower50" = "V5",
          "psi1_size_community_upper50" = "V6")
 
+# plot the estimated relationship for the average city in the region
 p <- ggplot(data = size_df, aes(size_pred, psi1_size_community_mean)) +
   geom_ribbon(aes(
     ymin=psi1_size_community_lower50, 
@@ -96,8 +101,6 @@ p <- ggplot(data = size_df, aes(size_pred, psi1_size_community_mean)) +
                      breaks = c(0, 0.5, 1),
                      labels = scales::percent 
   ) +
-  #scale_fill_manual(values=my_palette) +
-  #scale_colour_manual(values=my_palette) +
   theme(legend.position = "none",
         axis.text.x = element_text(size = 18),
         axis.text.y = element_text(size = 18, angle=45, vjust=-0.5),
@@ -108,7 +111,8 @@ p <- ggplot(data = size_df, aes(size_pred, psi1_size_community_mean)) +
 p
 
 #-------------------------------------------------------------------------------
-# for real park sizes in each city
+# for real park sizes in each city 
+# (not scaled values which are hard to interpret in a practical sense)
 
 #-------------------------------------------------------------------------------
 # get some prediction data
@@ -119,15 +123,20 @@ park_size_pred_data_list <- vector(mode='list', length=n_cities)
 park_size_original_data_list <- vector(mode='list', length=n_cities)
 pred_length <- vector(length=n_cities)
 
+# remember that the predictor values were scaled within each city, so we have to
+# come up with some pred data specific to the real values within each city (not across all cities)
 for(city_number in 1:n_cities){
   
+  # filter the site covariate data to the specific city
   temp <- filter(df, city == city_names[city_number]) %>%
     arrange(., log_total_green_space_area)
   
-  # get park size data
+  # get the scaled park size data
   park_size_pred_data <- temp$log_total_green_space_area_scaled
+  # get the real park size data
   original_scale_park_size_data <- temp$log_total_green_space_area
   
+  # store the city-specific scaled and real values
   park_size_pred_data_list[[city_number]] <- park_size_pred_data
   park_size_original_data_list[[city_number]] <- original_scale_park_size_data
   
@@ -136,28 +145,32 @@ for(city_number in 1:n_cities){
   
 }
 
+# set the maximum pred length to the largest number of sites within a city
 max_pred_length = max(pred_length)
 
 #-------------------------------------------------------------------------------
 # initial occurrence (psi1)
 
-predCity <- array(NA, dim=c(n_cities, max_pred_length, n_samp)) # trends by city 
+# prediction trends by city 
+predCity <- array(NA, dim=c(n_cities, max_pred_length, n_samp)) 
 
-# get indices for species random effects distributions for particular city
+# get indices for random effects distributions for any particular city
 first_psi1 <- which( colnames(tmp)=="psi1_city[1]" )
 first_psi1_size <- which( colnames(tmp)=="psi1_park_size[1]" )
 
+# loop across all sites in each city, and make a prediction about initial occurrence
+# for each of the samples from the posterior probability distribution
 for(city_number in 1:n_cities){
   for(i in 1:max_pred_length){
     for(j in 1:n_samp){
       
-      # community means don't depend on city effects
-      predCity[city_number,i,j] <- ilogit( # park size trend
-        # psi1_0 +
+      # estimate city specific predictions about initial occurrence rate
+      predCity[city_number,i,j] <- ilogit( 
+        # psi1_0 + # global intercept
         tmp[j,1] + 
-          # psi1_city +
+          # psi1_city + # city effect on the intercept
           tmp[j,(first_psi1+(city_number-1))] + 
-          # psi1_park_size +
+          # psi1_park_size + # city specific effect of park size given real park size data
           tmp[j,(first_psi1_size+(city_number-1))] * park_size_pred_data_list[[city_number]][i]
       )
       
@@ -165,20 +178,25 @@ for(city_number in 1:n_cities){
   }
 }
   
+# now we have to transform all of this into a data frame to be able to plot in ggplot
 # initialize df with correct sites per city
 new_df <- predCity[,,1]
 
+# col names are sites within cities
 colnames(new_df) <- seq(1:max_pred_length)
 
+# convert to df format
 new_df <- as.data.frame(new_df)
 
+# cast sites into long format (multiple rows per city rather than one row per city)
 new_df <- new_df %>%
   cbind(., city_names) %>%
   pivot_longer(1:max_pred_length, names_to = "site", values_to = as.character(j)) %>%
   filter(!is.na(.[,3])) %>%
   select(city_names, site)
 
-# now add the initial occurrence per site per random draw of param estimates from the posterior distr
+# now add the initial occurrence per random draw of param estimates from the posterior distr
+# for every site. Then later we will summarize the quantiles of these predictions for each site
 for(j in 1:n_samp){
   
   temp <- predCity[,,j]
@@ -196,6 +214,7 @@ for(j in 1:n_samp){
   
 }
 
+# get the mean, 50 and 90% BCIs for initial occurrence for each site
 quants <- array(NA, dim=c(nrow=nrow(new_df), ncol=5))
 
 for(i in 1:nrow(new_df)){
@@ -206,6 +225,7 @@ for(i in 1:nrow(new_df)){
 park_size_original_ordered <- unlist(park_size_original_data_list)
 park_size_pred_ordered <- unlist(park_size_pred_data_list)
   
+# now replace the entire posterior distribution of draws in new_df with the quantile summaries
 new_df <- as.data.frame(cbind(new_df$city_names, new_df$site, quants)) %>%
   rename("city" = "V1",
          "site" = "V2",
@@ -219,11 +239,13 @@ new_df <- as.data.frame(cbind(new_df$city_names, new_df$site, quants)) %>%
          upper_50 =as.numeric(upper_50),
          lower_90 =as.numeric(lower_90),
          upper_90 =as.numeric(upper_90)) %>%
+  # and join with the site data
   cbind(., park_size_original_ordered, park_size_pred_ordered)
 
 ## --------------------------------------------------
 ## Draw multicity plot
 
+# plot the relationships
 q <- ggplot(data = new_df, aes(x=park_size_original_ordered, y=mean, colour=city)) +
   #geom_ribbon(aes(
     #ymin=lower_50, 

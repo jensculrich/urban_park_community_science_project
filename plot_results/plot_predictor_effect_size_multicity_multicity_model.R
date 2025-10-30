@@ -3,9 +3,9 @@
 library(tidyverse)
 library(rstan)
 
-# handy for viewing column numbers
-View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
-
+# enter the region/regions you want to plot
+# currently I think this will only work if you enter one single region,
+# but I think eventually we want to plot multiple regionss simultaneously
 region_names <- c(
   "northeast"
 )
@@ -34,6 +34,10 @@ cities_southeast <- c(
 
 n_cities_southeast <- length(cities_southeast)
 
+# handy for viewing column numbers
+# this line of code won't work until you've actually read in a stan fit object
+View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
+
 #-------------------------------------------------------------------------------
 # initial occurrence (psi1)
 
@@ -42,11 +46,14 @@ for(i in 1:n_regions){
   # get region
   region_name <- region_names[i]
   
-  # list of city names # assign object from string
+  # list of city names # assign objectw from strings
   cities <- eval(parse(text=paste0("cities_", region_name)))
   
   # get number of cities from the region
+  # cbind all cities, so we can look at city specific estimates
+  # plus region name, so we can look at mean regional estimates
   cities <- c(cities, region_name)
+  # length should equal the number of the cities in the region plus 1
   n_cities <- length(cities)
   
   # ecological params
@@ -59,14 +66,20 @@ for(i in 1:n_regions){
   lower_50 <- vector(length = n_cities*params)
   upper_50 <- vector(length = n_cities*params)
   
+  # create a vector of city names. 
+  # We will want a df with city name and then param of interest, and then estimates of the param
+  # repeated for each param of interest. and repeated for all cities in region
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple2.rds"))
+    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
   # get indices for species random effects distributions for particular city
+  # by indexing the row with the mean city estimate (usually I call this param mu_...)
+  # and the first city random effect (psi1_..._[1])
+  # index of other cities will be the row of the first random effect plus some integer.
   psi1_0 <- which( rownames(estimates)=="psi1_0" )
   psi1_wingspan <- which( rownames(estimates)=="mu_psi1_wingspan" )
   psi1_parksize <- which( rownames(estimates)=="mu_psi1_park_size" )
@@ -76,13 +89,20 @@ for(i in 1:n_regions){
   first_psi1_parksize <- which( rownames(estimates)=="psi1_park_size[1]" )
   first_psi1_isolation <- which( rownames(estimates)=="psi1_isolation[1]" )
   
+  # now pull out param estimates for each city within the region
   for(j in 1:(n_cities-1)){
     
-    city <- cities[j]
+    city <- cities[j] # city name
     
+    # index tells the loop where to store the param values
+    # the index references by which city we are looping across
+    # and which param we are interested in.
     index_lower <- 1 + ((j-1) * params)
     index_upper <- 1 + ((j-1) * params) + (params - 1)
     
+    # Y is the mean response, we also plot out the 50 and 95% BCIs
+    # using 50 and 95% because these are default values in stanfit summary
+    # If you wanted to customize BCIs, transform the fit into a df and calculate desired quantiles.
     Y[index_lower:index_upper] <- c(
       fit_summary$summary[first_psi1_city+(j-1),1], # psi1 - intercept
       fit_summary$summary[first_psi1_wingspan+(j-1),1],  # psi1 - wingspan
@@ -120,7 +140,10 @@ for(i in 1:n_regions){
     
   }
   
-  for(j in n_cities){
+  # j (last city in n_cities) actually represents the "mean" city or regional average
+  # for this regional average, just don't add any city specific random effects
+  # that would tell us how much a city deviates from the regional mean
+  for(j in n_cities){ # will only index one unit (the regional average)
     
     city <- cities[j]
     
@@ -164,6 +187,7 @@ for(i in 1:n_regions){
     
   }
   
+  # now bind all of the param names, city names, and quantiles into a df for plotting
   df_estimates <- as.data.frame(cbind(X, city_name, Y, lower_95, upper_95, lower_50, upper_50))
   
   df_estimates$X <- as.factor(df_estimates$X)
@@ -177,13 +201,15 @@ for(i in 1:n_regions){
   
 }
 
+# plot cities in alphabetical order
 df_estimates$city_name <- fct_relevel(df_estimates$city_name, region_name)
                                                      
 
 ## --------------------------------------------------
 ## Draw caterpillar plot
 
-(p <- ggplot(df_estimates) +
+# layout the plot
+p <- ggplot(df_estimates) +
    theme_bw() +
    scale_x_discrete(name="", breaks = seq(1:params),
                     labels=c(bquote(psi["intercept"]),
@@ -207,8 +233,8 @@ df_estimates$city_name <- fct_relevel(df_estimates$city_name, region_name)
          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
          panel.background = element_blank(), axis.line = element_line(colour = "black")) +
    coord_flip() 
-)
 
+# add estimates
 p <- p +
   geom_errorbar(aes(x=X, ymin=lower_95, ymax=upper_95, group=city_name, colour=city_name),
                 position=position_dodge(width=0.5),width=0.1,size=1,alpha=0.5) +
@@ -217,8 +243,13 @@ p <- p +
   geom_point(aes(x=X, y=Y, group=city_name, colour=city_name), 
              position=position_dodge(width=0.5),
              size = 5, alpha = 0.8) 
+
+# plot the plot
 p
 
+#-------------------------------------------------------------------------------
+# everything below replicates the above but for the other processes (colonization, persistence, detection)
+# I may not have commented everything as well yet.
 
 #-------------------------------------------------------------------------------
 # colonization (gamma)
@@ -249,7 +280,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple2.rds"))
+    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -370,7 +401,7 @@ df_estimates$city_name <- fct_relevel(df_estimates$city_name, region_name)
 ## --------------------------------------------------
 ## Draw caterpillar plot
 
-(q <- ggplot(df_estimates) +
+q <- ggplot(df_estimates) +
    theme_bw() +
    scale_x_discrete(name="", breaks = seq(1:params),
                     labels=c(bquote(gamma["intercept"]),
@@ -394,7 +425,6 @@ df_estimates$city_name <- fct_relevel(df_estimates$city_name, region_name)
          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
          panel.background = element_blank(), axis.line = element_line(colour = "black")) +
    coord_flip() 
-)
 
 q <- q +
   geom_errorbar(aes(x=X, ymin=lower_95, ymax=upper_95, group=city_name, colour=city_name),
@@ -436,7 +466,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple2.rds"))
+    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -557,7 +587,7 @@ df_estimates$city_name <- fct_relevel(df_estimates$city_name, region_name)
 ## --------------------------------------------------
 ## Draw caterpillar plot
 
-(r <- ggplot(df_estimates) +
+r <- ggplot(df_estimates) +
    theme_bw() +
    scale_x_discrete(name="", breaks = seq(1:params),
                     labels=c(bquote(phi["intercept"]),
@@ -581,7 +611,6 @@ df_estimates$city_name <- fct_relevel(df_estimates$city_name, region_name)
          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
          panel.background = element_blank(), axis.line = element_line(colour = "black")) +
    coord_flip() 
-)
 
 r <- r +
   geom_errorbar(aes(x=X, ymin=lower_95, ymax=upper_95, group=city_name, colour=city_name),
@@ -623,7 +652,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple2.rds"))
+    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -746,7 +775,7 @@ df_estimates <- rbind(df_estimates1, df_estimates2)
 ## --------------------------------------------------
 ## Draw caterpillar plot
 
-(s <- ggplot(df_estimates) +
+s <- ggplot(df_estimates) +
    theme_bw() +
    scale_x_discrete(name="", breaks = seq(1:params),
                     labels=c(bquote(p["intercept"]),
@@ -772,7 +801,6 @@ df_estimates <- rbind(df_estimates1, df_estimates2)
          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
          panel.background = element_blank(), axis.line = element_line(colour = "black")) +
    coord_flip() 
-)
 
 s <- s +
   geom_errorbar(aes(x=X, ymin=lower_95, ymax=upper_95, group=city_name, colour=city_name),
@@ -786,6 +814,6 @@ s
 
 
 #-------------------------------------------------------------------------------
-# cowplot
+# plot the 4 panels on a 2x2 grid
 
 cowplot::plot_grid(p, q, r, s, ncol = 2)
