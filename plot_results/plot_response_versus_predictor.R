@@ -31,7 +31,7 @@ View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see whic
 ## get data from region
 df <- readRDS( paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))$site_data
 
-# get length of stan fit object (HMC iterations * n_chains)  
+# length of number of parks in the cities
 pred_length <- nrow(df)
 
 ## ilogit and logit functions
@@ -49,6 +49,7 @@ size_pred <- seq(from = -2, to = 2, length.out = pred_length)
 
 initial_occurrence <- vector(length = pred_length)
 
+# get length of stan fit object (HMC iterations * n_chains)  
 predMean <- array(NA, dim=c(pred_length, n_samp)) # community means (overall region mean)
 predCity <- array(NA, dim=c(pred_length, n_samp, 2, n_cities)) # trends by city 
 
@@ -132,7 +133,7 @@ for(city_number in 1:n_cities){
     arrange(., log_total_green_space_area)
   
   # get the scaled park size data
-  park_size_pred_data <- temp$log_total_green_space_area_scaled
+  park_size_pred_data <- temp$log_total_green_space_area_scaled_2
   # get the real park size data
   original_scale_park_size_data <- temp$log_total_green_space_area
   
@@ -376,7 +377,7 @@ for(city_number in 1:n_cities){
     arrange(., isolation)
   
   # get park size data
-  park_isolation_pred_data <- temp$isolation_scaled
+  park_isolation_pred_data <- temp$isolation_scaled_2
   original_scale_park_isolation_data <- temp$isolation
   
   park_isolation_pred_data_list[[city_number]] <- park_isolation_pred_data

@@ -22,18 +22,6 @@ cities_northeast <- c(
 
 n_cities_northeast <- length(cities_northeast)
 
-# list of city names
-cities_southeast <- c(
-  "Atlanta",
-  "Charlotte",
-  "Dallas",
-  "Denton",
-  "Houston",
-  "Raleigh"
-)
-
-n_cities_southeast <- length(cities_southeast)
-
 # handy for viewing column numbers
 # this line of code won't work until you've actually read in a stan fit object
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
@@ -58,9 +46,9 @@ for(i in 1:n_regions){
   
   # ecological params
   # number of params to plot
-  params <- 4
+  params <- 4  # 4 for intercept, park size, isolation, wingspan
   X <- rep(seq(1:params), times=n_cities) #  ecological params of interest
-  Y <- vector(length = n_cities*params)
+  Y <- vector(length = n_cities*params) # Y = mean estimate for a param of interest
   lower_95 <- vector(length = n_cities*params)
   upper_95 <- vector(length = n_cities*params)
   lower_50 <- vector(length = n_cities*params)
