@@ -10,6 +10,7 @@ library(tidyverse) # data organization
 
 prep_data <- function(city_names,
                       min_species_detections,
+                      min_site_years_w_detection,
                       min_species_for_community_sampling_event,
                       family_sampling,
                       remove_outlier_parks
@@ -78,6 +79,22 @@ prep_data <- function(city_names,
   
   df <- df %>%
     filter(type == "classified")
+  
+  #-----------------------------------------------------
+  # sort out sites with low temporal coverage of detections
+  # for example, we could only model sites that have detections in at least two
+  # years, so that we are more confident in estimating a temporal trend across those sites
+  
+  df <- df %>%
+    group_by(city, new_id) %>%
+    mutate(new_id_unique = cur_group_id()) %>%
+    group_by(new_id_unique) %>%
+    mutate(years_w_detection_by_site = length(unique(year))) %>%
+    
+    # now filter out data from sites with < min_site_years_w_detection
+    # so that we do not model responses in these sites
+    filter(years_w_detection_by_site > min_site_years_w_detection)
+    
   
   #-----------------------------------------------------
   # prep data for array format

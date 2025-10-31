@@ -8,7 +8,7 @@ regions <- c(
   "southwest"
 )
 
-region <- regions[2]
+region <- regions[3]
 
 data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))
 

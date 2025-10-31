@@ -7,7 +7,7 @@ regions <- c(
   "southwest"
 )
 
-region <- regions[2]
+region <- regions[3]
 
 # list of city names
 
@@ -60,9 +60,10 @@ if(region == regions[4]){
 # city_names <- "Philadelphia"
 
 min_species_detections <- 2 # binary park/year/species detections
+min_site_years_w_detection <- 2 # binary park/year/species detections
 min_species_for_community_sampling_event = 1 
 family_sampling = TRUE # Should enter either TRUE or FALSE 
-remove_outlier_parks = TRUE
+remove_outlier_parks = FALSE
 # family_sampling:
 # if false infer sampling event for all butterflies if any butterflies detected
 # if true only infer sampling event for butterflies in same family as any butterflies detected
@@ -72,6 +73,7 @@ source("./run_model/prep_data_multicity.R")
 
 my_data <- prep_data(city_names,
                      min_species_detections,
+                     min_site_years_w_detection,
                      min_species_for_community_sampling_event,
                      family_sampling,
                      remove_outlier_parks
@@ -118,7 +120,7 @@ ranges <- my_data$ranges
 
 # plot
 ggplot(site_data, aes(
-  x = log_total_green_space_area_scaled_2, y = isolation_scaled_2, colour = city)) +
+  x = log_total_green_space_area_scaled_2, y = log_isolation_scaled_2, colour = city)) +
   geom_point()
 
 

@@ -18,7 +18,7 @@ get_site_data <- function(city_names) {
     # first read the data 
     temp <- cbind(city, read.csv(paste0(
       "./data/detections_by_city/", city, "/04_0m_", city,
-      "_isolation.csv"
+      "_isolation_non_water_only.csv"
     ))) %>%
     
     # standardize infitsimely small greenspace areas
