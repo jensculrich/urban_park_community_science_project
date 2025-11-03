@@ -7,7 +7,7 @@ regions <- c(
   "southwest"
 )
 
-region <- regions[3]
+region <- regions[2]
 
 # list of city names
 
@@ -60,10 +60,10 @@ if(region == regions[4]){
 # city_names <- "Philadelphia"
 
 min_species_detections <- 2 # binary park/year/species detections
-min_site_years_w_detection <- 2 # binary park/year/species detections
-min_species_for_community_sampling_event = 1 
-family_sampling = TRUE # Should enter either TRUE or FALSE 
-remove_outlier_parks = FALSE
+min_site_years_w_detection <- 2 # remove parks never surveyed across repeat years
+min_species_for_community_sampling_event <- 1 
+family_sampling  <- TRUE # Should enter either TRUE or FALSE 
+remove_outlier_parks <- TRUE # remove very small parks
 # family_sampling:
 # if false infer sampling event for all butterflies if any butterflies detected
 # if true only infer sampling event for butterflies in same family as any butterflies detected
@@ -110,8 +110,8 @@ feature_diversity <- species_info$featureDiversity_scaled
 ease_of_id <- species_info$research_grade_proportion_scaled
 wingspan <- species_info$aveWingspan_scaled
 # site
-park_size <- site_data$log_total_green_space_area_scaled_2
-isolation <- site_data$isolation_scaled_2
+park_size <- site_data$log_total_green_space_area_scaled_2 # scaled_2 is scaled to only parks being modeled
+isolation <- site_data$log_isolation_scaled_2 # scaled_2 is scaled to only parks being modeled
 city <- as.integer(as.factor(site_data$city))
 n_cities <- length(unique(city))
 
@@ -253,9 +253,9 @@ stan_out <- stan(stan_model,
                  open_progress = FALSE,
                  cores = n_cores)
 
-saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple2.rds"))
+saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple3.rds"))
 
-stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, "_2km_isolation_family_50buffers_simple.rds"))
+stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple3.rds"))
 
 print(stan_out, digits = 3, 
       pars = c(

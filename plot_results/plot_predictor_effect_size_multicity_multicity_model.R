@@ -60,7 +60,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple2.rds"))
+    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple3.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -268,7 +268,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple2.rds"))
+    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple3.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -454,7 +454,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple2.rds"))
+    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple3.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -640,7 +640,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple2.rds"))
+    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple3.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   

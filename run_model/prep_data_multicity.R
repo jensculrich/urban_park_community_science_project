@@ -93,7 +93,7 @@ prep_data <- function(city_names,
     
     # now filter out data from sites with < min_site_years_w_detection
     # so that we do not model responses in these sites
-    filter(years_w_detection_by_site > min_site_years_w_detection)
+    filter(years_w_detection_by_site >= min_site_years_w_detection)
     
   
   #-----------------------------------------------------
@@ -176,18 +176,17 @@ prep_data <- function(city_names,
   
   site_data <- left_join(site_data, site_data_temp, by = c("city", "new_id"))
   
-  if(remove_outlier_parks == TRUE){
-    site_data <- site_data %>%
-      filter(log_total_green_space_area_scaled > -2) %>%
-      filter(log_isolation_scaled < 3)
-  }
-  
   site_data <- site_data %>%
     group_by(city) %>%
     mutate(isolation_scaled_2 = center_scale(isolation),
            log_total_green_space_area_scaled_2 = center_scale(log_total_green_space_area),
            log_isolation_scaled_2 = center_scale(log(isolation))) %>%
     ungroup()
+  
+  if(remove_outlier_parks == TRUE){
+    site_data <- site_data %>%
+      filter(log_total_green_space_area_scaled_2 > -3) 
+  }
   
   n_sites <- nrow(site_data <- site_data %>%
     mutate(multicity_site_id = row_number()))

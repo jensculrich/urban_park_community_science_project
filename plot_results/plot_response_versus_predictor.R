@@ -19,7 +19,7 @@ n_cities <- length(city_names)
 
 ## get param estimates from the region
 stan_out <- readRDS(paste0(
-  "./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple2.rds"))
+  "./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple3.rds"))
 tmp <- as.data.frame(stan_out) # take estimates from each HMC step as a df
 #n_samp <- 10 # how many samples do we have from the HMC run?
 n_samp <- length(tmp[,1]) # how many samples do we have from the HMC run?
