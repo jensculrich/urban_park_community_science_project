@@ -16,7 +16,7 @@ regions <- c(
   "Southwest"
 )
 
-region <- regions[3]
+region <- regions[2]
 
 n_regions <- 1 # just plotting one region cluster at a time for now 
 
@@ -37,8 +37,8 @@ if(region == regions[1]){
 # northeast
 if(region == regions[2]){
   city_names <- c(
-    "DC",
     "Boston", 
+    "DC",
     "NYC", 
     "Philadelphia"
   )

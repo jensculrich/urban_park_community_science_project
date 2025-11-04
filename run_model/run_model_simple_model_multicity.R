@@ -26,8 +26,8 @@ if(region == regions[1]){
 # northeast
 if(region == regions[2]){
   city_names <- c(
-    "DC",
     "Boston", 
+    "DC",
     "NYC", 
     "Philadelphia"
   )

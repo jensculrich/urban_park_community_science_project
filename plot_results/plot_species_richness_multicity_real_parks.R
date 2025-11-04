@@ -9,78 +9,135 @@ center_scale <- function(x) {
 
 size_of_regional_species_pools <- read.csv("./data/size_of_regional_species_pools.csv")
 
-# list of city names
-city_names <- c(
-  "Boston", # 1
-  "Dallas", # 2
-  "Houston", # 3
-  "LA", # 4
-  "NYC", # 5
-  #"Riverside", # 6
-  "SF" # 7
+# enter the region/regions you want to plot
+# currently I think this will only work if you enter one single region,
+# but I think eventually we want to plot multiple regionss simultaneously
+
+# select a region
+regions <- c(
+  #"Midwest",
+  "Northeast",
+  "Southeast"
+  #"Southwest"
 )
 
-n_cities <- length(city_names)
+n_regions <- length(regions)
+
+# northeast
+  city_names_northeast <- c(
+    "Boston", 
+    "DC",
+    "NYC", 
+    "Philadelphia"
+  )
+  
+  n_cities_northeast <- length(city_names_northeast)
+
+# southeast
+
+  city_names_southeast <- c(
+    "Atlanta",
+    "Charlotte",
+    "Dallas",
+    "Denton",
+    "Houston",
+    "Raleigh"
+  )
+  
+  n_cities_southeast <- length(city_names_southeast)
+  
+n_cities <- n_cities_northeast + n_cities_southeast
 
 # create empty list of length n_cities
 # each element of the list holds the posterior distributions for 
 # all parameters for each individual city 
-mega_list <- vector(mode='list', length=n_cities)
+mega_list <- vector(mode='list', length=n_regions)
 
 # read and summarize data across loop
-for(city_number in 1:n_cities){
+for(region_number in 1:n_regions){
   
-  city <- city_names[city_number]
+  region <- regions[region_number]
   
   temp <- cbind(as.data.frame(
       readRDS(paste0(
-        "./model_outputs/stan_out_", city, "_2km_connectivity_family_50buffers_simple.rds"))
-  ), city)
+        "./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple3.rds"))
+  ), region)
   
-  mega_list[[city_number]] <- temp
+  mega_list[[region_number]] <- temp
 
 }
+
+city_names <- c(
+  "Boston", 
+  "DC",
+  "NYC", 
+  "Philadelphia",
+  "Atlanta",
+  "Charlotte",
+  "Dallas",
+  "Denton",
+  "Houston",
+  "Raleigh"
+)
+
+
+#-------------------------------------------------------------------------------
+# get some prediction data for each city
 
 # read city specific prediction data across loop
 # i.e. only predict diversity in a city across the range of parks actually observed in the specific city
 park_size_pred_data_list <- vector(mode='list', length=n_cities)
 park_size_original_data_list <- vector(mode='list', length=n_cities)
-park_connectivity_pred_data_list <- vector(mode='list', length=n_cities)
-park_connectivity_original_data_list <- vector(mode='list', length=n_cities)
+park_isolation_pred_data_list <- vector(mode='list', length=n_cities)
+park_isolation_original_data_list <- vector(mode='list', length=n_cities)
 pred_length <- vector(length=n_cities)
+start_city_index <- c(0, 4) # need to tell where to add data in the lists when multi regions
 
-for(city_number in 1:n_cities){
+# the data is stored by region so we will have to access by region
+for(region_number in 1:n_regions){
   
-  city <- city_names[city_number]
+  region <- regions[region_number]
   
-  temp <- readRDS( paste0("./run_model/prepped_data/prepped_data_", city, ".rds"))
-   
-  # get park size data
-  park_size_pred_data <- temp$site_data$log_total_green_space_area_scaled
+  ## get data from region
+  site_data <- readRDS( paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))$site_data
+  
+  cities_region <- eval(parse(text=paste0("city_names_", tolower(region))))
+  n_cities_region <- length(cities_region)
+  
+  # remember that the predictor values were scaled within each city, so we have to
+  # come up with some pred data specific to the real values within each city (not across all cities)
+  for(city_number in 1:n_cities_region){
     
-  mean_park_size <- mean(temp$site_data$log_total_green_space_area)
-  sd_park_size <- sd(temp$site_data$log_total_green_space_area)
-  # now do some algebra to get the scaled data back onto a real life m^2 scale
-  original_scale_park_size_data <- (park_size_pred_data * sd_park_size) + mean_park_size
-  
-  park_size_pred_data_list[[city_number]] <- park_size_pred_data
-  park_size_original_data_list[[city_number]] <- original_scale_park_size_data
-  
-  # get park connectivity data
-  park_connectivity_pred_data <- temp$site_data$area_weighted_avg_dist_2000m_scaled
-  
-  mean_park_connectivity <- mean(temp$site_data$area_weighted_avg_dist_2000m)
-  sd_park_connectivity <- sd(temp$site_data$area_weighted_avg_dist_2000m)
-  # now do some algebra to get the scaled data back onto a real life m^2 scale
-  original_scale_park_connectivity_data <- (park_connectivity_pred_data * sd_park_connectivity) + mean_park_connectivity
-  
-  park_connectivity_pred_data_list[[city_number]] <- park_connectivity_pred_data
-  park_connectivity_original_data_list[[city_number]] <- original_scale_park_connectivity_data
-  
-  # and figure out how many sites in the city
-  pred_length[city_number] <- length(park_size_pred_data)
+    # filter the site covariate data to the specific city
+    temp <- filter(site_data, city == cities_region[city_number]) %>%
+      arrange(., log_total_green_space_area)
+    
+    # get the scaled park size data
+    park_size_pred_data <- temp$log_total_green_space_area_scaled_2
+    # get the real park size data
+    original_scale_park_size_data <- temp$log_total_green_space_area
+    
+    # get the scaled isolation data
+    park_isolation_pred_data <- temp$log_isolation_scaled_2
+    # get the real isolation data
+    original_scale_park_isolation_data <- log(temp$isolation)
+    
+    # store the city-specific scaled and real values
+    park_size_pred_data_list[[start_city_index[region_number] + city_number]] <- park_size_pred_data
+    park_size_original_data_list[[start_city_index[region_number] + city_number]] <- original_scale_park_size_data
+    park_isolation_pred_data_list[[start_city_index[region_number] + city_number]] <- park_isolation_pred_data
+    park_isolation_original_data_list[[start_city_index[region_number] + city_number]] <- original_scale_park_isolation_data
+    
+    # and figure out how many sites in the city
+    pred_length[[start_city_index[region_number] + city_number]] <- length(park_size_pred_data)
+    
+  }
   
 }
+  
+
+# set the maximum pred length to the largest number of sites within a city
+max_pred_length = max(pred_length)
 
 ## ilogit and logit functions
 ilogit <- function(x) exp(x)/(1+exp(x))
@@ -95,7 +152,7 @@ logit <- function(x) log(x/(1-x))
 n_years = 5 # number of years of the study
 n_years_minus1 = n_years - 1 # number of interannual transitions
 
-n_draws = 20 # small number for testing bc it does take a few minutes to simulate results
+n_draws = 100 # small number for testing bc it does take a few minutes to simulate results
 #n_draws = nrow(list_of_draws) # number of samples from the posteriors
 
 max_pred_length = max(pred_length)
@@ -109,153 +166,383 @@ random_draws_from_posterior = sample.int(n=n_draws) # use if not using the full 
 richness <- array(data = NA, dim=c(n_cities, max_pred_length, n_years, n_draws))
 jaccard_site <- array(data = NA, dim=c(n_cities, max_pred_length, max_pred_length, n_years, n_draws))
 
-for(city_number in 1:n_cities){
+for(region_number in 1:n_regions){
   
-  # get the posterior distributions for a particular city
-  city_estimates <- mega_list[[city_number]]
+  region <- regions[region_number]
   
-  # get indices for species random effects distributions for particular city
-  first_psi1 <- which( colnames(city_estimates)=="psi1_species[1]" )
-  first_gamma <- which( colnames(city_estimates)=="gamma_species[1]" )
-  first_phi <- which( colnames(city_estimates)=="phi_species[1]" )
+  cities_region <- eval(parse(text=paste0("city_names_", tolower(region))))
+  n_cities_region <- length(cities_region)
   
-  # get the pred data for species/sites from the particular city
-  city_name <- city_names[city_number]
-  my_data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", city_name, ".rds"))
+  # get the posterior distributions for a particular region
+  region_estimates <- mega_list[[region_number]]
+  
+  # get indices for species and city random effects distributions for particular region
+  psi1_0 <- which( colnames(region_estimates)=="psi1_0" )
+  first_psi1_city <- which( colnames(region_estimates)=="psi1_city[1]" )
+  first_psi1_species <- which( colnames(region_estimates)=="psi1_species[1]" )
+  first_psi1_wingspan <- which( colnames(region_estimates)=="psi1_wingspan[1]" )
+  first_psi1_parksize <- which( colnames(region_estimates)=="psi1_park_size[1]" )
+  first_psi1_isolation <- which( colnames(region_estimates)=="psi1_isolation[1]" )
+
+  gamma0 <- which( colnames(region_estimates)=="gamma0" )
+  first_gamma_city <- which( colnames(region_estimates)=="gamma_city[1]" )
+  first_gamma_species <- which( colnames(region_estimates)=="gamma_species[1]" )
+  first_gamma_wingspan <- which( colnames(region_estimates)=="gamma_wingspan[1]" )
+  first_gamma_parksize <- which( colnames(region_estimates)=="gamma_park_size[1]" )
+  first_gamma_isolation <- which( colnames(region_estimates)=="gamma_isolation[1]" )
+
+  phi0 <- which( colnames(region_estimates)=="phi0" )
+  first_phi_city <- which( colnames(region_estimates)=="phi_city[1]" )
+  first_phi_species <- which( colnames(region_estimates)=="phi_species[1]" )
+  first_phi_wingspan <- which( colnames(region_estimates)=="phi_wingspan[1]" )
+  first_phi_parksize <- which( colnames(region_estimates)=="phi_park_size[1]" )
+  first_phi_isolation <- which( colnames(region_estimates)=="phi_isolation[1]" )
+
+  
+  # get data from region 
+  my_data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))
+  site_data <- my_data$site_data
   species_data <- my_data$species_info
   n_species <- nrow(species_data)
-  detections <- my_data$V_detections
-  pred_length_city <- pred_length[city_number]
+  range_data <- my_data$ranges
   
-  # get the predictor data for the particular city
-  park_size_pred_data <- park_size_pred_data_list[[city_number]]
-  park_connectivity_pred_data <- park_connectivity_pred_data_list[[city_number]]
-
-  # construct some arrays to hold the data
-  psi1_expected <- array(data = NA, dim=c(n_species, pred_length_city))
-  gamma_expected <- array(data = NA, dim=c(n_species, pred_length_city, n_years_minus1))
-  phi_expected <- array(data = NA, dim=c(n_species, pred_length_city, n_years_minus1))
-  occurrence_simmed <- array(data = NA, dim=c(n_species, pred_length_city, n_years, n_draws))
-  #psi <- array(data = NA, dim=c(n_species, pred_length, n_years_minus1))
+  for(city_number in 1:n_cities_region){
   
-  for(draw in 1:n_draws){
-  
-    rand <- random_draws_from_posterior[draw]
+    # get the pred data for species/sites from the particular city
+    city_name <-  cities_region[city_number]
+    # get detections, if a species was observed we know it was present
+    # otherwise we predict based on our model based estimates
+    detections <- my_data$V_detections
     
-    # expected occurrence in year 1
-    for(i in 1:n_species){
-      for(j in 1:pred_length_city){
-        for(k in 2:n_years){
-          
-          psi1_expected[i,j] =
-            ilogit(
-              # YEAR 1 is the global intercept
-              city_estimates[rand,1] + 
+    pred_length_city <- pred_length[start_city_index[region_number] + city_number]
+    
+    # get the predictor data for the particular city
+    park_size_pred_data <- park_size_pred_data_list[[start_city_index[region_number] + city_number]]
+    park_isolation_pred_data <- park_isolation_pred_data_list[[start_city_index[region_number] + city_number]]
+    
+    # construct some arrays to hold the data
+    psi1_expected <- array(data = NA, dim=c(n_species, pred_length_city))
+    gamma_expected <- array(data = NA, dim=c(n_species, pred_length_city, n_years_minus1))
+    phi_expected <- array(data = NA, dim=c(n_species, pred_length_city, n_years_minus1))
+    occurrence_simmed <- array(data = NA, dim=c(n_species, pred_length_city, n_years, n_draws))
+    #psi <- array(data = NA, dim=c(n_species, pred_length, n_years_minus1))
+    
+    # prep to drop out species that were not modelled in city (based on inferred classified park range)
+    min_site_index <- min(filter(site_data, city == city_name) %>% select(multicity_site_id))
+    max_site_index <- max(filter(site_data, city == city_name) %>% select(multicity_site_id))
+    ranges_city <- range_data[,min_site_index:max_site_index]
+    
+    for(draw in 1:n_draws){
+      
+      rand <- random_draws_from_posterior[draw]
+      
+      # expected occurrence in year 1
+      for(i in 1:n_species){
+        for(j in 1:pred_length_city){
+          for(k in 2:n_years){
+            
+            psi1_expected[i,j] =
+              ilogit(
+                # global initial occurrence intercept
+                region_estimates[rand,psi1_0] + 
+                # plus a city specific random intercept effect   
+                region_estimates[rand,(first_psi1_city+(city_number-1))] + 
                 # a species specific intercept effect (the number here should be first column)
-                city_estimates[rand,(first_psi1+(i-1))] +
+                region_estimates[rand,(first_psi1_species+(i-1))] +
                 # effect of wingspan * wingspan of species i + 
-                city_estimates[rand,3] * species_data$aveWingspan_scaled[i] + 
+                region_estimates[rand,(first_psi1_wingspan+(city_number-1))] * species_data$aveWingspan_scaled[i] + 
                 # effect of parksize * parksize of site j + 
-                city_estimates[rand,4] * park_size_pred_data[j] +
-                # effect of connectivity * connectivity of site j + 
-                city_estimates[rand,5] * park_connectivity_pred_data[j]
-            )
-          
-          gamma_expected[i,j,k-1] = # gamma[,,k-1] yields gamma for the transition between year 1 and 2
-            ilogit(#gamma0 +
-              city_estimates[rand,6] + 
-                #species_effects[species[i],1] + // a species specific intercept
-                # start at first row of species effects
-                # then each next species will be + i
-                city_estimates[rand,(first_gamma+(i-1))] +
-                # effect of wingspan * wingspan of species i + 
-                city_estimates[rand,8] * species_data$aveWingspan_scaled[i] + 
-                # effect of parksize * parksize of site j + 
-                city_estimates[rand,9] * park_size_pred_data[j]  +
-                # effect of connectivity * connectivity of site j + 
-                city_estimates[rand,10] * park_connectivity_pred_data[j]
-            )
-          
-          phi_expected[i,j,k-1] = # phi[,,k-1] yields phi for the transition between year 1 and 2
-            ilogit(#phi0 +
-              city_estimates[rand,11] + 
-                #species_effects[species[i],1] + // a species specific intercept
-                # start at first row of species effects
-                # then each next species will be + i
-                city_estimates[rand,(first_phi+(i-1))] +
-                # effect of wingspan * wingspan of species i + 
-                city_estimates[rand,13] * species_data$aveWingspan_scaled[i] + 
-                # effect of parksize * parksize of site j + 
-                city_estimates[rand,14] * park_size_pred_data[j]  +
-                # effect of connectivity * connectivity of site j + 
-                city_estimates[rand,15] * park_connectivity_pred_data[j]
-            )
-          
-        } 
-      }
-    }
-    
-    # simmed occurrence for each species
-    for(i in 1:n_species){
-      for(j in 1:pred_length_city){
-        for(k in 1:n_years){
-          
-          if(sum(detections[i,j,k,1:12]) > 0){ 
+                region_estimates[rand,(first_psi1_parksize+(city_number-1))] * park_size_pred_data[j] +
+                # effect of isolation * isolation of site j + 
+                region_estimates[rand,(first_psi1_isolation+(city_number-1))] * park_isolation_pred_data[j]
+              )
             
-            # if a species occurrence was observed, then the species occurs
-            occurrence_simmed[i,j,1,rand] <- 1
+            gamma_expected[i,j,k-1] = # gamma[,,k-1] yields gamma for the transition between year 1 and 2
+              ilogit(
+                # global initial occurrence intercept
+                region_estimates[rand,gamma0] + 
+                  # plus a city specific random intercept effect   
+                  region_estimates[rand,(first_gamma_city+(city_number-1))] + 
+                  # a species specific intercept effect (the number here should be first column)
+                  region_estimates[rand,(first_gamma_species+(i-1))] +
+                  # effect of wingspan * wingspan of species i + 
+                  region_estimates[rand,(first_gamma_wingspan+(city_number-1))] * species_data$aveWingspan_scaled[i] + 
+                  # effect of parksize * parksize of site j + 
+                  region_estimates[rand,(first_gamma_parksize+(city_number-1))] * park_size_pred_data[j] +
+                  # effect of isolation * isolation of site j + 
+                  region_estimates[rand,(first_gamma_isolation+(city_number-1))] * park_isolation_pred_data[j]
+              )
             
-          } else{
+            phi_expected[i,j,k-1] = # phi[,,k-1] yields phi for the transition between year 1 and 2
+              ilogit(
+                # global initial occurrence intercept
+                region_estimates[rand,phi0] + 
+                  # plus a city specific random intercept effect   
+                  region_estimates[rand,(first_phi_city+(city_number-1))] + 
+                  # a species specific intercept effect (the number here should be first column)
+                  region_estimates[rand,(first_phi_species+(i-1))] +
+                  # effect of wingspan * wingspan of species i + 
+                  region_estimates[rand,(first_phi_wingspan+(city_number-1))] * species_data$aveWingspan_scaled[i] + 
+                  # effect of parksize * parksize of site j + 
+                  region_estimates[rand,(first_phi_parksize+(city_number-1))] * park_size_pred_data[j] +
+                  # effect of isolation * isolation of site j + 
+                  region_estimates[rand,(first_phi_isolation+(city_number-1))] * park_isolation_pred_data[j]
+              )
             
-            # else the species occurrence will be simulated using model predictions
-            # in all years after the first year we use a temporal autocorrelation component
-            if(k < 2){ # in year 1
-              occurrence_simmed[i,j,1,rand] <- rbinom(1, 1, prob = psi1_expected[i,j])
-            } else{ # contingent on previous year
-              occurrence_simmed[i,j,k,rand] = occurrence_simmed[i,j,k-1,rand] * phi_expected[i,j,k-1] + 
-                (1 - occurrence_simmed[i,j,k-1,rand]) * gamma_expected[i,j,k-1]
-            } # end if/else simulate species occurrence
-            
-          } # end if/else species occurrence was observed in real life
-          
-        } # end for(k)
-      } # end for(j)
-    } # end for(i)
-    
-    for(j in 1:pred_length_city){
-      for(k in 1:n_years){
-        richness[city_number,j,k,draw] <- sum(occurrence_simmed[1:n_species,j,k,rand])
-      }
-    }
-    
-    ## --------------------------------------------------
-    ## calculate beta diversity of simmed communities
-    
-    # jaccard index needs a reference level
-    #ref_site <- 1
-    # now compute dissimilarity in the occurrence matrix in site i versus site 1
-    #for(j in 1:pred_length_city){ # jaccard index for sites (in terms of shared species)
-    #  for(k in 1:n_years){
-    #    jaccard_site[city_number,j,k,draw] <- sum(occurrence_simmed[,ref_site,k,rand]*occurrence_simmed[,j,k,rand]) /
-    #      (sum(occurrence_simmed[,ref_site,k,rand]) +
-    #         sum(occurrence_simmed[,ref_site,k,rand]) - sum(occurrence_simmed[,ref_site,k,rand]*occurrence_simmed[,j,k,rand]))
-    #  }
-    #}
-    
-    # now compute dissimilarity in the occurrence matrix in site i versus site 1
-    for(j in 1:pred_length_city){ # jaccard index for sites (in terms of shared species)
-      for(j2 in 1:pred_length_city){ # jaccard index for sites (in terms of shared species)
-        for(k in 1:n_years){
-          jaccard_site[city_number,j,j2,k,draw] <- sum(occurrence_simmed[,j2,k,rand]*occurrence_simmed[,j,k,rand]) /
-            (sum(occurrence_simmed[,j2,k,rand]) +
-               sum(occurrence_simmed[,j2,k,rand]) - sum(occurrence_simmed[,j2,k,rand]*occurrence_simmed[,j,k,rand]))
+          } 
         }
       }
-    }
+      
+      # simmed occurrence for each species
+      for(i in 1:n_species){
+        for(j in 1:pred_length_city){
+          for(k in 1:n_years){
+            
+            if(sum(detections[i,j,k,1:12]) > 0){ 
+              
+              # if a species occurrence was observed, then the species occurs
+              occurrence_simmed[i,j,1,rand] <- 1
+              
+            } else{
+              
+              # else the species occurrence will be simulated using model predictions
+              # in all years after the first year we use a temporal autocorrelation component
+              if(k < 2){ # in year 1
+                occurrence_simmed[i,j,1,rand] <- rbinom(1, 1, prob = psi1_expected[i,j])
+              } else{ # contingent on previous year
+                occurrence_simmed[i,j,k,rand] = occurrence_simmed[i,j,k-1,rand] * phi_expected[i,j,k-1] + 
+                  (1 - occurrence_simmed[i,j,k-1,rand]) * gamma_expected[i,j,k-1]
+              } # end if/else simulate species occurrence
+              
+            } # end if/else species occurrence was observed in real life
+            
+            occurrence_simmed[i,j,k,rand] <- ranges_city[i,j] * occurrence_simmed[i,j,k,rand]
+            
+          } # end for(k)
+        } # end for(j)
+      } # end for(i)
+      
+      for(j in 1:pred_length_city){
+        for(k in 1:n_years){
+          richness[start_city_index[region_number] + city_number,j,k,draw] <- sum(occurrence_simmed[1:n_species,j,k,rand])
+        }
+      }
+      
+      ## --------------------------------------------------
+      ## calculate beta diversity of simmed communities
+      
+      # jaccard index needs a reference level
+      #ref_site <- 1
+      # now compute dissimilarity in the occurrence matrix in site i versus site 1
+      #for(j in 1:pred_length_city){ # jaccard index for sites (in terms of shared species)
+      #  for(k in 1:n_years){
+      #    jaccard_site[city_number,j,k,draw] <- sum(occurrence_simmed[,ref_site,k,rand]*occurrence_simmed[,j,k,rand]) /
+      #      (sum(occurrence_simmed[,ref_site,k,rand]) +
+      #         sum(occurrence_simmed[,ref_site,k,rand]) - sum(occurrence_simmed[,ref_site,k,rand]*occurrence_simmed[,j,k,rand]))
+      #  }
+      #}
+      
+      # now compute dissimilarity in the occurrence matrix in site i versus site 1
+      #for(j in 1:pred_length_city){ # jaccard index for sites (in terms of shared species)
+        #for(j2 in 1:pred_length_city){ # jaccard index for sites (in terms of shared species)
+          #for(k in 1:n_years){
+            #jaccard_site[start_city_index[region_number] + city_number,j,j2,k,draw] <- 
+              #sum(occurrence_simmed[,j2,k,rand]*occurrence_simmed[,j,k,rand]) /
+              #(sum(occurrence_simmed[,j2,k,rand]) +
+                 #sum(occurrence_simmed[,j2,k,rand]) - sum(occurrence_simmed[,j2,k,rand]*occurrence_simmed[,j,k,rand]))
+          #}
+        #}
+      #}
+      
+    } # end for random draw
     
-  } # end for random draw
+  } # end for city
+} # end for region
 
-} # end for city
+## --------------------------------------------------
+# summarize the results and plot species richness against real park size or park isolation
+
+# collapse across years (average richness 
+# per rand draw from the posterior [array dimension 4] 
+# per site [dim 2], 
+# per city [dim 1],
+# across all years [dim 3])
+richness2 <- richness
+#richness <- apply(richness,c(1,2,4),mean) # average across years
+richness <- apply(richness,c(1,2,4),mean,na.rm=TRUE) # average across years
+
+#test <- richness[1:2, 1:30, 1, 1:50]
+#richness <- test
+
+# make an empty df
+df <- data.frame()
+
+# the data is stored by region so we will have to access by region
+for(region_number in 1:n_regions){
+  
+  region <- regions[region_number]
+
+  cities_region <- eval(parse(text=paste0("city_names_", tolower(region))))
+  n_cities_region <- length(cities_region)
+
+  for(city_number in 1:n_cities_region){
+    
+    city_name <- cities_region[city_number]
+    
+    # prep sites to model in each city
+    my_data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))
+    site_data <- my_data$site_data
+    min_site_index <- min(filter(site_data, city == city_name) %>% select(multicity_site_id))
+    max_site_index <- max(filter(site_data, city == city_name) %>% select(multicity_site_id))
+    n_sites_city <- (max_site_index - min_site_index + 1)
+    
+    mean = vector(length=n_sites_city)
+    lower_50 = vector(length=n_sites_city)
+    upper_50 = vector(length=n_sites_city)
+    lower_95 = vector(length=n_sites_city)
+    upper_95 = vector(length=n_sites_city)
+
+      for(j in 1:n_sites_city){
+        
+        quants = as.vector(quantile(
+          richness[start_city_index[region_number] + city_number,j,], 
+          probs = c(0.05, 0.25, 0.50, 0.75, 0.95), na.rm=TRUE))
+        
+        mean[j] = quants[3]
+        lower_50[j] = quants[2]
+        upper_50[j] = quants[4]
+        lower_95[j] = quants[1]
+        upper_95[j] = quants[5]
+        
+      } # end for across sites to quantify quantiles
+    
+    pred_data <- park_size_pred_data_list[[start_city_index[region_number] + city_number]]
+    original_scale_park_size_data <- park_size_original_data_list[[start_city_index[region_number] + city_number]]
+    
+    temp <- as.data.frame(cbind(pred_data, #original_scale_data,
+                                mean,
+                                lower_50, 
+                                upper_50,
+                                lower_95, 
+                                upper_95,
+                                original_scale_park_size_data
+    )) %>%
+      mutate(city = city_name) %>%
+      left_join(., size_of_regional_species_pools, by = "city") %>%
+      mutate(rel_mean = mean / size_of_regional_pool,
+             rel_lower_50 = lower_50 / size_of_regional_pool,
+             rel_upper_50 = upper_50 / size_of_regional_pool,
+             rel_lower_95 = lower_95 / size_of_regional_pool,
+             rel_upper_95 = upper_95 / size_of_regional_pool)
+    
+    df <- rbind(df, temp)
+    
+  }  # end for across cities within region
+  
+} # end for across regions
+
+
+## --------------------------------------------------
+## Draw species richness plot
+
+df <- df %>%
+  mutate(city = as.factor(city)) %>%
+  mutate(city=fct_relevel(city,c("Boston", 
+                                 "DC",
+                                 "NYC", 
+                                 "Philadelphia",
+                                 "Atlanta",
+                                 "Charlotte",
+                                 "Dallas",
+                                 "Denton",
+                                 "Houston",
+                                 "Raleigh"))) 
+
+# create plot object with loess regression lines
+# this will create a smooth line between the 
+pre_p <- ggplot(df) + 
+  stat_smooth(aes(x = original_scale_park_size_data, y = rel_mean, group=city), method = "loess", se = FALSE) +
+  stat_smooth(aes(x = original_scale_park_size_data, y = rel_lower_95, group=city), method = "loess", se = FALSE) +
+  stat_smooth(aes(x = original_scale_park_size_data, y = rel_upper_95, group=city), method = "loess", se = FALSE) +
+  stat_smooth(aes(x = original_scale_park_size_data, y = rel_lower_50, group=city), method = "loess", se = FALSE) +
+  stat_smooth(aes(x = original_scale_park_size_data, y = rel_upper_50, group=city), method = "loess", se = FALSE)
+pre_p
+
+# build plot object for rendering 
+p <- ggplot_build(pre_p)
+
+# extract data for the loess lines from the 'data' slot
+df2 <- data.frame(original_scale_park_size_data = p$data[[1]]$x,
+                  rel_mean = p$data[[1]]$y,
+                  rel_lower_95 = p$data[[2]]$y,
+                  rel_upper_95 = p$data[[3]]$y,
+                  rel_lower_50 = p$data[[4]]$y,
+                  rel_upper_50 = p$data[[5]]$y) 
+
+df2 <- cbind(df2, rep(city_names, each = nrow(df2)/n_cities))
+
+colnames(df2)[7] <- "City"
+
+df2 <- df2 %>%
+  mutate(City = as.factor(City))
+
+# use the loess data to add the 'ribbon' to plot 
+(p  <- ggplot(data = df2, aes(original_scale_park_size_data, group=City)) +
+    geom_line(aes(y=rel_mean, colour=City), size = 2) +
+    geom_ribbon(aes(ymin = rel_lower_95, ymax = rel_upper_95, fill=City), alpha = 0.2) +
+    #geom_ribbon(aes(ymin = rel_lower_50, ymax = rel_upper_50, fill=City), alpha = 0.5) +
+    ylim(c(0, 1)) +
+    theme_classic() +
+    xlab("log(Park Size in m^2)") +
+    ylab("Species Richness /\nSize of Regional Species Pool") +
+    theme(axis.text.x = element_text(size = 18),
+          axis.text.y = element_text(size = 18),
+          axis.title.x = element_text(size=20),
+          axis.title.y = element_text(size = 20)
+    )
+  
+) 
+
+
+# now plot isolation
+
+# build plot object for rendering 
+q <- ggplot_build(pre_q)
+
+# extract data for the loess lines from the 'data' slot
+df2 <- data.frame(original_scale_isolation_data = q$data[[1]]$x,
+                  rel_mean = q$data[[1]]$y,
+                  rel_lower_95 = q$data[[2]]$y,
+                  rel_upper_95 = q$data[[3]]$y,
+                  rel_lower_50 = q$data[[4]]$y,
+                  rel_upper_50 = q$data[[5]]$y) 
+
+df2 <- cbind(df2, rep(city_names, each = nrow(df2)/n_cities))
+
+colnames(df2)[7] <- "City"
+
+# use the loess data to add the 'ribbon' to plot 
+(q  <- ggplot(data = df2, aes(original_scale_isolation_data, group=City)) +
+    geom_line(aes(y=rel_mean, colour=City), size = 2) +
+    geom_ribbon(aes(ymin = rel_lower_95, ymax = rel_upper_95, fill=City), alpha = 0.2) +
+    geom_ribbon(aes(ymin = rel_lower_50, ymax = rel_upper_50, fill=City), alpha = 0.5) +
+    ylim(c(0, 1)) +
+    theme_classic() +
+    xlab("Isolation\n(Avg. Distance to Parks Within 2km)") +
+    ylab("Species Richness /\nSize of Regional Species Pool") +
+    theme(axis.text.x = element_text(size = 18),
+          axis.text.y = element_text(size = 18),
+          axis.title.x = element_text(size=20),
+          axis.title.y = element_text(size = 20)
+    )
+  
+) 
+
+
+
+
+
+
   
 ## --------------------------------------------------
 # summarize the results (species richness)
@@ -1119,113 +1406,7 @@ for(city_number in 1:n_cities){
   
 } # end for city
 
-## --------------------------------------------------
-# summarize the results
 
-# collapse across years (average richness by site [array dimension 4] 
-# per rand draw from the posterior [dim 2], across all years [dim 3])
-# per city [dim 1],
-richness <- apply(richness,c(1,2,4),mean) # average across years
-#test <- richness[1:2, 1:30, 1, 1:50]
-#richness <- test
-
-mean = matrix(nrow=n_cities, ncol=pred_length)
-lower_50 = matrix(nrow=n_cities, ncol=pred_length)
-upper_50 = matrix(nrow=n_cities, ncol=pred_length)
-lower_95 = matrix(nrow=n_cities, ncol=pred_length)
-upper_95 = matrix(nrow=n_cities, ncol=pred_length)
-
-for(city_number in 1:n_cities){
-  for(j in 1:pred_length){
-    
-    quants = as.vector(quantile(richness[city_number,j,], probs = c(0.05, 0.25, 0.50, 0.75, 0.95)))
-    
-    mean[city_number, j] = quants[3]
-    lower_50[city_number, j] = quants[2]
-    upper_50[city_number, j] = quants[4]
-    lower_95[city_number, j] = quants[1]
-    upper_95[city_number, j] = quants[5]
-  }
-}
-
-# make an empty df
-df <- data.frame()
-
-for(city_number in 1:n_cities){
-  
-  city_name <- city_names[city_number]
-  pred_data <- park_size_pred_data_list[[city_number]]
-  original_scale_isolation_data <- park_size_original_data_list[[city_number]]
-  
-  temp <- as.data.frame(cbind(pred_data, #original_scale_data,
-                              mean[city_number,],
-                              lower_50[city_number,], 
-                              upper_50[city_number,],
-                              lower_95[city_number,], 
-                              upper_95[city_number,],
-                              original_scale_isolation_data
-  )) %>%
-    rename("mean" = "V2",
-           "lower_50" = "V3",
-           "upper_50" = "V4",
-           "lower_95" = "V5",
-           "upper_95" = "V6") %>%
-    mutate(city = city_name) %>%
-    left_join(., size_of_regional_species_pools, by = "city") %>%
-    mutate(rel_mean = mean / size_of_regional_pool,
-           rel_lower_50 = lower_50 / size_of_regional_pool,
-           rel_upper_50 = upper_50 / size_of_regional_pool,
-           rel_lower_95 = lower_95 / size_of_regional_pool,
-           rel_upper_95 = upper_95 / size_of_regional_pool)
-  
-  df <- rbind(df, temp)
-  
-}
-
-## --------------------------------------------------
-## Draw species richness plot
-
-# create plot object with loess regression lines
-# this will create a smooth line between the 
-pre_q <- ggplot(df) + 
-  stat_smooth(aes(x = original_scale_isolation_data, y = rel_mean, group=city), method = "loess", se = FALSE) +
-  stat_smooth(aes(x = original_scale_isolation_data, y = rel_lower_95, group=city), method = "loess", se = FALSE) +
-  stat_smooth(aes(x = original_scale_isolation_data, y = rel_upper_95, group=city), method = "loess", se = FALSE) +
-  stat_smooth(aes(x = original_scale_isolation_data, y = rel_lower_50, group=city), method = "loess", se = FALSE) +
-  stat_smooth(aes(x = original_scale_isolation_data, y = rel_upper_50, group=city), method = "loess", se = FALSE)
-pre_q
-
-# build plot object for rendering 
-q <- ggplot_build(pre_q)
-
-# extract data for the loess lines from the 'data' slot
-df2 <- data.frame(original_scale_isolation_data = q$data[[1]]$x,
-                  rel_mean = q$data[[1]]$y,
-                  rel_lower_95 = q$data[[2]]$y,
-                  rel_upper_95 = q$data[[3]]$y,
-                  rel_lower_50 = q$data[[4]]$y,
-                  rel_upper_50 = q$data[[5]]$y) 
-
-df2 <- cbind(df2, rep(city_names, each = nrow(df2)/n_cities))
-
-colnames(df2)[7] <- "City"
-
-# use the loess data to add the 'ribbon' to plot 
-(q  <- ggplot(data = df2, aes(original_scale_isolation_data, group=City)) +
-    geom_line(aes(y=rel_mean, colour=City), size = 2) +
-    geom_ribbon(aes(ymin = rel_lower_95, ymax = rel_upper_95, fill=City), alpha = 0.2) +
-    geom_ribbon(aes(ymin = rel_lower_50, ymax = rel_upper_50, fill=City), alpha = 0.5) +
-    ylim(c(0, 1)) +
-    theme_classic() +
-    xlab("Isolation\n(Avg. Distance to Parks Within 2km)") +
-    ylab("Species Richness /\nSize of Regional Species Pool") +
-    theme(axis.text.x = element_text(size = 18),
-          axis.text.y = element_text(size = 18),
-          axis.title.x = element_text(size=20),
-          axis.title.y = element_text(size = 20)
-    )
-  
-) 
 
 ## --------------------------------------------------
 ## analyze beta diversity of simmed communities

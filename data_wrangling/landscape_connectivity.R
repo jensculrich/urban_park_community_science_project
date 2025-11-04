@@ -9,13 +9,17 @@ library(tidyverse)
 
 # list of city names
 city_names <- c(
-  "Boston", # 1
-  "Dallas", # 2
-  "Houston", # 3
-  "LA", # 4
-  "NYC", # 5
-  #"Riverside", # 6
-  "SF" # 7
+  # list in alphabetical order
+  "Atlanta",
+  "Boston",
+  "Charlotte",
+  "Dallas",
+  "DC",
+  "Denton",
+  "Houston",
+  "NYC",
+  "Philadelphia",
+  "Raleigh"
 )
 
 # now choose a city (enter the number of the city)
