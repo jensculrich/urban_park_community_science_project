@@ -56,6 +56,8 @@ my_data <- prep_data(city_names,
 saveRDS(my_data, paste0("./run_model/prepped_data/prepped_data_all_cities.rds"))
 my_data <- readRDS( paste0("./run_model/prepped_data/prepped_data_all_cities.rds"))
 
+my_data <- readRDS( paste0("./run_model/prepped_data/prepped_data_southeast.rds"))
+
 V <- my_data$V_detections # detections (1==detected)
 dim(V)
 
@@ -100,6 +102,8 @@ region_df <- as.data.frame(cbind(city = seq(1:n_cities),
                      "midwest")
 )) %>%
   mutate(city = as.integer(city))
+
+
 
 metadata <- left_join(metadata, region_df)
 

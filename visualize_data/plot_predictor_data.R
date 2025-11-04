@@ -8,7 +8,7 @@ regions <- c(
   "southwest"
 )
 
-region <- regions[3]
+region <- regions[2]
 
 data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))
 
@@ -81,7 +81,7 @@ p4 <- ggplot(site_data, aes(x = plant_genera_density,
         panel.background = element_blank(), axis.line = element_line(colour = "black")) +
   facet_wrap(~city)
 
-# cowplot::plot_grid(p1, p2, p3, p4, ncol = 2)
+cowplot::plot_grid(p1, p2, ncol = 1)
 p1
 p2
 p3

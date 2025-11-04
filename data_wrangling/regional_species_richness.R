@@ -7,13 +7,17 @@ butterfly_families <- c("Hesperiidae", "Lycaenidae", "Nymphalidae",
 
 # list of city names
 city_names <- c(
-  "Boston", # 1
-  "Dallas", # 2
-  "Houston", # 3
-  "LA", # 4
-  "NYC", # 5
-  "Riverside", # 6
-  "SF" # 7
+  # list in alphabetical order
+  "Atlanta",
+  "Boston",
+  "Charlotte",
+  "Dallas",
+  "DC",
+  "Denton",
+  "Houston",
+  "NYC",
+  "Philadelphia",
+  "Raleigh"
 )
 
 all_city_df <- matrix(nrow=length(city_names), ncol=2)
@@ -26,7 +30,7 @@ for(i in 1:length(city_names)){
   all_city_df[i,] <- cbind(
     nrow(
       read.csv(paste0(
-        "./data/detections_by_city/", city, "/02_100m_", city, "_regional_species_pool.csv")) %>%
+        "./data/detections_by_city/", city, "/02_0m_", city, "_regional_species_pool.csv")) %>%
         filter(species != "") %>%
         filter(family %in% butterfly_families) %>%
         group_by(species) %>%
@@ -38,7 +42,8 @@ for(i in 1:length(city_names)){
 all_city_df <- all_city_df %>%
   as.data.frame(.) %>%
   rename("size_of_regional_pool" = "V1",
-         "city" = "V2")
+         "city" = "V2") %>%
+  mutate(size_of_regional_pool = as.integer(size_of_regional_pool))
 
-write.csv(all_city_df, "./data/size_of_regional_species_pools.csv")  
+write.csv(all_city_df, "./data/size_of_regional_species_pools.csv", row.names = FALSE)  
 

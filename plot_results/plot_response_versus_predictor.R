@@ -4,17 +4,69 @@
 library(tidyverse)
 library(rstan)
 
-region <- "northeast"
+# enter the region/regions you want to plot
+# currently I think this will only work if you enter one single region,
+# but I think eventually we want to plot multiple regionss simultaneously
 
-# list of city names
-city_names <- c(
-  "Boston", 
-  "DC",
-  "NYC", 
-  "Philadelphia"
+# select a region
+regions <- c(
+  "Midwest",
+  "Northeast",
+  "Southeast",
+  "Southwest"
 )
 
-# number of cities
+region <- regions[3]
+
+n_regions <- 1 # just plotting one region cluster at a time for now 
+
+# list of city names
+
+# midwest
+if(region == regions[1]){
+  city_names <- c(
+    "Chicago",
+    "Denver",
+    "Des_Moines",
+    "Detroit", 
+    "Minneapolis",
+    "St_Louis"
+  )
+}
+
+# northeast
+if(region == regions[2]){
+  city_names <- c(
+    "DC",
+    "Boston", 
+    "NYC", 
+    "Philadelphia"
+  )
+}
+
+# southeast
+if(region == regions[3]){
+  city_names <- c(
+    "Atlanta",
+    "Charlotte",
+    "Dallas",
+    "Denton",
+    "Houston",
+    "Raleigh"
+  )
+}
+
+# southwest
+if(region == regions[4]){
+  city_names <- c(
+    "LA",
+    "Phoenix",
+    "Riverside",
+    "SD",
+    "SF"
+  )
+} 
+
 n_cities <- length(city_names)
 
 ## get param estimates from the region
@@ -377,8 +429,8 @@ for(city_number in 1:n_cities){
     arrange(., isolation)
   
   # get park size data
-  park_isolation_pred_data <- temp$isolation_scaled_2
-  original_scale_park_isolation_data <- temp$isolation
+  park_isolation_pred_data <- temp$log_isolation_scaled_2
+  original_scale_park_isolation_data <- log(temp$isolation)
   
   park_isolation_pred_data_list[[city_number]] <- park_isolation_pred_data
   park_isolation_original_data_list[[city_number]] <- original_scale_park_isolation_data
@@ -488,7 +540,7 @@ s <- ggplot(data = new_df, aes(x=park_isolation_original_ordered, y=mean, colour
   ylim(c(0, 1)) +
   theme_bw() +
   ylab("Initial Occurrence Rate \n(City-Specific)") +
-  xlab("Park Isolation") +
+  xlab("log(Park Isolation)") +
   scale_y_continuous(limits = c(0,1),
                      breaks = c(0, 0.5, 1),
                      labels = scales::percent 

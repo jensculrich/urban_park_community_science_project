@@ -6,21 +6,67 @@ library(rstan)
 # enter the region/regions you want to plot
 # currently I think this will only work if you enter one single region,
 # but I think eventually we want to plot multiple regionss simultaneously
-region_names <- c(
-  "northeast"
+
+# select a region
+regions <- c(
+  "Midwest",
+  "Northeast",
+  "Southeast",
+  "Southwest"
 )
 
-n_regions <- length(region_names)
+region <- regions[3]
+
+n_regions <- 1 # just plotting one region cluster at a time for now 
 
 # list of city names
-cities_northeast <- c(
-  "Boston", 
-  "DC",
-  "NYC", 
-  "Philadelphia"
-)
 
-n_cities_northeast <- length(cities_northeast)
+# midwest
+if(region == regions[1]){
+  city_names <- c(
+    "Chicago",
+    "Denver",
+    "Des_Moines",
+    "Detroit", 
+    "Minneapolis",
+    "St_Louis"
+  )
+}
+
+# northeast
+if(region == regions[2]){
+  city_names <- c(
+    "DC",
+    "Boston", 
+    "NYC", 
+    "Philadelphia"
+  )
+}
+
+# southeast
+if(region == regions[3]){
+  city_names <- c(
+    "Atlanta",
+    "Charlotte",
+    "Dallas",
+    "Denton",
+    "Houston",
+    "Raleigh"
+  )
+}
+
+# southwest
+if(region == regions[4]){
+  city_names <- c(
+    "LA",
+    "Phoenix",
+    "Riverside",
+    "SD",
+    "SF"
+  )
+} 
+
+n_cities <- length(city_names)
 
 # handy for viewing column numbers
 # this line of code won't work until you've actually read in a stan fit object
@@ -32,10 +78,12 @@ View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see whic
 for(i in 1:n_regions){
   
   # get region
-  region_name <- region_names[i]
+  #region_name <- region_names[i]
+  region_name <- region
   
   # list of city names # assign objectw from strings
-  cities <- eval(parse(text=paste0("cities_", region_name)))
+  #cities <- eval(parse(text=paste0("cities_", region_name)))
+  cities <- city_names
   
   # get number of cities from the region
   # cbind all cities, so we can look at city specific estimates
@@ -206,7 +254,7 @@ p <- ggplot(df_estimates) +
                              bquote(psi["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-4, 4), breaks = c(-6, -4, -2, 0, 2, 4, 6, 8)) +
+                      limits = c(-3, 7), breaks = c(-6, -4, -2, 0, 2, 4, 6, 8)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
                                       "#1a5acd", "#E69F90", "#FFFF00")) + 
@@ -246,10 +294,12 @@ p
 for(i in 1:n_regions){
   
   # get region
-  region_name <- region_names[i]
+  #region_name <- region_names[i]
+  region_name <- region
   
-  # list of city names # assign object from string
-  cities <- eval(parse(text=paste0("cities_", region_name)))
+  # list of city names # assign objectw from strings
+  #cities <- eval(parse(text=paste0("cities_", region_name)))
+  cities <- city_names
   
   # get number of cities from the region
   cities <- c(cities, region_name)
@@ -398,10 +448,10 @@ q <- ggplot(df_estimates) +
                              bquote(gamma["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-8, 4), breaks = c(-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-9, 4), breaks = c(-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
-                                      "#E69F90", "#1a5acd", "#FFFF00")) + 
+                                      "#1a5acd", "#E69F90", "#FFFF00")) + 
                                         geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("Colonization") +
    theme(plot.title = element_text(size = 18, face = "bold"),
@@ -432,10 +482,12 @@ q
 for(i in 1:n_regions){
   
   # get region
-  region_name <- region_names[i]
+  #region_name <- region_names[i]
+  region_name <- region
   
-  # list of city names # assign object from string
-  cities <- eval(parse(text=paste0("cities_", region_name)))
+  # list of city names # assign objectw from strings
+  #cities <- eval(parse(text=paste0("cities_", region_name)))
+  cities <- city_names
   
   # get number of cities from the region
   cities <- c(cities, region_name)
@@ -584,10 +636,10 @@ r <- ggplot(df_estimates) +
                              bquote(phi["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-3, 8), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-3, 9), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
-                                      "#E69F90", "#1a5acd", "#FFFF00")) + 
+                                      "#1a5acd", "#E69F90", "#FFFF00")) + 
                                         geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("Persistence") +
    theme(plot.title = element_text(size = 18, face = "bold"),
@@ -618,10 +670,12 @@ r
 for(i in 1:n_regions){
   
   # get region
-  region_name <- region_names[i]
+  #region_name <- region_names[i]
+  region_name <- region
   
-  # list of city names # assign object from string
-  cities <- eval(parse(text=paste0("cities_", region_name)))
+  # list of city names # assign objectw from strings
+  #cities <- eval(parse(text=paste0("cities_", region_name)))
+  cities <- city_names
   
   # get number of cities from the region
   cities <- c(cities, region_name)
@@ -777,7 +831,7 @@ s <- ggplot(df_estimates) +
                       limits = c(-3, 3), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
-                                      "#E69F90", "#1a5acd", "#FFFF00")) + 
+                                      "#1a5acd", "#E69F90", "#FFFF00")) + 
                                         geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("Detection") +
    theme(plot.title = element_text(size = 18, face = "bold"),
@@ -805,3 +859,4 @@ s
 # plot the 4 panels on a 2x2 grid
 
 cowplot::plot_grid(p, q, r, s, ncol = 2)
+
