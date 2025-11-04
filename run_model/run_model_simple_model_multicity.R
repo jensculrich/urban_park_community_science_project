@@ -7,7 +7,7 @@ regions <- c(
   "southwest"
 )
 
-region <- regions[2]
+region <- regions[3]
 
 # list of city names
 
@@ -203,7 +203,7 @@ n_thin <- 1
 n_burnin <- 150
 n_chains <- 4
 n_cores <- n_chains
-delta = 0.975
+delta = 0.99
 
 ## Initial values
 # given the number of parameters, the chains need some decent initial values
