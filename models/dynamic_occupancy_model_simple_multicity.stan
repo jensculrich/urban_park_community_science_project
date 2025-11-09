@@ -44,7 +44,7 @@ parameters {
   real psi1_0; // intercept
   vector[n_species] psi1_species_raw;  
   real<lower=0> sigma_psi1_species;
-  vector[n_cities] psi1_city;
+  vector[n_cities] psi1_city_raw;
   real<lower=0> sigma_psi1_city;
   real mu_psi1_wingspan;
   vector[n_cities] psi1_wingspan_raw;  
@@ -60,7 +60,7 @@ parameters {
   real gamma0;
   vector[n_species] gamma_species_raw;
   real<lower=0> sigma_gamma_species;
-  vector[n_cities] gamma_city;
+  vector[n_cities] gamma_city_raw;
   real<lower=0> sigma_gamma_city;
   real mu_gamma_wingspan;
   vector[n_cities] gamma_wingspan_raw;  
@@ -76,7 +76,7 @@ parameters {
   real phi0;
   vector[n_species] phi_species_raw;
   real<lower=0> sigma_phi_species;
-  vector[n_cities] phi_city;
+  vector[n_cities] phi_city_raw;
   real<lower=0> sigma_phi_city;
   real mu_phi_wingspan;
   vector[n_cities] phi_wingspan_raw;  
@@ -92,7 +92,7 @@ parameters {
   real p0; // intercept
   vector[n_species] p_species_raw;
   real<lower=0> sigma_p_species;
-  vector[n_cities] p_city;
+  vector[n_cities] p_city_raw;
   real<lower=0> sigma_p_city;
   real p_wingspan;
   real p_feature_diversity;
@@ -115,41 +115,41 @@ transformed parameters {
   real p[n_species, n_sites, n_years, n_surveys];  // odds of detection
   
   vector[n_species] psi1_species;
-  //vector[n_cities] psi1_city;
+  vector[n_cities] psi1_city;
   vector[n_cities] psi1_wingspan;
   vector[n_cities] psi1_park_size;
   vector[n_cities] psi1_isolation;
   vector[n_species] gamma_species;
-  //vector[n_cities] gamma_city;
+  vector[n_cities] gamma_city;
   vector[n_cities] gamma_wingspan;
   vector[n_cities] gamma_park_size;
   vector[n_cities] gamma_isolation;
   vector[n_species] phi_species;
-  //vector[n_cities] phi_city;
+  vector[n_cities] phi_city;
   vector[n_cities] phi_wingspan;
   vector[n_cities] phi_park_size;
   vector[n_cities] phi_isolation;
   vector[n_species] p_species;
-  //vector[n_cities] p_city;
+  vector[n_cities] p_city;
   
   // implies: xprocess_species ~ normal(mu_xprocess_species, sigma_xprocess_species)
   psi1_species = sigma_psi1_species * psi1_species_raw;
-  //psi1_city = sigma_psi1_city * psi1_city_raw;
+  psi1_city = psi1_0 + sigma_psi1_city * psi1_city_raw;
   psi1_wingspan = mu_psi1_wingspan + sigma_psi1_wingspan * psi1_wingspan_raw;
   psi1_park_size = mu_psi1_park_size + sigma_psi1_park_size * psi1_park_size_raw;
   psi1_isolation = mu_psi1_isolation + sigma_psi1_isolation * psi1_isolation_raw;
   gamma_species = sigma_gamma_species * gamma_species_raw;
-  //gamma_city = sigma_gamma_city * gamma_city_raw;
+  gamma_city = gamma0 + sigma_gamma_city * gamma_city_raw;
   gamma_wingspan = mu_gamma_wingspan + sigma_gamma_wingspan * gamma_wingspan_raw;
   gamma_park_size = mu_gamma_park_size + sigma_gamma_park_size * gamma_park_size_raw;
   gamma_isolation = mu_gamma_isolation + sigma_gamma_isolation * gamma_isolation_raw;
   phi_species = sigma_phi_species * phi_species_raw;
-  //phi_city = sigma_phi_city * phi_city_raw;
+  phi_city = phi0 + sigma_phi_city * phi_city_raw;
   phi_wingspan = mu_phi_wingspan + sigma_phi_wingspan * phi_wingspan_raw;
   phi_park_size = mu_phi_park_size + sigma_phi_park_size * phi_park_size_raw;
   phi_isolation = mu_phi_isolation + sigma_phi_isolation * phi_isolation_raw;
   p_species = sigma_p_species * p_species_raw;
-  //p_city = sigma_p_city * p_city_raw;
+  p_city = p0 + sigma_p_city * p_city_raw;
   
   for(i in 1:n_species){
     for(j in 1:n_sites){    // loop across all sites
@@ -240,10 +240,10 @@ model {
   // occupancy
   // initial state
   psi1_0 ~ normal(0, 1); // initial occurrence intercept
-  psi1_city ~ normal(psi1_0, sigma_psi1_city);
-  sigma_psi1_city ~ normal(0, 0.25);
+  psi1_city_raw ~ std_normal();
+  sigma_psi1_city ~ normal(0, 0.5);
   psi1_species_raw ~ std_normal();
-  sigma_psi1_species ~ normal(0, 2);
+  sigma_psi1_species ~ normal(0, 1);
   mu_psi1_wingspan ~ normal(0, 2);
   psi1_wingspan_raw ~ std_normal();
   sigma_psi1_wingspan ~ normal(0, 0.5);
@@ -256,8 +256,8 @@ model {
 
   // colonization
   gamma0 ~ normal(0, 1); // colonization intercept
-  gamma_city ~ normal(gamma0, sigma_gamma_city);
-  sigma_gamma_city ~ normal(0, 0.25);
+  gamma_city_raw ~ std_normal();
+  sigma_gamma_city ~ normal(0, 0.5);
   gamma_species_raw ~ std_normal();
   sigma_gamma_species ~ normal(0, 1);
   mu_gamma_wingspan ~ normal(0, 2);
@@ -272,8 +272,8 @@ model {
 
   // persistence
   phi0 ~ normal(0, 1); // global intercept
-  phi_city ~ normal(phi0, sigma_phi_city);
-  sigma_phi_city ~ normal(0, 0.25);
+  phi_city_raw ~ std_normal();
+  sigma_phi_city ~ normal(0, 0.5);
   phi_species_raw ~ std_normal();
   sigma_phi_species ~ normal(0, 1);
   mu_phi_wingspan ~ normal(0, 2);
@@ -288,10 +288,10 @@ model {
 
   // detection
   p0 ~ normal(0, 2); // global intercept
-  p_city ~ normal(p0, sigma_p_city);
-  sigma_p_city ~ normal(0, 0.25);
+  p_city_raw ~ std_normal();
+  sigma_p_city ~ normal(0, 0.5);
   p_species_raw ~ std_normal();
-  sigma_p_species ~ normal(0, 2);
+  sigma_p_species ~ normal(0, 1);
   p_wingspan ~ normal(0, 2);
   p_feature_diversity ~ normal(0, 2);
   p_ease_of_id ~ normal(0, 2);

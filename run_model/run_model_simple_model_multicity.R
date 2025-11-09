@@ -7,7 +7,7 @@ regions <- c(
   "southwest"
 )
 
-region <- regions[3]
+region <- regions[2]
 
 # list of city names
 
@@ -198,9 +198,9 @@ params <- c(
 )
 
 # MCMC settings
-n_iterations <- 300
+n_iterations <- 400
 n_thin <- 1
-n_burnin <- 150
+n_burnin <- 200
 n_chains <- 4
 n_cores <- n_chains
 delta = 0.99
@@ -253,7 +253,7 @@ stan_out <- stan(stan_model,
                  open_progress = FALSE,
                  cores = n_cores)
 
-saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple3.rds"))
+saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, ".rds"))
 
 stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple3.rds"))
 
@@ -317,7 +317,7 @@ print(stan_out, digits = 3,
       ))
 
 print(stan_out, digits = 3, 
-      pars = c("p_species"
+      pars = c("psi1_species"
       ))
 
 # traceplots
