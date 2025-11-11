@@ -59,10 +59,10 @@ if(region == regions[4]){
 # or choose one city
 # city_names <- "Philadelphia"
 
-min_species_detections <- 5 # binary park/year/species detections
+min_species_detections <- 2 # binary park/year/species detections
 min_site_years_w_detection <- 2 # remove parks never surveyed across repeat years
-min_species_for_community_sampling_event <- 1 
-family_sampling  <- TRUE # Should enter either TRUE or FALSE 
+min_species_for_community_sampling_event <- 2 
+family_sampling <- TRUE # Should enter either TRUE or FALSE 
 remove_outlier_parks <- TRUE # remove very small parks
 # family_sampling:
 # if false infer sampling event for all butterflies if any butterflies detected
@@ -120,15 +120,13 @@ ranges <- my_data$ranges
 
 # extra stuff
 R <- my_data$R
-confirmed_occurrence <- my_data$confirmed_occurrence
 species_integer_vector <- my_data$species_integer_vector
 city_integer_vector <- my_data$city_integer_vector
 multicity_site_id_vector <- my_data$multicity_site_id_vector
 city_id_vector <- my_data$city_id_vector
 site_survey_year_vector <- my_data$site_survey_year_vector
-community_sample_id <- my_data$community_sample_id_vector
+prev_index_vector <- my_data$prev_index_vector
 confirmed_occurrence <- my_data$confirmed_occurrence
-n_community_sampling_event_years <- length(unique(community_sample_id))
 
 # plot
 ggplot(site_data, aes(
@@ -136,14 +134,14 @@ ggplot(site_data, aes(
   geom_point()
 
 
-stan_data <- c("R", "n_surveys", "surveys", "n_community_sampling_event_years",
+stan_data <- c("R", "n_surveys", "surveys", 
                "V", "V_NA", "ranges", "site_survey_year_vector",
                "n_species", "species", "species_integer_vector",
                "n_sites", "sites", "multicity_site_id_vector",
                "n_cities","city", "city_id_vector",
                "feature_diversity", "ease_of_id", "wingspan",
                "park_size", "isolation",
-               "community_sample_id", "confirmed_occurrence"
+               "confirmed_occurrence", "prev_index_vector"
                
 ) 
 

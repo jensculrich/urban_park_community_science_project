@@ -19,9 +19,8 @@ data {
   int R; // length of the dataset (number of speciesXsiteXyear combos)
   int n_surveys; // number of repeat surveys within years
   real surveys[n_surveys]; // surveys (difference from the mean) used as detection cov
-  int n_community_sampling_event_years; // number of siteXyear with one or more surveys
   int<lower=0,upper=1> V[R, n_surveys]; // binary detection / non detection
-  int<lower=0,upper=1> V_NA[n_community_sampling_event_years, n_surveys]; // sampling indicator 1==non-detection, 0==no evidence the species was sampled
+  int<lower=0,upper=1> V_NA[R, n_surveys]; // sampling indicator 1==non-detection, 0==no evidence the species was sampled
   int<lower=1> site_survey_year_vector[R]; // which year is the survey referencing?
   // species, site, and city indicators
   int<lower=0> n_species; // number of species
@@ -39,10 +38,10 @@ data {
   vector[n_species] wingspan;
   vector[n_sites] park_size;
   vector[n_sites] isolation;
-    // ranges
+  // other stuff
   int<lower=0> ranges[n_species, n_sites]; // matrix to constrain analysis within species ranges
-  int<lower=0> community_sample_id[R];
   int<lower=0> confirmed_occurrence[R];
+  int<lower=0> prev_index_vector[R];
 } // end data
 
 parameters {
@@ -221,7 +220,8 @@ transformed parameters {
           // and so there are only n_years - 1 speciesXsite "stacks" of phi and gamma
           // but phi[,,k-1] for k = 2 will actually consider the effects of 
           // e.g. flower abundacnce in year 2 (since year 2 is the first year we estimate phi)
-          psi[r] = psi[r-n_species] * phi[r-n_species] + (1 - psi[r-n_species]) * gamma[r-n_species]; 
+          psi[r] = psi[prev_index_vector[r]] * phi[prev_index_vector[r]] + 
+                    (1 - psi[prev_index_vector[r]]) * gamma[prev_index_vector[r]]; 
         } // end if/else
         
   } // end loop across all speciesXsiteXyear combinations r:R
@@ -252,9 +252,9 @@ model {
   // colonization
   gamma0 ~ normal(0, 1); // colonization intercept
   gamma_city_raw ~ std_normal();
-  sigma_gamma_city ~ normal(0, 0.5);
+  sigma_gamma_city ~ normal(0, 0.25);
   gamma_species_raw ~ std_normal();
-  sigma_gamma_species ~ normal(0, 1);
+  sigma_gamma_species ~ normal(0, 0.5);
   mu_gamma_wingspan ~ normal(0, 2);
   gamma_wingspan_raw ~ std_normal();
   sigma_gamma_wingspan ~ normal(0, 0.5);
@@ -268,9 +268,9 @@ model {
   // persistence
   phi0 ~ normal(0, 1); // global intercept
   phi_city_raw ~ std_normal();
-  sigma_phi_city ~ normal(0, 0.5);
+  sigma_phi_city ~ normal(0, 0.25);
   phi_species_raw ~ std_normal();
-  sigma_phi_species ~ normal(0, 1);
+  sigma_phi_species ~ normal(0, 0.5);
   mu_phi_wingspan ~ normal(0, 2);
   phi_wingspan_raw ~ std_normal();
   sigma_phi_wingspan ~ normal(0, 0.5);
@@ -298,7 +298,7 @@ model {
   sigma_p_species_date_sq ~ normal(0, 1); // variation
 
   // LIKELIHOOD
-  for(r in 1:R){ // for each community sampling event
+  for(r in 1:R){ // for each potential species X site X year detection
 
     // model the occurrence at site multicity_site_id[r]
     // for the year site_survey_year[r], which (if site survey year > 1) 
@@ -318,35 +318,35 @@ model {
                      // successful or failed detections across repeat surveys (12 months of year)
                      // contigent on whether a survey effort was recorded in that month'
                      // if no survey effort recorded, treat the month as NA
-                     bernoulli_lpmf(V[r,1]|p[r,1])*V_NA[community_sample_id[r],1] + 
-                     bernoulli_lpmf(V[r,2]|p[r,2])*V_NA[community_sample_id[r],2] + 
-                     bernoulli_lpmf(V[r,3]|p[r,3])*V_NA[community_sample_id[r],3] + 
-                     bernoulli_lpmf(V[r,4]|p[r,4])*V_NA[community_sample_id[r],4] +
-                     bernoulli_lpmf(V[r,5]|p[r,5])*V_NA[community_sample_id[r],5] + 
-                     bernoulli_lpmf(V[r,6]|p[r,6])*V_NA[community_sample_id[r],6] + 
-                     bernoulli_lpmf(V[r,7]|p[r,7])*V_NA[community_sample_id[r],7] + 
-                     bernoulli_lpmf(V[r,8]|p[r,8])*V_NA[community_sample_id[r],8] + 
-                     bernoulli_lpmf(V[r,9]|p[r,9])*V_NA[community_sample_id[r],9] + 
-                     bernoulli_lpmf(V[r,10]|p[r,10])*V_NA[community_sample_id[r],10] + 
-                     bernoulli_lpmf(V[r,11]|p[r,11])*V_NA[community_sample_id[r],11] + 
-                     bernoulli_lpmf(V[r,12]|p[r,12])*V_NA[community_sample_id[r],12]
+                     bernoulli_lpmf(V[r,1]|p[r,1])*V_NA[r,1] + 
+                     bernoulli_lpmf(V[r,2]|p[r,2])*V_NA[r,2] + 
+                     bernoulli_lpmf(V[r,3]|p[r,3])*V_NA[r,1] + 
+                     bernoulli_lpmf(V[r,4]|p[r,4])*V_NA[r,4] +
+                     bernoulli_lpmf(V[r,5]|p[r,5])*V_NA[r,5] + 
+                     bernoulli_lpmf(V[r,6]|p[r,6])*V_NA[r,6] + 
+                     bernoulli_lpmf(V[r,7]|p[r,7])*V_NA[r,7] + 
+                     bernoulli_lpmf(V[r,8]|p[r,8])*V_NA[r,8] + 
+                     bernoulli_lpmf(V[r,9]|p[r,9])*V_NA[r,9] + 
+                     bernoulli_lpmf(V[r,10]|p[r,10])*V_NA[r,10] + 
+                     bernoulli_lpmf(V[r,11]|p[r,11])*V_NA[r,11] + 
+                     bernoulli_lpmf(V[r,12]|p[r,12])*V_NA[r,12]
         );
         
       } else{ // else the species was not detected during the comm survey event and could either be present or absent
           target += (// failed detections of an occurring species across all 12 months
                        log_sum_exp(log(psi[r]) + 
-                       log1m(p[r,1])*V_NA[community_sample_id[r],1] + 
-                       log1m(p[r,2])*V_NA[community_sample_id[r],2] + 
-                       log1m(p[r,3])*V_NA[community_sample_id[r],3] + 
-                       log1m(p[r,4])*V_NA[community_sample_id[r],4] +
-                       log1m(p[r,5])*V_NA[community_sample_id[r],5] + 
-                       log1m(p[r,6])*V_NA[community_sample_id[r],6] + 
-                       log1m(p[r,7])*V_NA[community_sample_id[r],7] + 
-                       log1m(p[r,8])*V_NA[community_sample_id[r],8] + 
-                       log1m(p[r,9])*V_NA[community_sample_id[r],9] + 
-                       log1m(p[r,10])*V_NA[community_sample_id[r],10] + 
-                       log1m(p[r,11])*V_NA[community_sample_id[r],11] + 
-                       log1m(p[r,12])*V_NA[community_sample_id[r],12],
+                       log1m(p[r,1])*V_NA[r,1] + 
+                       log1m(p[r,2])*V_NA[r,2] + 
+                       log1m(p[r,3])*V_NA[r,3] + 
+                       log1m(p[r,4])*V_NA[r,4] +
+                       log1m(p[r,5])*V_NA[r,5] + 
+                       log1m(p[r,6])*V_NA[r,6] + 
+                       log1m(p[r,7])*V_NA[r,7] + 
+                       log1m(p[r,8])*V_NA[r,8] + 
+                       log1m(p[r,9])*V_NA[r,9] + 
+                       log1m(p[r,10])*V_NA[r,10] + 
+                       log1m(p[r,11])*V_NA[r,11] + 
+                       log1m(p[r,12])*V_NA[r,12],
                       // or just simple no occurrence
                       log1m(psi[r])));
       } // end if/else

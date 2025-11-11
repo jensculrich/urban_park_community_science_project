@@ -108,7 +108,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple3.rds"))
+    "./test_vectorization/stan_out_", region, "_2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -254,7 +254,7 @@ p <- ggplot(df_estimates) +
                              bquote(psi["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-3, 7), breaks = c(-6, -4, -2, 0, 2, 4, 6, 8)) +
+                      limits = c(-3, 3), breaks = c(-6, -4, -2, 0, 2, 4, 6, 8)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
                                       "#1a5acd", "#E69F90", "#FFFF00")) + 
@@ -318,7 +318,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple3.rds"))
+    "./test_vectorization/stan_out_", region, "_2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -448,7 +448,7 @@ q <- ggplot(df_estimates) +
                              bquote(gamma["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-9, 4), breaks = c(-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-10, 5), breaks = c(-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
                                       "#1a5acd", "#E69F90", "#FFFF00")) + 
@@ -506,7 +506,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple3.rds"))
+    "./test_vectorization/stan_out_", region, "_2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -694,7 +694,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region_name, "_2km_isolation_0buffers_simple3.rds"))
+    "./test_vectorization/stan_out_", region, "_2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -828,7 +828,7 @@ s <- ggplot(df_estimates) +
                              bquote(p["phenology decay"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-3, 3), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-4, 3), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
                                       "#1a5acd", "#E69F90", "#FFFF00")) + 

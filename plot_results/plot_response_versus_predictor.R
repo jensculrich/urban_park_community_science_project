@@ -71,7 +71,7 @@ n_cities <- length(city_names)
 
 ## get param estimates from the region
 stan_out <- readRDS(paste0(
-  "./model_outputs/stan_out_", region, "_2km_isolation_0buffers_simple3.rds"))
+  "./test_vectorization/stan_out_", region, "_2.rds"))
 tmp <- as.data.frame(stan_out) # take estimates from each HMC step as a df
 #n_samp <- 10 # how many samples do we have from the HMC run?
 n_samp <- length(tmp[,1]) # how many samples do we have from the HMC run?
@@ -81,7 +81,7 @@ fit_summary <- rstan::summary(stan_out)
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
 
 ## get data from region
-df <- readRDS( paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))$site_data
+df <- readRDS( paste0("./test_vectorization/prepped_data_", region, ".rds"))$site_data
 
 # length of number of parks in the cities
 pred_length <- nrow(df)
@@ -564,3 +564,4 @@ s
 # cowplot
 
 cowplot::plot_grid(p, q, r, s, ncol = 2, rel_widths = c(1, 1.5))
+

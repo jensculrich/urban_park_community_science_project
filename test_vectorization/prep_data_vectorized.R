@@ -215,16 +215,23 @@ prep_data <- function(city_names,
   plot(site_data$log_total_green_space_area_scaled_2, site_data$log_isolation_scaled_2)
   
   ## --------------------------------------------------
-  # identify occassions where sampling occurred
-  community_sampling_event_site_years <- df %>%
-    group_by(city, new_id, year) %>%
+  # identify community sampling events
+
+  # first identify community sampling events 
+  # (events with > min_species_for_community_sampling_event species detected)
+  # we will have to re add any individual species detections below the threshold later
+  # (times when we know single species detected, but not inferring search for rest of community)
+  community_sampling_events <- df %>%
+    group_by(city, new_id, year, survey, family) %>%
+    mutate(num_species_detected = length(unique(species))) %>%
+    filter(num_species_detected >= min_species_for_community_sampling_event) %>%
     slice(1) %>%
     ungroup() %>%
-    select(city, new_id, year)
+    select(city, new_id, year, survey, family)
   
   # join the multicity site id and filter out any sites that were filtered out
   # due to the site data, e.g. park was too small to include.
-  community_sampling_event_site_years <- community_sampling_event_site_years %>%
+  community_sampling_events <- community_sampling_events %>%
     left_join(., select(site_data, city, new_id, multicity_site_id)) %>%
     filter(!is.na(multicity_site_id)) %>%
     
@@ -240,27 +247,23 @@ prep_data <- function(city_names,
     # 1 - 4 years earlier.
     
   # so, first, find minimum year of survey for a park and tag this year as first year
-    group_by(multicity_site_id) %>%
-    mutate(first_year = ifelse(year == min(year), 1, 0)) %>%
+    #group_by(multicity_site_id) %>%
+    #mutate(first_year = ifelse(year == min(year), 1, 0)) %>%
   # and a unique survey year per site
-    mutate(site_survey_year = as.integer(as.factor(year))) %>%
-    ungroup() %>%
+    #mutate(site_survey_year = as.integer(as.factor(year))) %>%
+    #ungroup() %>%
   
   # now add a unique community sample event id
     mutate(community_sample_id = row_number())
+  
+  community_sample_id <- community_sampling_events$community_sample_id
   
   ## --------------------------------------------------
   # get detection data for all community sampling events r:R
   # detection data will be cast into vector of lenght R (total number of detections)
   
-  community_sample_id <- community_sampling_event_site_years$community_sample_id
-  
-  # in a moment we will need a list of all species for all survey events
-  # representing species that could have been detected when other species were
-  all_comm_surveys_all_species <- as.data.frame(cbind(rep(community_sample_id, each=length(species_info$species)),
-                                                      rep(species_info$species, times=length(community_sample_id)))) %>%
-    rename("community_sample_id" = "V1", "species" = "V2") %>%
-    mutate(community_sample_id = as.integer(community_sample_id))
+  temp1 <- select(species_info, family, species)
+  temp2 <- full_join(community_sampling_events, temp1)
   
   # get names of all surveys (in case a cluster doesn't have them all surveyed)
   # this will avoid having to rewrite the stan model code for different # max survey lengths
@@ -269,9 +272,9 @@ prep_data <- function(city_names,
   
   detections_df <- df %>%
     # join the data about the community sampling event from that year
-    left_join(., community_sampling_event_site_years) %>%
+    left_join(., temp2) %>%
     # filter out is na - removes rows added in to cover all survey columns     
-    filter(!is.na(community_sample_id)) %>%
+    #filter(!is.na(community_sample_id)) %>%
     # assign detection to those rows
     mutate(detection = 1) %>%
     # join all survey events within a year
@@ -283,49 +286,197 @@ prep_data <- function(city_names,
     # filter out is na - removes rows added in to cover all survey columns     
     filter(!is.na(community_sample_id)) %>%
     # join all undetected species for each comm survey event (they could have been detected but weren't)
-    full_join(., all_comm_surveys_all_species) %>%
+    full_join(., temp2) %>%
     # now we only want community_sample_id, species, and the matrix of presence absences
     select(community_sample_id, species, "1", "2", "3", "4", "5", "6", 
            "7", "8", "9", "10", "11", "12")
    
   # now we need to join all the data about site number / year for all those undetected species
   detections_df <- detections_df %>%
-    left_join(., community_sampling_event_site_years, by = "community_sample_id") %>%
-    arrange(community_sample_id, species)
+    left_join(., temp2, by = c("community_sample_id", "species")) %>%
+    arrange(community_sample_id, species) %>%
+    select(-survey)
+  
+  ## --------------------------------------------------
+  # now we need to add in sampling events for individual species that were missed by the
+  # broader community sampling events structure
+  
+  # reverse the filter and look at
+  # (events with *<* min_species_for_community_sampling_event species detected)
+  targeted_sampling_events <- df %>%
+    group_by(city, new_id, year, survey, family) %>%
+    mutate(num_species_detected = length(unique(species))) %>%
+    filter(num_species_detected < min_species_for_community_sampling_event) %>%
+    ungroup() %>%
+    select(species, city, new_id, year, survey, family)
+  
+  # join the multicity site id and filter out any sites that were filtered out
+  # due to the site data, e.g. park was too small to include.
+  targeted_sampling_events <- targeted_sampling_events %>%
+    left_join(., select(site_data, city, new_id, multicity_site_id)) %>%
+    filter(!is.na(multicity_site_id)) 
+  
+  targeted_sampling_detections_df <- df %>%
+    # join the data about the targeted sampling event from that year
+    left_join(., targeted_sampling_events) %>%
+    # filter out is na multicity_site_id - removes rows already added that included comm sampling events    
+    filter(!is.na(multicity_site_id)) %>%
+    # assign detection to those rows
+    mutate(detection = 1) %>%
+    # join all survey events within a year
+    full_join(., temp) %>%
+    # arrange surveys from 1 - 12
+    arrange(match(survey, survey_vector)) %>%
+    # and cast a detection matrix for each year with surveys 1 - 12
+    pivot_wider(., names_from = survey, values_from = detection) %>%
+    # filter out is na - removes rows added in to cover all survey columns     
+    filter(!is.na(multicity_site_id)) %>%
+    # add a "community sample id", I know it's not actually a community sample but need to combine with comm samples df
+    mutate(community_sample_id = (row_number() + max(community_sample_id))) %>%
+    # now we only want community_sample_id, species, and the matrix of presence absences
+    select(community_sample_id, species, "1", "2", "3", "4", "5", "6", 
+           "7", "8", "9", "10", "11", "12", city, new_id, year, family, multicity_site_id)
+  
+  ## --------------------------------------------------
+  # now combine the community surveys and targeted species surveys
+  
+  detections_df <- as.data.frame(rbind(detections_df, targeted_sampling_detections_df)) 
   
   # now we need to extract survey-specific NA info
   # i.e., was any survey effort conducted 
   detections_df[,3:14][is.na(detections_df[,3:14])] <- 0
   
-  V_NA <- detections_df %>%
-    group_by(community_sample_id) %>%
-    pivot_longer(cols=c("1", "2", "3", "4", "5", "6", 
-                        "7", "8", "9", "10", "11", "12"), 
-                 names_to="survey", values_to="V_NA") %>%
-    group_by(community_sample_id, survey) %>%
-    filter(V_NA == 1) %>%
-    # join all survey events within a year
-    mutate(survey = as.integer(survey)) %>%
-    full_join(., temp) %>%
-    # arrange surveys from 1 - 12
-    arrange(match(survey, survey_vector)) %>%
-    # now spread the NA data wide again
-    pivot_wider(., names_from = survey, values_from = V_NA) %>%
-    # now just take one row for the community (don't need one for every species)
-    group_by(community_sample_id) %>%
+  # if siteXyear row already existed in detections df, because some community sampling events
+  # happened at other survey months, then we want to fold in the targeted detections with the 
+  # community detections
+  
+  detections_df <- detections_df %>%
+    rename("a" = "1", "b" = "2", 
+           "c" = "3", "d" = "4", 
+           "e" = "5", "f" = "6", 
+           "g" = "7", "h" = "8", 
+           "i" = "9", "j" = "10", 
+           "k" = "11", "l" = "12") %>%
+    group_by(multicity_site_id, year, species) %>%
+    mutate(a = sum(a), 
+           b = sum(b),
+           c = sum(c),
+           d = sum(d),
+           e = sum(e),
+           f = sum(f),
+           g = sum(g),
+           h = sum(h),
+           i = sum(i),
+           j = sum(j),
+           k = sum(k),
+           l = sum(l)
+           ) %>%
+    mutate(group_id = cur_group_id()) %>%
+    group_by(multicity_site_id, year, species, group_id) %>%
+    # slice out repeats for a row with a targeted sampling event that was 
+    # in a year with community sampling events at different months
     slice(1) %>%
-    ungroup() %>%
-    # filter out is na - removes rows added in to cover all survey columns     
-    filter(!is.na(community_sample_id)) %>%
-    # and arrange by community sampling event id
-    arrange(., community_sample_id)
+    ungroup()
     
-  # now replace NAs in the NA matrix with 0 which will serve to represent no survey effort
-  V_NA[,9:20][is.na(V_NA[,9:20])] <- 0
+  # so, first, find minimum year of survey for a park and tag this year as first year
+  detections_df <- detections_df %>%
+    group_by(multicity_site_id, species) %>%
+    mutate(first_year = ifelse(year == min(year), 1, 0)) %>%
+    # and a unique survey year per site
+    mutate(site_survey_year = as.integer(as.factor(year))) %>%
+    ungroup()
+  
+  # need to create an index to access row number of previous year for same species at same site
+  # only need it for years after the first year 
+  # (although will have to assign something other than NA for first year data)
+  detections_df <- detections_df %>% 
+    mutate(row_index = row_number()) %>%
+    group_by(multicity_site_id, species) %>% 
+    mutate("prev_index" = lag(row_index)) %>%
+    ungroup() %>%
+    mutate(prev_index = replace_na(prev_index, 0)) 
+  
+  ## --------------------------------------------------
+  # now we need to get NA data to pass over zero effort months in 
+  # site x years with some sampling effort 
+  
+  # there;s probably a more efficient way to do this, look into later!
+  V_NA <- detections_df %>%
+    
+    # group by community sample id (year, site, survey, family search event)
+    group_by(year, multicity_site_id, family) %>%
+    
+    mutate(
+      a = ifelse( # if a community sampling event occurred
+        # then assign a value of 1 (detection plausible) for all species)
+        sum(a) >= min_species_for_community_sampling_event, 
+        max(a), a),
+      b = ifelse( # if a community sampling event occurred
+        # then assign a value of 1 (detection plausible) for all species)
+        sum(b) >= min_species_for_community_sampling_event, 
+        max(b), b),
+      c = ifelse( # if a community sampling event occurred
+        # then assign a value of 1 (detection plausible) for all species)
+        sum(c) >= min_species_for_community_sampling_event, 
+        max(c), c),
+      d = ifelse( # if a community sampling event occurred
+        # then assign a value of 1 (detection plausible) for all species)
+        sum(d) >= min_species_for_community_sampling_event, 
+        max(d), d),
+      e = ifelse( # if a community sampling event occurred
+        # then assign a value of 1 (detection plausible) for all species)
+        sum(e) >= min_species_for_community_sampling_event, 
+        max(e), e),
+      f = ifelse( # if a community sampling event occurred
+        # then assign a value of 1 (detection plausible) for all species)
+        sum(f) >= min_species_for_community_sampling_event, 
+        max(f), f),
+      g = ifelse( # if a community sampling event occurred
+        # then assign a value of 1 (detection plausible) for all species)
+        sum(g) >= min_species_for_community_sampling_event, 
+        max(g), g),
+      h = ifelse( # if a community sampling event occurred
+        # then assign a value of 1 (detection plausible) for all species)
+        sum(h) >= min_species_for_community_sampling_event, 
+        max(h), h),
+      i = ifelse( # if a community sampling event occurred
+        # then assign a value of 1 (detection plausible) for all species)
+        sum(i) >= min_species_for_community_sampling_event, 
+        max(i), i),
+      j = ifelse( # if a community sampling event occurred
+        # then assign a value of 1 (detection plausible) for all species)
+        sum(j) >= min_species_for_community_sampling_event, 
+        max(j), j),
+      k = ifelse( # if a community sampling event occurred
+        # then assign a value of 1 (detection plausible) for all species)
+        sum(k) >= min_species_for_community_sampling_event, 
+        max(k), k),
+      l = ifelse( # if a community sampling event occurred
+        # then assign a value of 1 (detection plausible) for all species)
+        sum(l) >= min_species_for_community_sampling_event, 
+        max(l), l))
+    
+  # now also pull out our detections
+  V_NA <- V_NA %>%
+    rename("1" = "a", "2" = "b", 
+           "3" = "c", "4" = "d", 
+           "5" = "e", "6" = "f", 
+           "7" = "g", "8" = "h", 
+           "9" = "i", "10" = "j", 
+           "11" = "k", "12" = "l")
+  
   # and then pull out the NAs stuff as a simple matrix
-  V_NA <- as.matrix(V_NA[9:20])
+  V_NA <- as.matrix(V_NA[3:14])
 
   # now also pull out our detections
+  detections_df <- detections_df %>%
+    rename("1" = "a", "2" = "b", 
+           "3" = "c", "4" = "d", 
+           "5" = "e", "6" = "f", 
+           "7" = "g", "8" = "h", 
+           "9" = "i", "10" = "j", 
+           "11" = "k", "12" = "l")
+  
   V <- as.matrix(detections_df[3:14])
   
   # get an indicator of whether species was detected 1 or more times
@@ -353,9 +504,9 @@ prep_data <- function(city_names,
     mutate(site_survey_year_vector = site_survey_year) %>%
     pull(site_survey_year_vector)
   
-  community_sample_id_vector <- detections_df %>%
-    mutate(community_sample_id_vector = community_sample_id) %>%
-    pull(community_sample_id_vector)
+  prev_index_vector <- detections_df %>%
+    mutate(prev_index_vector = prev_index) %>%
+    pull(prev_index_vector)
   
   R <- nrow(V)
   
@@ -573,7 +724,7 @@ prep_data <- function(city_names,
     
     site_survey_year_vector = site_survey_year_vector,
     
-    community_sample_id_vector = community_sample_id_vector
+    prev_index_vector = prev_index_vector
 
   ))
 
