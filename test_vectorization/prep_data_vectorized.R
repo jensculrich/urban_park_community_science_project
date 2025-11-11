@@ -222,12 +222,13 @@ prep_data <- function(city_names,
   # we will have to re add any individual species detections below the threshold later
   # (times when we know single species detected, but not inferring search for rest of community)
   community_sampling_events <- df %>%
-    group_by(city, new_id, year, survey, family) %>%
+    #group_by(city, new_id, year, survey, family) %>%
+    group_by(city, new_id, year, survey) %>%
     mutate(num_species_detected = length(unique(species))) %>%
     filter(num_species_detected >= min_species_for_community_sampling_event) %>%
     slice(1) %>%
     ungroup() %>%
-    select(city, new_id, year, survey, family)
+    select(city, new_id, year, survey)
   
   # join the multicity site id and filter out any sites that were filtered out
   # due to the site data, e.g. park was too small to include.
@@ -262,7 +263,13 @@ prep_data <- function(city_names,
   # get detection data for all community sampling events r:R
   # detection data will be cast into vector of lenght R (total number of detections)
   
-  temp1 <- select(species_info, family, species)
+  temp1 <- as.data.frame(cbind(
+                  rep(species_info$species, times = length(community_sampling_events$community_sample_id)),
+                  rep(community_sampling_events$community_sample_id, each = length(species_info$species))
+                  )) %>%
+    rename("species" = "V1",
+           "community_sample_id" = "V2") %>%
+    mutate(community_sample_id = as.integer(community_sample_id))
   temp2 <- full_join(community_sampling_events, temp1)
   
   # get names of all surveys (in case a cluster doesn't have them all surveyed)
@@ -304,11 +311,11 @@ prep_data <- function(city_names,
   # reverse the filter and look at
   # (events with *<* min_species_for_community_sampling_event species detected)
   targeted_sampling_events <- df %>%
-    group_by(city, new_id, year, survey, family) %>%
+    group_by(city, new_id, year, survey) %>%
     mutate(num_species_detected = length(unique(species))) %>%
     filter(num_species_detected < min_species_for_community_sampling_event) %>%
     ungroup() %>%
-    select(species, city, new_id, year, survey, family)
+    select(species, city, new_id, year, survey)
   
   # join the multicity site id and filter out any sites that were filtered out
   # due to the site data, e.g. park was too small to include.
@@ -335,7 +342,7 @@ prep_data <- function(city_names,
     mutate(community_sample_id = (row_number() + max(community_sample_id))) %>%
     # now we only want community_sample_id, species, and the matrix of presence absences
     select(community_sample_id, species, "1", "2", "3", "4", "5", "6", 
-           "7", "8", "9", "10", "11", "12", city, new_id, year, family, multicity_site_id)
+           "7", "8", "9", "10", "11", "12", city, new_id, year, multicity_site_id)
   
   ## --------------------------------------------------
   # now combine the community surveys and targeted species surveys
@@ -404,7 +411,7 @@ prep_data <- function(city_names,
   V_NA <- detections_df %>%
     
     # group by community sample id (year, site, survey, family search event)
-    group_by(year, multicity_site_id, family) %>%
+    group_by(year, multicity_site_id) %>%
     
     mutate(
       a = ifelse( # if a community sampling event occurred
@@ -478,6 +485,11 @@ prep_data <- function(city_names,
            "11" = "k", "12" = "l")
   
   V <- as.matrix(detections_df[3:14])
+  
+  # now finally, add the targeted sampling occasions back to V_NA
+  # there might not have been a community sampling event but we still want to
+  # consider the data at that speciesXsurvey occasion. 
+  V_NA[which(V > V_NA)] <- 1
   
   # get an indicator of whether species was detected 1 or more times
   # at the site within the year. If this value is greater than 0 we know it must be present
