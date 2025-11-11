@@ -62,7 +62,7 @@ if(region == regions[4]){
 min_species_detections <- 2 # binary park/year/species detections
 min_site_years_w_detection <- 2 # remove parks never surveyed across repeat years
 min_species_for_community_sampling_event <- 2 
-family_sampling <- TRUE # Should enter either TRUE or FALSE 
+family_sampling <- FALSE # Should enter either TRUE or FALSE 
 remove_outlier_parks <- TRUE # remove very small parks
 # family_sampling:
 # if false infer sampling event for all butterflies if any butterflies detected
