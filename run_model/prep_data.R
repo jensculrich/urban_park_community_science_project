@@ -953,7 +953,7 @@ prep_data <- function(city_names,
   
   temp2 <- select(site_data, city, multicity_site_id)
   
-  ranges <- left_join(temp2, ranges, by = "city")
+  ranges <- left_join(temp2, ranges, by = "city", relationship = "many-to-many")
   
   # now spread into 4 dimensions
   #sort data frame by multiple columns alphabetically

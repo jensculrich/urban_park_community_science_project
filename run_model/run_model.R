@@ -217,7 +217,7 @@ n_thin <- 1
 n_burnin <- 150
 n_chains <- 4
 n_cores <- n_chains
-delta = 0.97
+delta = 0.99
 
 ## Initial values
 # given the number of parameters, the chains need some decent initial values
@@ -253,7 +253,7 @@ inits <- lapply(1:n_chains, function(i)
 ## --------------------------------------------------
 ### Run model
 
-stan_model <- "./test_vectorization/dynamic_occupancy_model_vectorized.stan"
+stan_model <- "./models/dynamic_occupancy_model.stan"
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
@@ -267,9 +267,9 @@ stan_out <- stan(stan_model,
                  open_progress = FALSE,
                  cores = n_cores)
 
-saveRDS(stan_out, paste0("./test_vectorization/stan_out_", region, ".rds"))
+saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, ".rds"))
 
-stan_out <- readRDS( paste0("./test_vectorization/stan_out_", region, ".rds"))
+stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, ".rds"))
 
 print(stan_out, digits = 3, 
       pars = c(

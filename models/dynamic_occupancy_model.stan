@@ -252,7 +252,7 @@ model {
   // colonization
   gamma0 ~ normal(0, 1); // colonization intercept
   gamma_city_raw ~ std_normal();
-  sigma_gamma_city ~ normal(0, 0.25);
+  sigma_gamma_city ~ normal(0, 0.5);
   gamma_species_raw ~ std_normal();
   sigma_gamma_species ~ normal(0, 0.5);
   mu_gamma_wingspan ~ normal(0, 2);
@@ -268,7 +268,7 @@ model {
   // persistence
   phi0 ~ normal(0, 1); // global intercept
   phi_city_raw ~ std_normal();
-  sigma_phi_city ~ normal(0, 0.25);
+  sigma_phi_city ~ normal(0, 0.5);
   phi_species_raw ~ std_normal();
   sigma_phi_species ~ normal(0, 0.5);
   mu_phi_wingspan ~ normal(0, 2);
