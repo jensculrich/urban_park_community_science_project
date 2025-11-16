@@ -7,17 +7,18 @@ library(rstan)
 # currently I think this will only work if you enter one single region,
 # but I think eventually we want to plot multiple regionss simultaneously
 
+
 # select a region
 regions <- c(
-  "Midwest",
-  "Northeast",
-  "Southeast",
-  "Southwest"
+  "midwest",
+  "northeast",
+  "southeast",
+  "southeast_atlantic",
+  "southeast_texas",
+  "southwest"
 )
 
-region <- regions[2]
-
-n_regions <- 1 # just plotting one region cluster at a time for now 
+region <- regions[4]
 
 # list of city names
 
@@ -36,8 +37,8 @@ if(region == regions[1]){
 # northeast
 if(region == regions[2]){
   city_names <- c(
-    "Boston",
-    "DC", 
+    "Boston", 
+    "DC",
     "NYC", 
     "Philadelphia"
   )
@@ -55,8 +56,26 @@ if(region == regions[3]){
   )
 }
 
-# southwest
+# southeast_atlantic
 if(region == regions[4]){
+  city_names <- c(
+    "Atlanta",
+    "Charlotte",
+    "Raleigh"
+  )
+}
+
+# southeast_texas
+if(region == regions[5]){
+  city_names <- c(
+    "Dallas",
+    "Denton",
+    "Houston"
+  )
+}
+
+# southwest
+if(region == regions[6]){
   city_names <- c(
     "LA",
     "Phoenix",
@@ -448,7 +467,7 @@ q <- ggplot(df_estimates) +
                              bquote(gamma["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-6, 5), breaks = c(-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-8, 5), breaks = c(-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
                                       "#1a5acd", "#E69F90", "#FFFF00")) + 
@@ -636,7 +655,7 @@ r <- ggplot(df_estimates) +
                              bquote(phi["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-3, 6), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-4, 7), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
                                       "#1a5acd", "#E69F90", "#FFFF00")) + 

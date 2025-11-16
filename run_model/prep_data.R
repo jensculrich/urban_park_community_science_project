@@ -213,6 +213,8 @@ prep_data <- function(city_names,
   # how correlated are the site covariate data
   cor(site_data$log_total_green_space_area_scaled, site_data$log_isolation_scaled)
   cor(site_data$log_total_green_space_area_scaled_2, site_data$log_isolation_scaled_2)
+  cor(site_data$plant_genera_density_scaled, site_data$log_total_green_space_area_scaled_2)
+  
   
   plot(site_data$log_total_green_space_area_scaled_2, site_data$log_isolation_scaled_2)
   

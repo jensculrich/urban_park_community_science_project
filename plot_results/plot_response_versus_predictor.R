@@ -8,17 +8,18 @@ library(rstan)
 # currently I think this will only work if you enter one single region,
 # but I think eventually we want to plot multiple regionss simultaneously
 
+
 # select a region
 regions <- c(
-  "Midwest",
-  "Northeast",
-  "Southeast",
-  "Southwest"
+  "midwest",
+  "northeast",
+  "southeast",
+  "southeast_atlantic",
+  "southeast_texas",
+  "southwest"
 )
 
 region <- regions[2]
-
-n_regions <- 1 # just plotting one region cluster at a time for now 
 
 # list of city names
 
@@ -56,8 +57,26 @@ if(region == regions[3]){
   )
 }
 
-# southwest
+# southeast_atlantic
 if(region == regions[4]){
+  city_names <- c(
+    "Atlanta",
+    "Charlotte",
+    "Raleigh"
+  )
+}
+
+# southeast_texas
+if(region == regions[5]){
+  city_names <- c(
+    "Dallas",
+    "Denton",
+    "Houston"
+  )
+}
+
+# southwest
+if(region == regions[6]){
   city_names <- c(
     "LA",
     "Phoenix",

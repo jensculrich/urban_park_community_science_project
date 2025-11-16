@@ -4,10 +4,12 @@ regions <- c(
   "midwest",
   "northeast",
   "southeast",
+  "southeast_atlantic",
+  "southeast_texas",
   "southwest"
 )
 
-region <- regions[2]
+region <- regions[3]
 
 # list of city names
 
@@ -45,8 +47,26 @@ if(region == regions[3]){
   )
 }
 
-# southwest
+# southeast_atlantic
 if(region == regions[4]){
+  city_names <- c(
+    "Atlanta",
+    "Charlotte",
+    "Raleigh"
+  )
+}
+
+# southeast_texas
+if(region == regions[5]){
+  city_names <- c(
+    "Dallas",
+    "Denton",
+    "Houston"
+  )
+}
+
+# southwest
+if(region == regions[6]){
   city_names <- c(
     "LA",
     "Phoenix",
@@ -217,7 +237,7 @@ n_thin <- 1
 n_burnin <- 150
 n_chains <- 4
 n_cores <- n_chains
-delta = 0.99
+delta = 0.97
 
 ## Initial values
 # given the number of parameters, the chains need some decent initial values

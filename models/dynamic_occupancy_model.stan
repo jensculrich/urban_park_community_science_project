@@ -236,7 +236,7 @@ model {
   // initial state
   psi1_0 ~ normal(0, 1); // initial occurrence intercept
   psi1_city_raw ~ std_normal();
-  sigma_psi1_city ~ normal(0, 0.5);
+  sigma_psi1_city ~ normal(0, 0.25);
   psi1_species_raw ~ std_normal();
   sigma_psi1_species ~ normal(0, 1);
   mu_psi1_wingspan ~ normal(0, 2);
@@ -252,7 +252,7 @@ model {
   // colonization
   gamma0 ~ normal(0, 1); // colonization intercept
   gamma_city_raw ~ std_normal();
-  sigma_gamma_city ~ normal(0, 0.5);
+  sigma_gamma_city ~ normal(0, 0.25);
   gamma_species_raw ~ std_normal();
   sigma_gamma_species ~ normal(0, 0.5);
   mu_gamma_wingspan ~ normal(0, 2);
@@ -268,7 +268,7 @@ model {
   // persistence
   phi0 ~ normal(0, 1); // global intercept
   phi_city_raw ~ std_normal();
-  sigma_phi_city ~ normal(0, 0.5);
+  sigma_phi_city ~ normal(0, 0.25);
   phi_species_raw ~ std_normal();
   sigma_phi_species ~ normal(0, 0.5);
   mu_phi_wingspan ~ normal(0, 2);
@@ -284,7 +284,7 @@ model {
   // detection
   p0 ~ normal(0, 2); // global intercept
   p_city_raw ~ std_normal();
-  sigma_p_city ~ normal(0, 0.5);
+  sigma_p_city ~ normal(0, 0.25);
   p_species_raw ~ std_normal();
   sigma_p_species ~ normal(0, 1);
   p_wingspan ~ normal(0, 2);
