@@ -19,7 +19,7 @@ regions <- c(
   "southwest"
 )
 
-region <- regions[2]
+region <- regions[4]
 
 # list of city names
 

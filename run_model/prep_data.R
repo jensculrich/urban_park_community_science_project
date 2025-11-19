@@ -179,17 +179,23 @@ prep_data <- function(city_names,
   
   site_data <- left_join(site_data, site_data_temp, by = c("city", "new_id"))
   
+  # the original scaled values are scaled within city ,considering all parks in those cities
+  # scaled_2 are scaled within a city, ONLY CONSIDERING sites that will be modeled
+  # scaled_across_all_cities are scaled across all cities, ONLY CONSIDERING sites that will be modeled
   site_data <- site_data %>%
     group_by(city) %>%
     mutate(isolation_scaled_2 = center_scale(isolation),
            log_total_green_space_area_scaled_2 = center_scale(log_total_green_space_area),
            log_isolation_scaled_2 = center_scale(log(isolation))) %>%
-    ungroup()
+    ungroup() %>%
+    mutate(isolation_scaled_across_all_cities = center_scale(isolation),
+           log_total_green_space_area_scaled_across_all_cities = center_scale(log_total_green_space_area),
+           log_isolation_scaled_across_all_cities = center_scale(log(isolation))) 
+    
   
   if(remove_outlier_parks == TRUE){
     site_data <- site_data %>%
-      filter(log_total_green_space_area_scaled_2 > -3) %>%
-      filter(log_isolation_scaled_2 < 3) 
+      filter(log_total_green_space_area_scaled_across_all_cities > -3) 
   }
   
   n_sites <- nrow(site_data <- site_data %>%
@@ -207,6 +213,8 @@ prep_data <- function(city_names,
   hist(site_data$log_isolation_scaled_2)
   #hist(site_data$perarea_idx_scaled)
   #hist(site_data$proximity_scaled)
+  hist(site_data$log_total_green_space_area_scaled_across_all_cities)
+  hist(site_data$log_isolation_scaled_across_all_cities)
   
   par(mfrow=c(1,1)) 
   
@@ -214,9 +222,19 @@ prep_data <- function(city_names,
   cor(site_data$log_total_green_space_area_scaled, site_data$log_isolation_scaled)
   cor(site_data$log_total_green_space_area_scaled_2, site_data$log_isolation_scaled_2)
   cor(site_data$plant_genera_density_scaled, site_data$log_total_green_space_area_scaled_2)
+  cor(site_data$log_isolation_scaled_across_all_cities, site_data$log_total_green_space_area_scaled_across_all_cities)
   
+  #plot(site_data$log_total_green_space_area_scaled_2, site_data$log_isolation_scaled_2)
   
-  plot(site_data$log_total_green_space_area_scaled_2, site_data$log_isolation_scaled_2)
+  # plot
+  ggplot(site_data, aes(
+    x = log_total_green_space_area_scaled_2, y = log_isolation_scaled_2, colour = city)) +
+    geom_point()
+  
+  # plot
+  ggplot(site_data, aes(
+    x = log_total_green_space_area_scaled_across_all_cities, y = log_isolation_scaled_across_all_cities, colour = city)) +
+    geom_point()
   
   ## --------------------------------------------------
   # identify community sampling events

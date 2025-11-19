@@ -9,7 +9,7 @@ regions <- c(
   "southwest"
 )
 
-region <- regions[3]
+region <- regions[6]
 
 # list of city names
 
@@ -130,8 +130,8 @@ feature_diversity <- species_info$featureDiversity_scaled
 ease_of_id <- species_info$research_grade_proportion_scaled
 wingspan <- species_info$aveWingspan_scaled
 # site
-park_size <- site_data$log_total_green_space_area_scaled_2 # scaled_2 is scaled to only parks being modeled
-isolation <- site_data$log_isolation_scaled_2 # scaled_2 is scaled to only parks being modeled
+park_size <- site_data$log_total_green_space_area_scaled_across_all_cities # scaled_2 is scaled to only parks being modeled
+isolation <- site_data$log_isolation_scaled_across_all_cities # scaled_2 is scaled to only parks being modeled
 city <- as.integer(as.factor(unique(site_data$city)))
 n_cities <- length(unique(city))
 
@@ -150,7 +150,7 @@ confirmed_occurrence <- my_data$confirmed_occurrence
 
 # plot
 ggplot(site_data, aes(
-  x = log_total_green_space_area_scaled_2, y = log_isolation_scaled_2, colour = city)) +
+  x = log_total_green_space_area_scaled_across_all_cities, y = log_isolation_scaled_across_all_cities, colour = city)) +
   geom_point()
 
 
