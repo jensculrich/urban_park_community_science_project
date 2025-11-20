@@ -18,7 +18,7 @@ regions <- c(
   "southwest"
 )
 
-region <- regions[4]
+region <- regions[6]
 
 # list of city names
 
@@ -86,6 +86,7 @@ if(region == regions[6]){
 } 
 
 n_cities <- length(city_names)
+n_regions <- length(region)
 
 # handy for viewing column numbers
 # this line of code won't work until you've actually read in a stan fit object

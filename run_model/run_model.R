@@ -84,6 +84,7 @@ min_site_years_w_detection <- 2 # remove parks never surveyed across repeat year
 min_species_for_community_sampling_event <- 1 # if 1 species detected, any other species in same fam could have been 
 family_sampling <- TRUE # Should enter either TRUE or FALSE 
 remove_outlier_parks <- TRUE # remove very small parks
+write_city_data_csv <- TRUE
 # family_sampling:
 # if false infer sampling event for all butterflies if any butterflies detected
 # if true only infer sampling event for butterflies in same family as any butterflies detected
@@ -96,7 +97,8 @@ my_data <- prep_data(city_names,
                      min_site_years_w_detection,
                      min_species_for_community_sampling_event,
                      family_sampling,
-                     remove_outlier_parks
+                     remove_outlier_parks,
+                     write_city_data_csv
 )
 
 saveRDS(my_data, paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))

@@ -13,7 +13,8 @@ prep_data <- function(city_names,
                       min_site_years_w_detection,
                       min_species_for_community_sampling_event,
                       family_sampling,
-                      remove_outlier_parks
+                      remove_outlier_parks,
+                      write_city_data_csv
                       ) {
   
   ## --------------------------------------------------
@@ -681,7 +682,7 @@ prep_data <- function(city_names,
     # there;s probably a more efficient way to do this, look into later!
     V_NA <- detections_df %>%
       
-      # group by community sample id (year, site, family search event)
+      # group by site X year
       group_by(year, multicity_site_id) %>%
       
       mutate(a2 = sum(a)) %>%
@@ -981,6 +982,135 @@ prep_data <- function(city_names,
   ranges <- array(data = ranges$in_range, dim = c(n_species, n_sites ))
   
   ## --------------------------------------------------
+  # summarize some city-wide metrics
+  
+  # how many community sampling events
+  city_data <- as.data.frame(
+    cbind(V_NA, 
+          detections_df$community_sample_id, detections_df$city
+          )) %>%
+    rename("community_sample_id" = "V13",
+           "city" = "V14") %>%
+    group_by(community_sample_id) %>%
+    slice(1) %>%
+    ungroup() %>%
+    group_by(city) %>%
+    add_tally() %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(city, n) %>% 
+    rename("total_community_sampling_events" = "n")
+  
+  # how many single v repeat sampling events per city
+  city_repeat_events <- detections_df %>%
+    group_by(community_sample_id) %>%
+    slice(1) %>%
+    ungroup() %>%
+    group_by(multicity_site_id, family) %>%
+    add_tally() %>%
+    slice(1) %>%
+    ungroup() %>%
+    group_by(city) %>%
+    mutate(single_year_only_events = length(which((n == 1)))) %>%
+    select(city, single_year_only_events) %>%
+    slice(1) %>%
+    ungroup()
+  
+  # how many community sampling events by family
+  city_family_events <- as.data.frame(
+    cbind(V_NA, 
+          detections_df$community_sample_id, detections_df$city, detections_df$family
+    )) %>%
+    rename("community_sample_id" = "V13",
+           "city" = "V14",
+           "family" = "V15") %>%
+    group_by(community_sample_id) %>%
+    slice(1) %>%
+    ungroup() %>%
+    group_by(city, family) %>%
+    add_tally() %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(city, family, n) %>%  
+    mutate(family = paste0(family, "_community_sampling_events")) %>% 
+    rename("family_sampling_events" = "n") %>%
+    pivot_wider(names_from = family, values_from = family_sampling_events)
+  
+  city_data <- left_join(city_data, city_repeat_events) %>%
+    mutate(events_in_colonization_extinction_sequences = total_community_sampling_events - single_year_only_events)
+  
+  # start constructing some city stats df
+  city_data <- left_join(city_data, city_family_events)
+  
+  # how many times individual sites surveyed repeatedly for same family
+  city_survey_events <- as.data.frame(
+    cbind(V_NA, 
+          detections_df$community_sample_id, detections_df$city
+    )) %>%
+    rename("community_sample_id" = "V13",
+           "city" = "V14") %>%
+    group_by(community_sample_id) %>%
+    slice(1) %>%
+    ungroup() %>%
+    group_by(city) %>%
+    add_tally() %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(city, n) %>% 
+    rename("total_community_sampling_events" = "n")
+  
+  # how many species detections in classified parks per city
+  # and how many species detected >1 times per city
+  total_annual_detections <- vector(length = nrow(detections_df))
+  for(i in 1:nrow(detections_df)){
+    total_annual_detections[i] <- sum(detections_df[i,4:15])
+  }
+  city_species <- as.data.frame(cbind(detections_df, total_annual_detections)) %>%
+    group_by(city) %>%
+    mutate(total_binary_detections_city = sum(total_annual_detections)) %>%
+    ungroup() %>%
+    mutate(any_detections = ifelse(total_annual_detections > 0, 1, 0)) %>%
+    group_by(city, species) %>%
+    filter(any_detections > 0) %>%
+    slice(1) %>%
+    ungroup() %>%
+    group_by(city) %>%
+    add_tally() %>%
+    rename("n_species_detected_city" = "n") %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(city, total_binary_detections_city, n_species_detected_city)
+    
+  city_data <- left_join(city_data, city_species)
+  
+  # get n sites per city
+  # and park size/isolation of city
+  city_site_data <- site_data %>%
+    group_by(city) %>%
+    mutate(n_sites = length(unique(multicity_site_id)),
+           mean_log_park_size = mean(log_total_green_space_area),
+           sd_park_size = sd(log_total_green_space_area),
+           mean_log_isolation = mean(log(isolation)),
+           sd_isolation = sd(log(isolation)),
+           mean_tree_cover = mean(tree_percent_cover),
+           sd_tree_cover = sd(tree_percent_cover),
+           mean_plant_genera_density = mean(plant_genera_density),
+           sd_plant_genera_density = sd(plant_genera_density)) %>%
+    group_by(city) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(city, n_sites, mean_log_park_size, sd_park_size,
+           mean_log_isolation, sd_isolation, mean_tree_cover, sd_tree_cover,
+           mean_plant_genera_density, sd_plant_genera_density)
+  
+  city_data <- left_join(city_data, city_site_data)
+  
+  if(write_city_data_csv == TRUE){
+    write.csv(city_data, paste0("./data/data_summaries/data_summary_", region, ".csv"),
+              row.names = FALSE)
+  }
+  
+  ## --------------------------------------------------
   # Return stuff
   return(list(
     
@@ -1017,7 +1147,9 @@ prep_data <- function(city_names,
     
     site_survey_year_vector = site_survey_year_vector,
     
-    prev_index_vector = prev_index_vector
+    prev_index_vector = prev_index_vector,
+    
+    city_data = city_data
 
   ))
 
