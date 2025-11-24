@@ -69,8 +69,8 @@ if(region == regions[5]){
 if(region == regions[6]){
   city_names <- c(
     "LA",
-    "Phoenix",
-    "Riverside",
+    #"Phoenix",
+    #"Riverside",
     "SD",
     "SF"
   )
@@ -289,7 +289,7 @@ stan_out <- stan(stan_model,
                  open_progress = FALSE,
                  cores = n_cores)
 
-saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, ".rds"))
+saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "2.rds"))
 
 stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, ".rds"))
 
