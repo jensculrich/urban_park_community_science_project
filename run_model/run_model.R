@@ -8,7 +8,7 @@ regions <- c(
   "all"
 )
 
-region <- regions[5]
+region <- regions[3]
 
 # list of city names
 
@@ -82,7 +82,7 @@ min_site_years_w_detection <- 2 # remove parks never surveyed across repeat year
 min_species_for_community_sampling_event <- 1 # if 1 species detected, any other species in same fam could have been 
 family_sampling <- TRUE # Should enter either TRUE or FALSE 
 remove_outlier_parks <- TRUE # remove very small parks
-write_city_data_csv <- TRUE
+write_city_data_csv <- FALSE
 # family_sampling:
 # if false infer sampling event for all butterflies if any butterflies detected
 # if true only infer sampling event for butterflies in same family as any butterflies detected
@@ -154,7 +154,7 @@ site_survey_year_vector <- my_data$site_survey_year_vector
 prev_index_vector <- my_data$prev_index_vector
 confirmed_occurrence <- my_data$confirmed_occurrence
 species_cluster_id_vector <- my_data$species_cluster_integer_vector
-n_species_clusters <- length(unique(species_cluster_integer_vector))
+n_species_clusters <- length(unique(species_cluster_id_vector))
 
 # plot
 ggplot(site_data, aes(
@@ -215,10 +215,10 @@ params <- c(
   "p_ease_of_id",
   "mu_p_species_date",
   "sigma_p_species_date",
-  "p_date_latitude",
+  #"p_date_latitude",
   "mu_p_species_date_sq",
   "sigma_p_species_date_sq",
-  "p_date_sq_latitude",
+  #"p_date_sq_latitude",
   
   # city effects
   "psi1_city",
@@ -284,7 +284,9 @@ inits <- lapply(1:n_chains, function(i)
 ## --------------------------------------------------
 ### Run model
 
-stan_model <- "./models/dynamic_occupancy_model_all_cities.stan"
+# choose a model
+stan_model <- "./models/dynamic_occupancy_model.stan"
+#stan_model <- "./models/dynamic_occupancy_model_all_cities.stan"
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
@@ -300,9 +302,10 @@ stan_out <- stan(stan_model,
 
 saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "2.rds"))
 
+# read old data
+#stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, ".rds"))
 
-stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, ".rds"))
-
+# print outputs
 print(stan_out, digits = 3, 
       pars = c(
         "psi1_0", 
