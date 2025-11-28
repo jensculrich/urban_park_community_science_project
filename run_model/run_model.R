@@ -1,63 +1,41 @@
 
 # select a region
 regions <- c(
-  "midwest",
   "northeast",
   "southeast",
-  "southeast_atlantic",
-  "southeast_texas",
-  "southwest"
+  "texas",
+  "california",
+  "all"
 )
 
-region <- regions[6]
+region <- regions[5]
 
 # list of city names
 
-# midwest
+# northeast
 if(region == regions[1]){
   city_names <- c(
-    "Chicago",
-    "Denver",
-    "Des_Moines",
-    "Detroit", 
-    "Minneapolis",
-    "St_Louis"
-  )
-}
-
-# northeast
-if(region == regions[2]){
-  city_names <- c(
     "Boston", 
+    "Chicago",
     "DC",
-    "NYC", 
+    "NYC",     
+    "Minneapolis",
     "Philadelphia"
   )
 }
 
 # southeast
+if(region == regions[2]){
+  city_names <- c(
+    "Atlanta",
+    "Charlotte",
+    #"DC",
+    "Raleigh"
+  )
+}
+
+# texas
 if(region == regions[3]){
-  city_names <- c(
-    "Atlanta",
-    "Charlotte",
-    "Dallas",
-    "Denton",
-    "Houston",
-    "Raleigh"
-  )
-}
-
-# southeast_atlantic
-if(region == regions[4]){
-  city_names <- c(
-    "Atlanta",
-    "Charlotte",
-    "Raleigh"
-  )
-}
-
-# southeast_texas
-if(region == regions[5]){
   city_names <- c(
     "Dallas",
     "Denton",
@@ -65,16 +43,36 @@ if(region == regions[5]){
   )
 }
 
-# southwest
-if(region == regions[6]){
+# california
+if(region == regions[4]){
   city_names <- c(
     "LA",
-    #"Phoenix",
-    #"Riverside",
     "SD",
     "SF"
   )
-} 
+}
+
+# all
+if(region == regions[5]){
+  city_names <- c(
+    "Atlanta",
+    "Boston", 
+    "Charlotte",
+    "Chicago",
+    "Dallas",
+    "DC",
+    "Denton",
+    "Houston",
+    "LA",
+    "Minneapolis",
+    "NYC",     
+    "Philadelphia",
+    "Raleigh",
+    "SD",
+    "SF"
+  )
+}
+
 
 # or choose one city
 # city_names <- "Philadelphia"
@@ -101,6 +99,7 @@ my_data <- prep_data(city_names,
                      write_city_data_csv
 )
 
+
 saveRDS(my_data, paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))
 my_data <- readRDS( paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))
 
@@ -126,6 +125,10 @@ n_surveys <- my_data$n_surveys
 surveys <- sequence(n_surveys)
 surveys <- (surveys - mean(surveys)) / sd(surveys)
 
+center_scale <- function(x) {
+  (x - mean(x)) / sd(x)
+}
+
 ## predictors
 # species
 feature_diversity <- species_info$featureDiversity_scaled
@@ -134,11 +137,12 @@ wingspan <- species_info$aveWingspan_scaled
 # site
 park_size <- site_data$log_total_green_space_area_scaled_across_all_cities # scaled_2 is scaled to only parks being modeled
 isolation <- site_data$log_isolation_scaled_across_all_cities # scaled_2 is scaled to only parks being modeled
+latitude <- center_scale(site_data$latitude)
 city <- as.integer(as.factor(unique(site_data$city)))
 n_cities <- length(unique(city))
 
 ## ranges
-ranges <- my_data$ranges
+#ranges <- my_data$ranges 
 
 # extra stuff
 R <- my_data$R
@@ -149,6 +153,8 @@ city_id_vector <- my_data$city_id_vector
 site_survey_year_vector <- my_data$site_survey_year_vector
 prev_index_vector <- my_data$prev_index_vector
 confirmed_occurrence <- my_data$confirmed_occurrence
+species_cluster_id_vector <- my_data$species_cluster_integer_vector
+n_species_clusters <- length(unique(species_cluster_integer_vector))
 
 # plot
 ggplot(site_data, aes(
@@ -157,13 +163,14 @@ ggplot(site_data, aes(
 
 
 stan_data <- c("R", "n_surveys", "surveys", 
-               "V", "V_NA", "ranges", "site_survey_year_vector",
+               "V", "V_NA", "site_survey_year_vector",
                "n_species", "species", "species_integer_vector",
                "n_sites", "sites", "multicity_site_id_vector",
                "n_cities","city", "city_id_vector",
                "feature_diversity", "ease_of_id", "wingspan",
-               "park_size", "isolation",
-               "confirmed_occurrence", "prev_index_vector"
+               "park_size", "isolation", "latitude",
+               "confirmed_occurrence", "prev_index_vector", 
+               "species_cluster_id_vector", "n_species_clusters"
                
 ) 
 
@@ -208,8 +215,10 @@ params <- c(
   "p_ease_of_id",
   "mu_p_species_date",
   "sigma_p_species_date",
+  "p_date_latitude",
   "mu_p_species_date_sq",
   "sigma_p_species_date_sq",
+  "p_date_sq_latitude",
   
   # city effects
   "psi1_city",
@@ -275,7 +284,7 @@ inits <- lapply(1:n_chains, function(i)
 ## --------------------------------------------------
 ### Run model
 
-stan_model <- "./models/dynamic_occupancy_model.stan"
+stan_model <- "./models/dynamic_occupancy_model_all_cities.stan"
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
@@ -290,6 +299,7 @@ stan_out <- stan(stan_model,
                  cores = n_cores)
 
 saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "2.rds"))
+
 
 stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, ".rds"))
 

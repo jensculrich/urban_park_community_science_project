@@ -18,20 +18,20 @@ data {
   // dimensions of the data and the detections themselves
   int R; // length of the dataset (number of speciesXsiteXyear combos)
   int n_surveys; // number of repeat surveys within years
-  real surveys[n_surveys]; // surveys (difference from the mean) used as detection cov
-  int<lower=0,upper=1> V[R, n_surveys]; // binary detection / non detection
-  int<lower=0,upper=1> V_NA[R, n_surveys]; // sampling indicator 1==non-detection, 0==no evidence the species was sampled
-  int<lower=1> site_survey_year_vector[R]; // which year is the survey referencing?
+  array[n_surveys] real surveys; // surveys (difference from the mean) used as detection cov
+  array[R, n_surveys] int<lower=0, upper=1> V; // binary detection / non detection
+  array[R, n_surveys] int<lower=0, upper=1> V_NA; // sampling indicator 1==non-detection, 0==no evidence the species was sampled
+  array[R] int<lower=1> site_survey_year_vector; // which year is the survey referencing?
   // species, site, and city indicators
   int<lower=0> n_species; // number of species
-  int<lower=1> species[n_species]; // vector of each species identity
-  int<lower=1, upper=n_species> species_integer_vector[R]; // vector indicating which species is being observed
+  array[n_species] int<lower=1> species; // vector of each species identity
+  array[R] int<lower=1, upper=n_species> species_integer_vector; // vector indicating which species is being observed
   int<lower=0> n_sites; // number of sites
-  int<lower=1> sites[n_sites]; // vector of site identities
-  int<lower=1, upper=n_sites> multicity_site_id_vector[R]; // vector indicating which site is being observed
+  array[n_sites] int<lower=1> sites; // vector of site identities
+  array[R] int<lower=1, upper=n_sites> multicity_site_id_vector; // vector indicating which site is being observed
   int<lower=0> n_cities; // number of cities
-  int<lower=1> city[n_cities]; // vector of city identities
-  int<lower=1, upper=n_cities> city_id_vector[R]; // vector indicating which city is being observed 
+  array[n_cities] int<lower=1> city; // vector of city identities
+  array[R] int<lower=1, upper=n_cities> city_id_vector; // vector indicating which city is being observed 
   // species and site covariate data
   vector[n_species] feature_diversity;
   vector[n_species] ease_of_id;
@@ -39,9 +39,9 @@ data {
   vector[n_sites] park_size;
   vector[n_sites] isolation;
   // other stuff
-  int<lower=0> ranges[n_species, n_sites]; // matrix to constrain analysis within species ranges
-  int<lower=0> confirmed_occurrence[R];
-  int<lower=0> prev_index_vector[R];
+  //array[n_species, n_sites] int<lower=0> ranges; // matrix to constrain analysis within species ranges
+  array[R] int<lower=0> confirmed_occurrence;
+  array[R] int<lower=0> prev_index_vector;
 } // end data
 
 parameters {
@@ -115,10 +115,10 @@ parameters {
 transformed parameters {
 
   // logit scale psi1, gamma, phi
-  real psi1[R]; // odds of occurrence year 1
-  real gamma[R]; // odds of colonization
-  real phi[R]; // odds of persistence
-  real p[R, n_surveys];  // odds of detection
+  array[R] real psi1; // odds of occurrence year 1
+  array[R] real gamma; // odds of colonization
+  array[R] real phi; // odds of persistence
+  array[R, n_surveys] real p; // odds of detection
   
   vector[n_species] psi1_species;
   vector[n_cities] psi1_city;
@@ -160,7 +160,6 @@ transformed parameters {
   for(r in 1:R){
   
         psi1[r] = inv_logit( // probability (0-1) of occurrence in year 1 is equal to..
-          //psi1_0 + 
           psi1_city[city_id_vector[r]] +
           psi1_species[species_integer_vector[r]] + // a species specific intercept
           psi1_wingspan[city_id_vector[r]] * wingspan[species_integer_vector[r]] + // a species effect of migratory
@@ -169,7 +168,6 @@ transformed parameters {
           ); // end psi1[r]
         
         gamma[r] = inv_logit( // probability (0-1) of colonization is equal to..
-          //gamma0 +
           gamma_city[city_id_vector[r]] +
           gamma_species[species_integer_vector[r]] + // a species specific intercept
           gamma_wingspan[city_id_vector[r]] * wingspan[species_integer_vector[r]] + // a species effect of migratory
@@ -178,7 +176,6 @@ transformed parameters {
           ); // end gamma[i,j,k]
                 
         phi[r] = inv_logit( // probability (0-1) of persistence is equal to..
-          //phi0 +
           phi_city[city_id_vector[r]] +
           phi_species[species_integer_vector[r]] + // a species specific intercept
           phi_wingspan[city_id_vector[r]] * wingspan[species_integer_vector[r]] + // a species effect of migratory
@@ -193,7 +190,6 @@ transformed parameters {
         for(l in 1:n_surveys){ // loop across all surveys
 
           p[r,l] = inv_logit( // probability (0-1) of detection is equal to..
-            //p0 +
             p_city[city_id_vector[r]] + 
             p_species[species_integer_vector[r]] + // a species specific intercept
             p_wingspan * wingspan[species_integer_vector[r]] + // a species effect of wingspan
@@ -207,7 +203,7 @@ transformed parameters {
       } // end loop across all R
    
   // construct an occurrence array
-  real psi[R];
+  array[R] real psi;
   
   for(r in 1:R){
     
@@ -282,7 +278,7 @@ model {
   sigma_phi_isolation ~ normal(0, 0.5);
 
   // detection
-  p0 ~ normal(0, 2); // global intercept
+  p0 ~ normal(0, 1); // global intercept
   p_city_raw ~ std_normal();
   sigma_p_city ~ normal(0, 0.25);
   p_species_raw ~ std_normal();
@@ -307,7 +303,7 @@ model {
     // but also need to constrain to species with range overlapping city
     // and also only for the surveys (months) with some survey effort
     
-    if(ranges[species_integer_vector[r], multicity_site_id_vector[r]] > 0){ // if the site [determined by city] is in range of species...
+    //if(ranges[species_integer_vector[r], multicity_site_id_vector[r]] > 0){ // if the site [determined by city] is in range of species...
     
     // tell how many surveys to look at
     // e.g., survey_index_length =
@@ -351,7 +347,7 @@ model {
                       log1m(psi[r])));
       } // end if/else
     
-    } // end if() site is within the geographic range of the species
+    //} // end if() site is within the geographic range of the species
     
   }  // end loop across all community sampling events
 

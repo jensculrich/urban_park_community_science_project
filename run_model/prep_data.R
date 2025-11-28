@@ -238,6 +238,14 @@ prep_data <- function(city_names,
     geom_point()
   
   ## --------------------------------------------------
+  # Get species ranges
+  
+  # source the prep function
+  source("./run_model/get_species_ranges.R")
+  
+  ranges_raw <- get_species_ranges(city_names)
+  
+  ## --------------------------------------------------
   # identify community sampling events
   if(family_sampling == TRUE){
     
@@ -271,7 +279,12 @@ prep_data <- function(city_names,
     # create a df containing all possible species for each community sampling event
     temp1 <- select(species_info, family, species)
     # expand the community sampling events to include all of the species that weren't detected (but could have been) 
-    temp2 <- full_join(community_sampling_events, temp1)
+    temp2 <- full_join(community_sampling_events, temp1, relationship = "many-to-many")
+    
+    # now join range data to filter out all species that are not in range of the city
+    temp2 <- left_join(temp2, ranges_raw) %>%
+      filter(!is.na(in_range)) %>%
+      select(-in_range)
     
     # get names of all surveys (in case a cluster doesn't have them all surveyed)
     # this will avoid having to rewrite the stan model code for different # max survey lengths
@@ -805,6 +818,58 @@ prep_data <- function(city_names,
   R <- nrow(V)
   
   ## --------------------------------------------------
+  ## get species by cluster integer to allow a species - cluster random effect on detection and initial occurrence
+  
+  city <-c( "Atlanta",
+            "Boston", 
+            "Charlotte",
+            "Chicago",
+            "Dallas",
+            "DC",
+            "Denton",
+            "Houston",
+            "LA",
+            "Minneapolis",
+            "NYC",     
+            "Philadelphia",
+            "Raleigh",
+            "SD",
+            "SF")
+  cluster <-c( "southeast",
+               "northeast", 
+               "southeast",
+               "northeast",
+               "texas",
+               "northeast",
+               "texas",
+               "texas",
+               "california",
+               "northeast",
+               "northeast",     
+               "northeast",
+               "southeast",
+               "california",
+               "california")
+  x_name <- "city"
+  y_name <- "cluster"
+  
+  temp <- data.frame(city,cluster)
+  names(temp) <- c(x_name,y_name)
+  
+  species_cluster <- left_join(ranges_raw, temp) %>%
+    select(city, species, cluster)
+  
+  detections_df <- left_join(detections_df, species_cluster) %>%
+    group_by(species, cluster) %>%
+    mutate(species_cluster = cur_group_id()) %>%
+    ungroup()
+  
+  # get data of which species*cluster combination is being considered on each row of V
+  species_cluster_integer_vector <- detections_df %>%
+    mutate(species_cluster_integer_vector = as.integer(as.factor(species_cluster))) %>%
+    pull(species_cluster_integer_vector)
+  
+  ## --------------------------------------------------
   ## get species trait data
   
   # species morpho traits
@@ -950,36 +1015,6 @@ prep_data <- function(city_names,
                                                        # and then pull out it's family
                                                        select(family)))))
   
-  ## --------------------------------------------------
-  # Get species ranges
-  
-  # source the prep function
-  source("./run_model/get_species_ranges.R")
-  
-  ranges_raw <- get_species_ranges(city_names)
-  
-  all_species_city_combos <- as.data.frame(cbind(
-    rep(species_info$species, times = length(city_names)),
-    rep(city_names, each = n_species)
-  )) %>%
-    rename("species" = "V1",
-           "city" = "V2")
-  
-  temp <- select(species_info, species)
-  temp <- left_join(temp, ranges_raw, by = "species") %>%
-    mutate(in_range = 1)
-  
-  ranges <- full_join(temp, all_species_city_combos) %>%
-    mutate(in_range = replace_na(in_range, 0))
-  
-  temp2 <- select(site_data, city, multicity_site_id)
-  
-  ranges <- left_join(temp2, ranges, by = "city", relationship = "many-to-many")
-  
-  # now spread into 4 dimensions
-  #sort data frame by multiple columns alphabetically
-  ranges <- ranges[with(ranges, order(multicity_site_id, species)), ]
-  ranges <- array(data = ranges$in_range, dim = c(n_species, n_sites ))
   
   ## --------------------------------------------------
   # summarize some city-wide metrics
@@ -1133,8 +1168,6 @@ prep_data <- function(city_names,
     years = year_vector,
     surveys = survey_vector,
     
-    ranges = ranges,
-    
     confirmed_occurrence = confirmed_occurrence,
 
     species_integer_vector = species_integer_vector,
@@ -1148,6 +1181,8 @@ prep_data <- function(city_names,
     site_survey_year_vector = site_survey_year_vector,
     
     prev_index_vector = prev_index_vector,
+    
+    species_cluster_integer_vector = species_cluster_integer_vector,
     
     city_data = city_data
 
