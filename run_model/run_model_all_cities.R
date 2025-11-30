@@ -12,64 +12,24 @@ region <- regions[5]
 
 # list of city names
 
-# northeast
-if(region == regions[1]){
-  city_names <- c(
-    "Boston", 
-    "Chicago",
-    "DC",
-    "NYC",     
-    "Minneapolis",
-    "Philadelphia"
-  )
-}
-
-# southeast
-if(region == regions[2]){
-  city_names <- c(
-    "Atlanta",
-    "Charlotte",
-    #"DC",
-    "Raleigh"
-  )
-}
-
-# texas
-if(region == regions[3]){
-  city_names <- c(
-    "Dallas",
-    "Denton",
-    "Houston"
-  )
-}
-
-# california
-if(region == regions[4]){
-  city_names <- c(
-    "LA",
-    "SD",
-    "SF"
-  )
-}
-
 # all
 if(region == regions[5]){
   city_names <- c(
     "Atlanta",
     "Boston", 
     "Charlotte",
-    #"Chicago",
+    "Chicago",
     "Dallas",
-    #"DC",
+    "DC",
     "Denton",
     "Houston",
-    #"LA",
-    #"Minneapolis",
+    "LA",
+    "Minneapolis",
     "NYC",     
     "Philadelphia",
-    "Raleigh"
-    #"SD",
-    #"SF"
+    "Raleigh",
+    "SD",
+    "SF"
   )
 }
 
@@ -82,7 +42,7 @@ min_site_years_w_detection <- 2 # remove parks never surveyed across repeat year
 min_species_for_community_sampling_event <- 1 # if 1 species detected, any other species in same fam could have been 
 family_sampling <- TRUE # Should enter either TRUE or FALSE 
 remove_outlier_parks <- TRUE # remove very small parks
-write_city_data_csv <- FALSE
+write_city_data_csv <- TRUE
 # family_sampling:
 # if false infer sampling event for all butterflies if any butterflies detected
 # if true only infer sampling event for butterflies in same family as any butterflies detected
@@ -101,7 +61,6 @@ my_data <- prep_data(city_names,
 
 
 saveRDS(my_data, paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))
-
 my_data <- readRDS( paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))
 
 # prepare to fit occupncy model
