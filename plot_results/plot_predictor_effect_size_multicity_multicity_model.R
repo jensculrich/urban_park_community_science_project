@@ -10,63 +10,41 @@ library(rstan)
 
 # select a region
 regions <- c(
-  "midwest",
   "northeast",
   "southeast",
-  "southeast_atlantic",
-  "southeast_texas",
-  "southwest"
+  "texas",
+  "california",
+  "all"
 )
 
-region <- regions[6]
+region <- regions[5]
 
 # list of city names
 
-# midwest
+# northeast
 if(region == regions[1]){
   city_names <- c(
-    "Chicago",
-    "Denver",
-    "Des_Moines",
-    "Detroit", 
-    "Minneapolis",
-    "St_Louis"
-  )
-}
-
-# northeast
-if(region == regions[2]){
-  city_names <- c(
     "Boston", 
+    "Chicago",
     "DC",
-    "NYC", 
+    "NYC",     
+    "Minneapolis",
     "Philadelphia"
   )
 }
 
 # southeast
+if(region == regions[2]){
+  city_names <- c(
+    "Atlanta",
+    "Charlotte",
+    #"DC",
+    "Raleigh"
+  )
+}
+
+# texas
 if(region == regions[3]){
-  city_names <- c(
-    "Atlanta",
-    "Charlotte",
-    "Dallas",
-    "Denton",
-    "Houston",
-    "Raleigh"
-  )
-}
-
-# southeast_atlantic
-if(region == regions[4]){
-  city_names <- c(
-    "Atlanta",
-    "Charlotte",
-    "Raleigh"
-  )
-}
-
-# southeast_texas
-if(region == regions[5]){
   city_names <- c(
     "Dallas",
     "Denton",
@@ -74,16 +52,36 @@ if(region == regions[5]){
   )
 }
 
-# southwest
-if(region == regions[6]){
+# california
+if(region == regions[4]){
   city_names <- c(
     "LA",
-    "Phoenix",
-    "Riverside",
     "SD",
     "SF"
   )
-} 
+}
+
+# all
+if(region == regions[5]){
+  city_names <- c(
+    "Atlanta",
+    "Boston", 
+    "Charlotte",
+    #"Chicago",
+    "Dallas",
+    #"DC",
+    #"Denton",
+    "Houston",
+    #"LA",
+    #"Minneapolis",
+    "NYC",     
+    "Philadelphia",
+    "Raleigh"
+    #"SD",
+    #"SF"
+  )
+}
+
 
 n_cities <- length(city_names)
 n_regions <- length(region)

@@ -838,13 +838,13 @@ prep_data <- function(city_names,
   cluster <-c( "southeast",
                "northeast", 
                "southeast",
-               "northeast",
+               "midwest",
                "texas",
                "northeast",
                "texas",
                "texas",
                "california",
-               "northeast",
+               "midwest",
                "northeast",     
                "northeast",
                "southeast",
@@ -862,12 +862,20 @@ prep_data <- function(city_names,
   detections_df <- left_join(detections_df, species_cluster) %>%
     group_by(species, cluster) %>%
     mutate(species_cluster = cur_group_id()) %>%
+    ungroup() %>%
+    group_by(cluster) %>%
+    mutate(region_cluster = cur_group_id()) %>%
     ungroup()
   
   # get data of which species*cluster combination is being considered on each row of V
   species_cluster_integer_vector <- detections_df %>%
     mutate(species_cluster_integer_vector = as.integer(as.factor(species_cluster))) %>%
     pull(species_cluster_integer_vector)
+  
+  # get data of which cluster is being considered on each row of V
+  region_cluster_integer_vector <- detections_df %>%
+    mutate(region_cluster_integer_vector = as.integer(as.factor(region_cluster))) %>%
+    pull(region_cluster_integer_vector)
   
   ## --------------------------------------------------
   ## get species trait data
@@ -1183,6 +1191,8 @@ prep_data <- function(city_names,
     prev_index_vector = prev_index_vector,
     
     species_cluster_integer_vector = species_cluster_integer_vector,
+    
+    region_cluster_integer_vector = region_cluster_integer_vector,
     
     city_data = city_data
 

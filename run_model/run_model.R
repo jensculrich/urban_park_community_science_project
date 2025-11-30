@@ -8,7 +8,7 @@ regions <- c(
   "all"
 )
 
-region <- regions[3]
+region <- regions[5]
 
 # list of city names
 
@@ -58,18 +58,18 @@ if(region == regions[5]){
     "Atlanta",
     "Boston", 
     "Charlotte",
-    "Chicago",
+    #"Chicago",
     "Dallas",
-    "DC",
-    "Denton",
+    #"DC",
+    #"Denton",
     "Houston",
-    "LA",
-    "Minneapolis",
+    #"LA",
+    #"Minneapolis",
     "NYC",     
     "Philadelphia",
-    "Raleigh",
-    "SD",
-    "SF"
+    "Raleigh"
+    #"SD",
+    #"SF"
   )
 }
 
@@ -77,7 +77,7 @@ if(region == regions[5]){
 # or choose one city
 # city_names <- "Philadelphia"
 
-min_species_detections <- 2 # binary park/year/species detections
+min_species_detections <- 5 # binary park/year/species detections
 min_site_years_w_detection <- 2 # remove parks never surveyed across repeat years
 min_species_for_community_sampling_event <- 1 # if 1 species detected, any other species in same fam could have been 
 family_sampling <- TRUE # Should enter either TRUE or FALSE 
@@ -285,8 +285,8 @@ inits <- lapply(1:n_chains, function(i)
 ### Run model
 
 # choose a model
-stan_model <- "./models/dynamic_occupancy_model.stan"
-#stan_model <- "./models/dynamic_occupancy_model_all_cities.stan"
+#stan_model <- "./models/dynamic_occupancy_model.stan"
+stan_model <- "./models/dynamic_occupancy_model_all_cities.stan"
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
@@ -300,7 +300,11 @@ stan_out <- stan(stan_model,
                  open_progress = FALSE,
                  cores = n_cores)
 
+
 saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "2.rds"))
+
+
+
 
 # read old data
 #stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, ".rds"))

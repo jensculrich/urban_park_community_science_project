@@ -24,26 +24,22 @@ data {
   array[R] int<lower=1> site_survey_year_vector; // which year is the survey referencing?
   // species, site, and city indicators
   int<lower=0> n_species; // number of species
-  //array[n_species] int<lower=1> species; // vector of each species identity
   array[R] int<lower=1, upper=n_species> species_integer_vector; // vector indicating which species is being observed
   int<lower=0> n_sites; // number of sites
-  //array[n_sites] int<lower=1> sites; // vector of site identities
   array[R] int<lower=1, upper=n_sites> multicity_site_id_vector; // vector indicating which site is being observed
   int<lower=0> n_cities; // number of cities
-  //array[n_cities] int<lower=1> city; // vector of city identities
   array[R] int<lower=1, upper=n_cities> city_id_vector; // vector indicating which city is being observed 
   int<lower=0> n_species_clusters; // number of speciesXregions clusters
-  //array[n_species_clusters] int<lower=1> species_cluster;
   array[R] int<lower=1, upper=n_species_clusters> species_cluster_id_vector;
+  int<lower=0> n_regional_clusters; // number of speciesXregions clusters
+  array[R] int<lower=1, upper=n_regional_clusters> regional_cluster_id_vector;
   // species and site covariate data
   vector[n_species] feature_diversity;
   vector[n_species] ease_of_id;
   vector[n_species] wingspan;
   vector[n_sites] park_size;
   vector[n_sites] isolation;
-  vector[n_sites] latitude;
   // other stuff
-  //array[n_species, n_sites] int<lower=0> ranges; // matrix to constrain analysis within species ranges
   array[R] int<lower=0> confirmed_occurrence;
   array[R] int<lower=0> prev_index_vector;
 } // end data
@@ -107,15 +103,15 @@ parameters {
   real p_wingspan;
   real p_feature_diversity;
   real p_ease_of_id;
-  vector[n_species] p_date; // phenology peak
-  real mu_p_species_date; // community mean
+  vector[n_species_clusters] p_date; // phenology peak
+  real delta0;
+  vector[n_regional_clusters] delta_regional_cluster;
   real<lower=0> sigma_p_species_date; // variation
-  real p_date_latitude; // an effect of latitude on the effect of date
-  vector[n_species] p_date_sq; // decay pattern of phenology
-  real mu_p_species_date_sq; // variation
+  vector[n_species_clusters] p_date_sq; // decay pattern of phenology
+  real epsilon0;
+  vector[n_regional_clusters] epsilon_regional_cluster;
   real<lower=0> sigma_p_species_date_sq; // community mean
-  real p_date_sq_latitude; // an effect of latitude on the effect of date^2
-  
+
 } // end parameters
 
 transformed parameters {
@@ -143,6 +139,8 @@ transformed parameters {
   vector[n_cities] phi_isolation;
   vector[n_species_clusters] p_species;
   vector[n_cities] p_city;
+  vector[n_species_clusters] mu_p_species_date; // community mean
+  vector[n_species_clusters] mu_p_species_date_sq; // variation
   
   // implies: xprocess_species ~ normal(mu_xprocess_species, sigma_xprocess_species)
   psi1_species = sigma_psi1_species * psi1_species_raw;
@@ -163,7 +161,12 @@ transformed parameters {
   p_species = sigma_p_species * p_species_raw;
   p_city = p0 + sigma_p_city * p_city_raw;
   
+  
   for(r in 1:R){
+  
+    mu_p_species_date[species_cluster_id_vector[r]] = delta0 + delta_regional_cluster[regional_cluster_id_vector[r]];
+    mu_p_species_date_sq[species_cluster_id_vector[r]] = epsilon0 + epsilon_regional_cluster[regional_cluster_id_vector[r]];
+
   
         psi1[r] = inv_logit( // probability (0-1) of occurrence in year 1 is equal to..
           psi1_city[city_id_vector[r]] +
@@ -201,10 +204,8 @@ transformed parameters {
             p_wingspan * wingspan[species_integer_vector[r]] + // a species effect of wingspan
             p_feature_diversity * feature_diversity[species_integer_vector[r]] + // a species effect of feature diversity
             p_ease_of_id * ease_of_id[species_integer_vector[r]] + // a species effect of ease of identification
-            p_date[species_integer_vector[r]] * surveys[l] + // a species-specific phenological detection effect (peak)
-            p_date_latitude * latitude[multicity_site_id_vector[r]] * surveys[l] + // an interactive effect of latitude on phenological detection effect (peak)
-            p_date_sq[species_integer_vector[r]] * (surveys[l])^2 + // a species-specific phenological detection effect (decay)
-            p_date_sq_latitude * latitude[multicity_site_id_vector[r]] * (surveys[l])^2 // an interactive effect of latitude on phenological detection effect (decay)
+            p_date[species_cluster_id_vector[r]] * surveys[l] + // a species-specific phenological detection effect (peak)
+            p_date_sq[species_cluster_id_vector[r]] * (surveys[l])^2 // a species-specific phenological detection effect (decay)
             ); // end p[j,k,l]
             
         } // end loop across all surveys
@@ -240,7 +241,7 @@ model {
   // initial state
   psi1_0 ~ normal(0, 1); // initial occurrence intercept
   psi1_city_raw ~ std_normal();
-  sigma_psi1_city ~ normal(0, 0.25);
+  sigma_psi1_city ~ normal(0, 0.5);
   psi1_species_raw ~ std_normal();
   sigma_psi1_species ~ normal(0, 1);
   mu_psi1_wingspan ~ normal(0, 2);
@@ -256,7 +257,7 @@ model {
   // colonization
   gamma0 ~ normal(0, 1); // colonization intercept
   gamma_city_raw ~ std_normal();
-  sigma_gamma_city ~ normal(0, 0.25);
+  sigma_gamma_city ~ normal(0, 0.5);
   gamma_species_raw ~ std_normal();
   sigma_gamma_species ~ normal(0, 0.5);
   mu_gamma_wingspan ~ normal(0, 2);
@@ -272,7 +273,7 @@ model {
   // persistence
   phi0 ~ normal(0, 1); // global intercept
   phi_city_raw ~ std_normal();
-  sigma_phi_city ~ normal(0, 0.25);
+  sigma_phi_city ~ normal(0, 0.5);
   phi_species_raw ~ std_normal();
   sigma_phi_species ~ normal(0, 0.5);
   mu_phi_wingspan ~ normal(0, 2);
@@ -288,20 +289,22 @@ model {
   // detection
   p0 ~ normal(0, 1); // global intercept
   p_city_raw ~ std_normal();
-  sigma_p_city ~ normal(0, 0.25);
+  sigma_p_city ~ normal(0, 0.5);
   p_species_raw ~ std_normal();
   sigma_p_species ~ normal(0, 1);
   p_wingspan ~ normal(0, 2);
   p_feature_diversity ~ normal(0, 2);
   p_ease_of_id ~ normal(0, 2);
   p_date ~ normal(mu_p_species_date, sigma_p_species_date); // species-specific phenology (peak)
-  mu_p_species_date ~ normal(0, 2); // mean
+  //mu_p_species_date ~ normal(0, 2); // mean
+  delta0 ~ normal(0, 2); // community mean
+  delta_regional_cluster ~ normal(0, 1); // effect of region
   sigma_p_species_date ~ normal(0, 2); // variation
-  p_date_latitude ~ normal(0, 2); // effect of latitude on peak date
   p_date_sq ~ normal(mu_p_species_date_sq, sigma_p_species_date_sq); // species-specific phenology (decay)
-  mu_p_species_date_sq ~ normal(0, 1); // mean
+  //mu_p_species_date_sq ~ normal(0, 1); // mean
+  epsilon0 ~ normal(0, 1); // community mean
+  epsilon_regional_cluster ~ normal(0, 0.5); // effect of region
   sigma_p_species_date_sq ~ normal(0, 1); // variation
-  p_date_sq_latitude ~ normal(0, 2); // effect of latitude on date decay
 
   // LIKELIHOOD
   for(r in 1:R){ // for each potential species X site X year detection

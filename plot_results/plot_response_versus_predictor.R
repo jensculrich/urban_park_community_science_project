@@ -11,63 +11,41 @@ library(rstan)
 
 # select a region
 regions <- c(
-  "midwest",
   "northeast",
   "southeast",
-  "southeast_atlantic",
-  "southeast_texas",
-  "southwest"
+  "texas",
+  "california",
+  "all"
 )
 
-region <- regions[6]
+region <- regions[1]
 
 # list of city names
 
-# midwest
+# northeast
 if(region == regions[1]){
   city_names <- c(
-    "Chicago",
-    "Denver",
-    "Des_Moines",
-    "Detroit", 
-    "Minneapolis",
-    "St_Louis"
-  )
-}
-
-# northeast
-if(region == regions[2]){
-  city_names <- c(
     "Boston", 
+    "Chicago",
     "DC",
-    "NYC", 
+    "NYC",     
+    "Minneapolis",
     "Philadelphia"
   )
 }
 
 # southeast
+if(region == regions[2]){
+  city_names <- c(
+    "Atlanta",
+    "Charlotte",
+    #"DC",
+    "Raleigh"
+  )
+}
+
+# texas
 if(region == regions[3]){
-  city_names <- c(
-    "Atlanta",
-    "Charlotte",
-    "Dallas",
-    "Denton",
-    "Houston",
-    "Raleigh"
-  )
-}
-
-# southeast_atlantic
-if(region == regions[4]){
-  city_names <- c(
-    "Atlanta",
-    "Charlotte",
-    "Raleigh"
-  )
-}
-
-# southeast_texas
-if(region == regions[5]){
   city_names <- c(
     "Dallas",
     "Denton",
@@ -75,22 +53,42 @@ if(region == regions[5]){
   )
 }
 
-# southwest
-if(region == regions[6]){
+# california
+if(region == regions[4]){
   city_names <- c(
     "LA",
-    "Phoenix",
-    "Riverside",
     "SD",
     "SF"
   )
-} 
+}
+
+# all
+if(region == regions[5]){
+  city_names <- c(
+    "Atlanta",
+    "Boston", 
+    "Charlotte",
+    #"Chicago",
+    "Dallas",
+    #"DC",
+    #"Denton",
+    "Houston",
+    #"LA",
+    #"Minneapolis",
+    "NYC",     
+    "Philadelphia",
+    "Raleigh"
+    #"SD",
+    #"SF"
+  )
+}
+
 
 n_cities <- length(city_names)
 
 ## get param estimates from the region
 stan_out <- readRDS(paste0(
-  "./model_outputs/stan_out_", region, ".rds"))
+  "./model_outputs/stan_out_", region, "2.rds"))
 tmp <- as.data.frame(stan_out) # take estimates from each HMC step as a df
 #n_samp <- 10 # how many samples do we have from the HMC run?
 n_samp <- length(tmp[,1]) # how many samples do we have from the HMC run?
@@ -336,10 +334,10 @@ q <- ggplot(data = new_df, aes(x=park_size_original_ordered, y=mean, colour=city
                      labels = scales::percent 
   ) +
   scale_color_manual(values=c("#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
-                                        "#1a5acd", "#E69F90", "#FFFF00")) + 
+                                        "#1a5acd", "#E69F90", "#FFFF00", "#D90A99")) + 
                                           
   scale_fill_manual(values=c("#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
-                                     "#1a5acd", "#E69F90", "#FFFF00")) + 
+                                     "#1a5acd", "#E69F90", "#FFFF00", "#D90A99")) + 
                                        
   theme(#legend.position = "none",
         axis.text.x = element_text(size = 18),
@@ -565,10 +563,10 @@ s <- ggplot(data = new_df, aes(x=park_isolation_original_ordered, y=mean, colour
                      labels = scales::percent 
   ) +
   scale_color_manual(values=c("#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
-                                       "#1a5acd", "#E69F90", "#FFFF00")) + 
+                                       "#1a5acd", "#E69F90", "#FFFF00", "#D90A99")) + 
                                          
   scale_fill_manual(values=c("#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
-                                      "#1a5acd", "#E69F90", "#FFFF00")) + 
+                                      "#1a5acd", "#E69F90", "#FFFF00", "#D90A99")) + 
                                         
   theme(#legend.position = "none",
     axis.text.x = element_text(size = 18),
