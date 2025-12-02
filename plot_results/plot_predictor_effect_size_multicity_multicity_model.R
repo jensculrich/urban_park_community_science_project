@@ -67,16 +67,16 @@ if(region == regions[5]){
     "Atlanta",
     "Boston", 
     "Charlotte",
-    #"Chicago",
-    "Dallas",
-    #"DC",
+    "Chicago",
+    #"Dallas",
+    "DC",
     #"Denton",
-    "Houston",
+    #"Houston",
     #"LA",
-    #"Minneapolis",
+    "Minneapolis",
     "NYC",     
-    "Philadelphia",
-    "Raleigh"
+    "Philadelphia"#,
+    #"Raleigh",
     #"SD",
     #"SF"
   )
@@ -89,6 +89,8 @@ n_regions <- length(region)
 # handy for viewing column numbers
 # this line of code won't work until you've actually read in a stan fit object
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
+
+my_palette <- c("black", viridis::viridis(n=n_cities, option = "turbo"))
 
 #-------------------------------------------------------------------------------
 # initial occurrence (psi1)
@@ -126,7 +128,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region, ".rds"))
+    "./model_outputs/stan_out_", region, "2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -272,10 +274,9 @@ p <- ggplot(df_estimates) +
                              bquote(psi["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-3, 3), breaks = c(-6, -4, -2, 0, 2, 4, 6, 8)) +
+                      limits = c(-3.5, 3.5), breaks = c(-6, -4, -2, 0, 2, 4, 6, 8)) +
    guides(color = guide_legend(title = "city")) +
-   scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
-                                      "#1a5acd", "#E69F90", "#FFFF00")) + 
+   scale_color_manual(values=my_palette) + 
    geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("Initial Occurrence") +
    theme(plot.title = element_text(size = 18, face = "bold"),
@@ -336,7 +337,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region, ".rds"))
+    "./model_outputs/stan_out_", region, "2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -468,8 +469,7 @@ q <- ggplot(df_estimates) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
                       limits = c(-8, 5), breaks = c(-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
-   scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
-                                      "#1a5acd", "#E69F90", "#FFFF00")) + 
+   scale_color_manual(values=my_palette) + 
                                         geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("Colonization") +
    theme(plot.title = element_text(size = 18, face = "bold"),
@@ -524,7 +524,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region, ".rds"))
+    "./model_outputs/stan_out_", region, "2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -654,10 +654,9 @@ r <- ggplot(df_estimates) +
                              bquote(phi["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-4, 7), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-3, 7), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
-   scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
-                                      "#1a5acd", "#E69F90", "#FFFF00")) + 
+   scale_color_manual(values=my_palette) + 
                                         geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("Persistence") +
    theme(plot.title = element_text(size = 18, face = "bold"),
@@ -712,7 +711,7 @@ for(i in 1:n_regions){
   city_name <- rep(cities, each=(params)) 
   
   stan_out <- readRDS(paste0(
-    "./model_outputs/stan_out_", region, ".rds"))
+    "./model_outputs/stan_out_", region, "2.rds"))
   fit_summary <- rstan::summary(stan_out)
   estimates <- as.data.frame(fit_summary)
   
@@ -721,35 +720,66 @@ for(i in 1:n_regions){
   p_wingspan <- which( rownames(estimates)=="p_wingspan" )
   p_feature_diversity <- which( rownames(estimates)=="p_feature_diversity" )
   p_ease_of_id <- which( rownames(estimates)=="p_ease_of_id" )
-  mu_p_species_date <- which( rownames(estimates)=="mu_p_species_date" )
-  mu_p_species_date_sq <- which( rownames(estimates)=="mu_p_species_date_sq" )
+  delta0 <- which( rownames(estimates)=="delta0" )
+  epsilon0 <- which( rownames(estimates)=="epsilon0" )
+  first_delta_regional_cluster <- which( rownames(estimates)=="delta_regional_cluster[1]" )
+  first_epsilon_regional_cluster <- which( rownames(estimates)=="epsilon_regional_cluster[1]" )
   first_p_city <- which( rownames(estimates)=="p_city[1]" )
+  
+  #"Atlanta", 3
+  #"Boston", 2
+  #"Charlotte", 3
+  #"Chicago", 1
+  #"Dallas",
+  #"DC", 2
+  #"Denton",
+  #"Houston",
+  #"LA",
+  #"Minneapolis", 1
+  #"NYC", 2    
+  #"Philadelphia", 2
+  #"Raleigh",
+  #"SD",
+  #"SF"
+  regional_cluster <- c(3,2,3,1,2,1,2,2)
   
   for(j in 1:(n_cities-1)){
     
     city <- cities[j]
     
+    regionl_cluster_of_city <- regional_cluster[j]
+    
     index_lower <- 1 + ((j-1) * params)
     index_upper <- 1 + ((j-1) * params) + (params - 1)
     
     Y[index_lower:index_upper] <- c(
-      fit_summary$summary[first_p_city+(j-1),1] # p - intercept
+      fit_summary$summary[first_p_city+(j-1),1], # p - intercept
+      fit_summary$summary[first_delta_regional_cluster+(regionl_cluster_of_city-1),1],
+      fit_summary$summary[first_epsilon_regional_cluster+(regionl_cluster_of_city-1),1]
     )
     
     lower_95[index_lower:index_upper] <- c(
-      fit_summary$summary[first_p_city+(j-1),4] # p - intercept
+      fit_summary$summary[first_p_city+(j-1),4], # p - intercept
+      fit_summary$summary[first_delta_regional_cluster+(regionl_cluster_of_city-1),4],
+      fit_summary$summary[first_epsilon_regional_cluster+(regionl_cluster_of_city-1),4]
     )
     
     upper_95[index_lower:index_upper] <- c(
-      fit_summary$summary[first_p_city+(j-1),8] # p - intercept
+      fit_summary$summary[first_p_city+(j-1),8], # p - intercept
+      fit_summary$summary[first_delta_regional_cluster+(regionl_cluster_of_city-1),8],
+      fit_summary$summary[first_epsilon_regional_cluster+(regionl_cluster_of_city-1),8]
     )
     
     lower_50[index_lower:index_upper] <- c(
-      fit_summary$summary[first_p_city+(j-1),5] # p - intercept
+      fit_summary$summary[first_p_city+(j-1),5], # p - intercept
+      fit_summary$summary[first_delta_regional_cluster+(regionl_cluster_of_city-1),5],
+      fit_summary$summary[first_epsilon_regional_cluster+(regionl_cluster_of_city-1),5]
     )
     
     upper_50[index_lower:index_upper] <- c(
-      fit_summary$summary[first_p_city+(j-1),7] # p - intercept
+      fit_summary$summary[first_p_city+(j-1),7], # p - intercept
+      fit_summary$summary[first_delta_regional_cluster+(regionl_cluster_of_city-1),7],
+      fit_summary$summary[first_epsilon_regional_cluster+(regionl_cluster_of_city-1),7]
     )
     
   }
@@ -766,8 +796,8 @@ for(i in 1:n_regions){
       fit_summary$summary[p_wingspan,1],
       fit_summary$summary[p_feature_diversity,1],
       fit_summary$summary[p_ease_of_id,1],
-      fit_summary$summary[mu_p_species_date,1],
-      fit_summary$summary[mu_p_species_date_sq,1]
+      fit_summary$summary[delta0,1],
+      fit_summary$summary[epsilon0,1]
     )
     
     lower_95[index_lower:index_upper] <- c(
@@ -775,8 +805,8 @@ for(i in 1:n_regions){
       fit_summary$summary[p_wingspan,4],
       fit_summary$summary[p_feature_diversity,4],
       fit_summary$summary[p_ease_of_id,4],
-      fit_summary$summary[mu_p_species_date,4],
-      fit_summary$summary[mu_p_species_date_sq,4]
+      fit_summary$summary[delta0,4],
+      fit_summary$summary[epsilon0,4]
     )
     
     upper_95[index_lower:index_upper] <- c(
@@ -784,8 +814,8 @@ for(i in 1:n_regions){
       fit_summary$summary[p_wingspan,8],
       fit_summary$summary[p_feature_diversity,8],
       fit_summary$summary[p_ease_of_id,8],
-      fit_summary$summary[mu_p_species_date,8],
-      fit_summary$summary[mu_p_species_date_sq,8]
+      fit_summary$summary[delta0,8],
+      fit_summary$summary[epsilon0,8]
     )
     
     lower_50[index_lower:index_upper] <- c(
@@ -793,8 +823,8 @@ for(i in 1:n_regions){
       fit_summary$summary[p_wingspan,5],
       fit_summary$summary[p_feature_diversity,5],
       fit_summary$summary[p_ease_of_id,5],
-      fit_summary$summary[mu_p_species_date,5],
-      fit_summary$summary[mu_p_species_date_sq,5]
+      fit_summary$summary[delta0,5],
+      fit_summary$summary[epsilon0,5]
     )
     
     upper_50[index_lower:index_upper] <- c(
@@ -802,8 +832,8 @@ for(i in 1:n_regions){
       fit_summary$summary[p_wingspan,7],
       fit_summary$summary[p_feature_diversity,7],
       fit_summary$summary[p_ease_of_id,7],
-      fit_summary$summary[mu_p_species_date,7],
-      fit_summary$summary[mu_p_species_date_sq,7]
+      fit_summary$summary[delta0,7],
+      fit_summary$summary[epsilon0,7]
     )
     
   }
@@ -821,6 +851,7 @@ for(i in 1:n_regions){
   
 }
 
+
 df_estimates$city_name <- fct_relevel(df_estimates$city_name, region_name)
 
 df_estimates1 <- df_estimates %>%
@@ -828,7 +859,20 @@ df_estimates1 <- df_estimates %>%
   
 df_estimates2 <- df_estimates %>%
   filter(city_name != region_name) %>%
-  filter(X == "1")
+  # filter(X == "1")
+  filter(X %in% c(1, 5, 6))
+
+temp <- df_estimates1 %>%
+  filter(X %in% c(1, 5, 6))
+
+df_estimates2 <- left_join(df_estimates2, temp, by = "X") %>%
+  mutate(Y = ifelse(X %in% c(5, 6), (Y.x + Y.y), Y.x),
+         lower_95 = ifelse(X %in% c(5, 6), (lower_95.x + lower_95.y), lower_95.x),
+         upper_95 = ifelse(X %in% c(5, 6), (upper_95.x + upper_95.y), upper_95.x),
+         lower_50 = ifelse(X %in% c(5, 6), (lower_50.x + lower_50.y), lower_50.x),
+         upper_50 = ifelse(X %in% c(5, 6), (upper_50.x + upper_50.y), upper_50.x)) %>%
+  rename("city_name" = "city_name.x") %>%
+  select(X, city_name, Y, lower_95, upper_95, lower_50, upper_50)
 
 df_estimates <- rbind(df_estimates1, df_estimates2)
 
@@ -848,8 +892,7 @@ s <- ggplot(df_estimates) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
                       limits = c(-4, 3), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
-   scale_color_manual(values=c("black", "#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
-                                      "#1a5acd", "#E69F90", "#FFFF00")) + 
+   scale_color_manual(values=my_palette) + 
                                         geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("Detection") +
    theme(plot.title = element_text(size = 18, face = "bold"),

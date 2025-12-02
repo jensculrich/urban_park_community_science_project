@@ -19,17 +19,17 @@ if(region == regions[5]){
     "Boston", 
     "Charlotte",
     "Chicago",
-    "Dallas",
+    #"Dallas",
     "DC",
-    "Denton",
-    "Houston",
-    "LA",
+    #"Denton",
+    #"Houston",
+    #"LA",
     "Minneapolis",
     "NYC",     
-    "Philadelphia",
-    "Raleigh",
-    "SD",
-    "SF"
+    "Philadelphia"#,
+    #"Raleigh",
+    #"SD",
+    #"SF"
   )
 }
 
@@ -171,11 +171,11 @@ params <- c(
   "p_wingspan",
   "p_feature_diversity",
   "p_ease_of_id",
-  "mu_p_species_date",
+  #"mu_p_species_date",
   "delta0",
   "delta_regional_cluster",
   "sigma_p_species_date",
-  "mu_p_species_date_sq",
+  #"mu_p_species_date_sq",
   "epsilon0",
   "epsilon_regional_cluster",
   "sigma_p_species_date_sq",
@@ -385,9 +385,9 @@ traceplot(stan_out, pars = c(
   "p_wingspan",
   "p_feature_diversity",
   "p_ease_of_id",
-  "mu_p_species_date",
+  #"mu_p_species_date",
   "sigma_p_species_date",
-  "mu_p_species_date_sq",
+  #"mu_p_species_date_sq",
   "sigma_p_species_date_sq"
 ))
 

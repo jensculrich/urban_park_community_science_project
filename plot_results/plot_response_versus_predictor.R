@@ -14,11 +14,11 @@ regions <- c(
   "northeast",
   "southeast",
   "texas",
-  "california",
+  "southwest",
   "all"
 )
 
-region <- regions[1]
+region <- regions[4]
 
 # list of city names
 
@@ -68,16 +68,16 @@ if(region == regions[5]){
     "Atlanta",
     "Boston", 
     "Charlotte",
-    #"Chicago",
-    "Dallas",
-    #"DC",
+    "Chicago",
+    #"Dallas",
+    "DC",
     #"Denton",
-    "Houston",
+    #"Houston",
     #"LA",
-    #"Minneapolis",
+    "Minneapolis",
     "NYC",     
-    "Philadelphia",
-    "Raleigh"
+    "Philadelphia"#,
+    #"Raleigh",
     #"SD",
     #"SF"
   )
@@ -95,7 +95,7 @@ n_samp <- length(tmp[,1]) # how many samples do we have from the HMC run?
 
 # handy for viewing column numbers
 fit_summary <- rstan::summary(stan_out)
-View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
+#View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
 
 ## get data from region
 df <- readRDS( paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))$site_data
@@ -106,6 +106,8 @@ pred_length <- nrow(df)
 ## ilogit and logit functions
 ilogit <- function(x) exp(x)/(1+exp(x))
 logit <- function(x) log(x/(1-x))
+
+my_palette <- viridis::viridis(n=n_cities, option = "turbo")
 
 #-------------------------------------------------------------------------------
 # get some prediction data
@@ -317,12 +319,12 @@ new_df <- as.data.frame(cbind(new_df$city_names, new_df$site, quants)) %>%
 
 # plot the relationships
 q <- ggplot(data = new_df, aes(x=park_size_original_ordered, y=mean, colour=city)) +
-  #geom_ribbon(aes(
-    #ymin=lower_50, 
-    #ymax=upper_50, fill=city), alpha=0.8) +
   geom_ribbon(aes(
-    ymin=lower_90, 
-    ymax=upper_90, fill=city), alpha=0.2) +
+    ymin=lower_50, 
+    ymax=upper_50, fill=city), alpha=0.3) +
+  #geom_ribbon(aes(
+    #ymin=lower_90, 
+    #ymax=upper_90, fill=city), alpha=0.2) +
   geom_line(size=3, lty=1) +
   xlim(c(min(park_size_original_ordered), max(park_size_original_ordered))) +
   ylim(c(0, 1)) +
@@ -333,11 +335,9 @@ q <- ggplot(data = new_df, aes(x=park_size_original_ordered, y=mean, colour=city
                      breaks = c(0, 0.5, 1),
                      labels = scales::percent 
   ) +
-  scale_color_manual(values=c("#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
-                                        "#1a5acd", "#E69F90", "#FFFF00", "#D90A99")) + 
+  scale_color_manual(values=my_palette) + 
                                           
-  scale_fill_manual(values=c("#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
-                                     "#1a5acd", "#E69F90", "#FFFF00", "#D90A99")) + 
+  scale_fill_manual(values=my_palette) + 
                                        
   theme(#legend.position = "none",
         axis.text.x = element_text(size = 18),
@@ -347,6 +347,7 @@ q <- ggplot(data = new_df, aes(x=park_size_original_ordered, y=mean, colour=city
         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"))
 q
+
 
 #-------------------------------------------------------------------------------
 # cowplot
@@ -546,12 +547,12 @@ new_df <- as.data.frame(cbind(new_df$city_names, new_df$site, quants)) %>%
 ## Draw multicity plot
 
 s <- ggplot(data = new_df, aes(x=park_isolation_original_ordered, y=mean, colour=city)) +
-  #geom_ribbon(aes(
-  #ymin=lower_50, 
-  #ymax=upper_50, fill=city), alpha=0.8) +
   geom_ribbon(aes(
-    ymin=lower_90, 
-    ymax=upper_90, fill=city), alpha=0.2) +
+    ymin=lower_50, 
+    ymax=upper_50, fill=city), alpha=0.3) +
+  #geom_ribbon(aes(
+    #ymin=lower_90, 
+    #ymax=upper_90, fill=city), alpha=0.2) +
   geom_line(size=3, lty=1) +
   xlim(c(min(park_isolation_original_ordered), max(park_isolation_original_ordered))) +
   ylim(c(0, 1)) +
@@ -562,11 +563,9 @@ s <- ggplot(data = new_df, aes(x=park_isolation_original_ordered, y=mean, colour
                      breaks = c(0, 0.5, 1),
                      labels = scales::percent 
   ) +
-  scale_color_manual(values=c("#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
-                                       "#1a5acd", "#E69F90", "#FFFF00", "#D90A99")) + 
+  scale_color_manual(values=my_palette) + 
                                          
-  scale_fill_manual(values=c("#E69F00", "#D12F00", "#56B4E9", "#99A4E9", 
-                                      "#1a5acd", "#E69F90", "#FFFF00", "#D90A99")) + 
+  scale_fill_manual(values=my_palette) + 
                                         
   theme(#legend.position = "none",
     axis.text.x = element_text(size = 18),
