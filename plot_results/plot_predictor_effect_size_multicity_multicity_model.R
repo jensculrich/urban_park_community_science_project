@@ -10,56 +10,12 @@ library(rstan)
 
 # select a region
 regions <- c(
-  "northeast",
-  "southeast",
-  "texas",
-  "california",
   "all"
 )
 
-region <- regions[5]
+region <- regions[1]
 
 # list of city names
-
-# northeast
-if(region == regions[1]){
-  city_names <- c(
-    "Boston", 
-    "Chicago",
-    "DC",
-    "NYC",     
-    "Minneapolis",
-    "Philadelphia"
-  )
-}
-
-# southeast
-if(region == regions[2]){
-  city_names <- c(
-    "Atlanta",
-    "Charlotte",
-    #"DC",
-    "Raleigh"
-  )
-}
-
-# texas
-if(region == regions[3]){
-  city_names <- c(
-    "Dallas",
-    "Denton",
-    "Houston"
-  )
-}
-
-# california
-if(region == regions[4]){
-  city_names <- c(
-    "LA",
-    "SD",
-    "SF"
-  )
-}
 
 # all
 if(region == regions[5]){
@@ -890,7 +846,7 @@ s <- ggplot(df_estimates) +
                              bquote(p["phenology decay"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-4, 3), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-4, 4), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=my_palette) + 
                                         geom_hline(yintercept = 0, lty = "dashed") +

@@ -13,8 +13,7 @@ regions <- c(
   "northeast",
   "southeast",
   "texas",
-  "california",
-  "all"
+  "california"
 )
 
 region <- regions[1]
@@ -60,28 +59,6 @@ if(region == regions[4]){
     "SF"
   )
 }
-
-# all
-if(region == regions[5]){
-  city_names <- c(
-    "Atlanta",
-    "Boston", 
-    "Charlotte",
-    "Chicago",
-    #"Dallas",
-    "DC",
-    #"Denton",
-    #"Houston",
-    #"LA",
-    "Minneapolis",
-    "NYC",     
-    "Philadelphia"#,
-    #"Raleigh",
-    #"SD",
-    #"SF"
-  )
-}
-
 
 n_cities <- length(city_names)
 n_regions <- length(region)

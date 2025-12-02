@@ -14,7 +14,7 @@ regions <- c(
   "northeast",
   "southeast",
   "texas",
-  "southwest",
+  "california",
   "all"
 )
 

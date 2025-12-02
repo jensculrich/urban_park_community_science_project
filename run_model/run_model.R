@@ -52,28 +52,6 @@ if(region == regions[4]){
   )
 }
 
-# all
-if(region == regions[5]){
-  city_names <- c(
-    "Atlanta",
-    "Boston", 
-    "Charlotte",
-    #"Chicago",
-    "Dallas",
-    #"DC",
-    #"Denton",
-    "Houston",
-    #"LA",
-    #"Minneapolis",
-    "NYC",     
-    "Philadelphia",
-    "Raleigh"
-    #"SD",
-    #"SF"
-  )
-}
-
-
 # or choose one city
 # city_names <- "Philadelphia"
 
