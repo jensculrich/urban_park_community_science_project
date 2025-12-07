@@ -19,17 +19,17 @@ if(region == regions[5]){
     "Boston", 
     "Charlotte",
     "Chicago",
-    #"Dallas",
+    "Dallas",
     "DC",
-    #"Denton",
-    #"Houston",
-    #"LA",
+    "Denton",
+    "Houston",
+    "LA",
     "Minneapolis",
     "NYC",     
-    "Philadelphia"#,
-    #"Raleigh",
-    #"SD",
-    #"SF"
+    "Philadelphia",
+    "Raleigh",
+    "SD",
+    "SF"
   )
 }
 
@@ -114,8 +114,9 @@ regional_cluster_id_vector <- my_data$region_cluster_integer_vector
 n_regional_clusters <- length(unique(regional_cluster_id_vector))
 
 # plot
+library(tidyverse)
 ggplot(site_data, aes(
-  x = log_total_green_space_area_scaled_across_all_cities, y = log_isolation_scaled_across_all_cities, colour = city)) +
+  x = log_total_green_space_area, y = log(isolation), colour = city)) +
   geom_point()
 
 
@@ -217,16 +218,28 @@ inits <- lapply(1:n_chains, function(i)
   
   list(psi1_0 = runif(1, -1, 1),
        sigma_psi1_species = runif(1, 1, 2),
+       sigma_psi1_city = runif(1, 0, 1),
+       sigma_psi1_wingspan = runif(1, 0, 1),
+       sigma_psi1_park_size  = runif(1, 0, 1),
+       sigma_psi1_isolation  = runif(1, 0, 1),
        psi1_wingspan = runif(1, -1, 1),
        mu_psi1_park_size = runif(1, 0, 1),
        gamma0 = runif(1, -3, -2),
+       sigma_gamma_species = runif(1, 0, 1),
+       sigma_gamma_city = runif(1, 0, 1),
+       sigma_gamma_wingspan = runif(1, 0, 1),
+       sigma_gamma_park_size = runif(1, 0, 1),
+       sigma_gamma_isolation = runif(1, 0, 1),
        gamma_wingspan = runif(1, 1, 2),
        mu_gamma_park_size = runif(1, 0, 1),
-       #gamma_isolation = runif(1, -2, -1),
        phi0 = runif(1, 2, 3),
+       sigma_phi_species= runif(1, 0, 1),
+       sigma_phi_city= runif(1, 0, 1),
+       sigma_phi_wingspan= runif(1, 0, 1),
+       sigma_phi_park_size= runif(1, 0, 1),
+       sigma_phi_isolation= runif(1, 0, 1),
        phi_wingspan = runif(1, -1, 0),
        mu_phi_park_size = runif(1, 0, 1),
-       #phi_isolation = runif(1, 1, 2),
        p0 = runif(1, -1, 1),
        sigma_p_species = runif(1, 1, 2),
        sigma_p_city = runif(1, 0, 1),
@@ -264,7 +277,7 @@ stan_out <- stan(stan_model,
 saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "3.rds"))
 
 # read old data
-#stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, ".rds"))
+#stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, "_dec5.rds"))
 
 # print outputs
 print(stan_out, digits = 3, 

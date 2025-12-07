@@ -8,7 +8,7 @@ regions <- c(
   "all"
 )
 
-region <- regions[5]
+region <- regions[2]
 
 # list of city names
 
@@ -55,7 +55,7 @@ if(region == regions[4]){
 # or choose one city
 # city_names <- "Philadelphia"
 
-min_species_detections <- 5 # binary park/year/species detections
+min_species_detections <- 2 # binary park/year/species detections
 min_site_years_w_detection <- 2 # remove parks never surveyed across repeat years
 min_species_for_community_sampling_event <- 1 # if 1 species detected, any other species in same fam could have been 
 family_sampling <- TRUE # Should enter either TRUE or FALSE 
@@ -115,7 +115,7 @@ wingspan <- species_info$aveWingspan_scaled
 # site
 park_size <- site_data$log_total_green_space_area_scaled_across_all_cities # scaled_2 is scaled to only parks being modeled
 isolation <- site_data$log_isolation_scaled_across_all_cities # scaled_2 is scaled to only parks being modeled
-latitude <- center_scale(site_data$latitude)
+#latitude <- center_scale(site_data$latitude)
 city <- as.integer(as.factor(unique(site_data$city)))
 n_cities <- length(unique(city))
 
@@ -131,8 +131,6 @@ city_id_vector <- my_data$city_id_vector
 site_survey_year_vector <- my_data$site_survey_year_vector
 prev_index_vector <- my_data$prev_index_vector
 confirmed_occurrence <- my_data$confirmed_occurrence
-species_cluster_id_vector <- my_data$species_cluster_integer_vector
-n_species_clusters <- length(unique(species_cluster_id_vector))
 
 # plot
 ggplot(site_data, aes(
@@ -147,8 +145,7 @@ stan_data <- c("R", "n_surveys", "surveys",
                "n_cities","city", "city_id_vector",
                "feature_diversity", "ease_of_id", "wingspan",
                "park_size", "isolation", "latitude",
-               "confirmed_occurrence", "prev_index_vector", 
-               "species_cluster_id_vector", "n_species_clusters"
+               "confirmed_occurrence", "prev_index_vector"
                
 ) 
 
@@ -193,11 +190,9 @@ params <- c(
   "p_ease_of_id",
   "mu_p_species_date",
   "sigma_p_species_date",
-  #"p_date_latitude",
   "mu_p_species_date_sq",
   "sigma_p_species_date_sq",
-  #"p_date_sq_latitude",
-  
+
   # city effects
   "psi1_city",
   "psi1_wingspan",
@@ -264,7 +259,7 @@ inits <- lapply(1:n_chains, function(i)
 
 # choose a model
 #stan_model <- "./models/dynamic_occupancy_model.stan"
-stan_model <- "./models/dynamic_occupancy_model_all_cities.stan"
+stan_model <- "./models/dynamic_occupancy_model_vectors.stan"
 
 ## Call Stan from R
 stan_out <- stan(stan_model,

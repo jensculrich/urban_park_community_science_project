@@ -1,7 +1,7 @@
 # plot effects of predictors on occurrence and detection
 
 library(tidyverse)
-library(cmdstanr)
+library(rstan)
 
 # enter the region/regions you want to plot
 # currently I think this will only work if you enter one single region,
@@ -24,17 +24,17 @@ if(region == regions[5]){
     "Boston", 
     "Charlotte",
     "Chicago",
-    "Dallas",
+    #"Dallas",
     "DC",
-    "Denton",
-    "Houston",
-    "LA",
+    #"Denton",
+    #"Houston",
+    #"LA",
     "Minneapolis",
     "NYC",     
-    "Philadelphia",
-    "Raleigh",
-    "SD",
-    "SF"
+    "Philadelphia"#,
+    #"Raleigh",
+    #"SD",
+    #"SF"
   )
 }
 
@@ -42,80 +42,9 @@ if(region == regions[5]){
 n_cities <- length(city_names)
 n_regions <- length(region)
 
-## get param estimates from the region
-stan_out <- readRDS(
-  "./model_outputs/stan_out_dec7.rds")
-
-# summarise all variables with default and additional summary measures
-estimates <- as.data.frame(stan_out$summary(
-  variables = c(
-    "psi1_0", 
-    "sigma_psi1_species",
-    "sigma_psi1_city",
-    "mu_psi1_wingspan",
-    "sigma_psi1_wingspan",
-    "mu_psi1_park_size",
-    "sigma_psi1_park_size",
-    "mu_psi1_isolation",
-    "sigma_psi1_isolation",
-    
-    "gamma0", 
-    "sigma_gamma_species",
-    "sigma_gamma_city",
-    "mu_gamma_wingspan",
-    "sigma_gamma_wingspan",
-    "mu_gamma_park_size",
-    "sigma_gamma_park_size",
-    "mu_gamma_isolation",
-    "sigma_gamma_isolation",
-    
-    "phi0", 
-    "sigma_phi_species",
-    "sigma_phi_city",
-    "mu_phi_wingspan",
-    "sigma_phi_wingspan",
-    "mu_phi_park_size",
-    "sigma_phi_park_size",
-    "mu_phi_isolation",
-    "sigma_phi_isolation",
-    
-    "p0", 
-    "sigma_p_species",
-    "sigma_p_city",
-    "p_wingspan",
-    "p_feature_diversity",
-    "p_ease_of_id",
-    "delta0",
-    "delta_regional_cluster",
-    "sigma_p_species_date",
-    "epsilon0",
-    "epsilon_regional_cluster",
-    "sigma_p_species_date_sq",
-    
-    # city effects
-    "psi1_city",
-    "psi1_wingspan",
-    "psi1_park_size",
-    "psi1_isolation",
-    "gamma_city",
-    "gamma_wingspan",
-    "gamma_park_size",
-    "gamma_isolation",
-    "phi_city",
-    "phi_wingspan",
-    "phi_park_size",
-    "phi_isolation",
-    "p_city"),
-  
-  posterior::default_summary_measures(),
-  extra_quantiles = ~posterior::quantile2(., probs = c(0.25, .75))
-))
-
-rownames(estimates) <- estimates[, 1]
-
 # handy for viewing column numbers
 # this line of code won't work until you've actually read in a stan fit object
-#View(cbind(1:nrow(estimates), estimates)) # View to see which row corresponds to the parameter of interest
+View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
 
 my_palette <- c("black", viridis::viridis(n=n_cities, option = "turbo"))
 
@@ -154,6 +83,11 @@ for(i in 1:n_regions){
   # repeated for each param of interest. and repeated for all cities in region
   city_name <- rep(cities, each=(params)) 
   
+  stan_out <- readRDS(paste0(
+    "./model_outputs/stan_out_", region, "2.rds"))
+  fit_summary <- rstan::summary(stan_out)
+  estimates <- as.data.frame(fit_summary)
+  
   # get indices for species random effects distributions for particular city
   # by indexing the row with the mean city estimate (usually I call this param mu_...)
   # and the first city random effect (psi1_..._[1])
@@ -182,38 +116,38 @@ for(i in 1:n_regions){
     # using 50 and 95% because these are default values in stanfit summary
     # If you wanted to customize BCIs, transform the fit into a df and calculate desired quantiles.
     Y[index_lower:index_upper] <- c(
-      estimates[first_psi1_city+(j-1),2], # psi1 - intercept
-      estimates[first_psi1_wingspan+(j-1),2],  # psi1 - wingspan
-      estimates[first_psi1_parksize+(j-1),2],  # psi1 - park size
-      estimates[first_psi1_isolation+(j-1),2]  # psi1 - isolation
+      fit_summary$summary[first_psi1_city+(j-1),1], # psi1 - intercept
+      fit_summary$summary[first_psi1_wingspan+(j-1),1],  # psi1 - wingspan
+      fit_summary$summary[first_psi1_parksize+(j-1),1],  # psi1 - park size
+      fit_summary$summary[first_psi1_isolation+(j-1),1]  # psi1 - isolation
     )
     
     lower_95[index_lower:index_upper] <- c(
-      estimates[first_psi1_city+(j-1),6], # psi1 - intercept
-      estimates[first_psi1_wingspan+(j-1),6],  # psi1 - wingspan
-      estimates[first_psi1_parksize+(j-1),6],  # psi1 - park size
-      estimates[first_psi1_isolation+(j-1),6]  # psi1 - isolation
+      fit_summary$summary[first_psi1_city+(j-1),4], # psi1 - intercept
+      fit_summary$summary[first_psi1_wingspan+(j-1),4],  # psi1 - wingspan
+      fit_summary$summary[first_psi1_parksize+(j-1),4],  # psi1 - park size
+      fit_summary$summary[first_psi1_isolation+(j-1),4]  # psi1 - isolation
     )
     
     upper_95[index_lower:index_upper] <- c(
-      estimates[first_psi1_city+(j-1),7], # psi1 - intercept
-      estimates[first_psi1_wingspan+(j-1),7],  # psi1 - wingspan
-      estimates[first_psi1_parksize+(j-1),7],  # psi1 - park size
-      estimates[first_psi1_isolation+(j-1),7]  # psi1 - isolation
+      fit_summary$summary[first_psi1_city+(j-1),8], # psi1 - intercept
+      fit_summary$summary[first_psi1_wingspan+(j-1),8],  # psi1 - wingspan
+      fit_summary$summary[first_psi1_parksize+(j-1),8],  # psi1 - park size
+      fit_summary$summary[first_psi1_isolation+(j-1),8]  # psi1 - isolation
     )
     
     lower_50[index_lower:index_upper] <- c(
-      estimates[first_psi1_city+(j-1),8], # psi1 - intercept
-      estimates[first_psi1_wingspan+(j-1),8],  # psi1 - wingspan
-      estimates[first_psi1_parksize+(j-1),8],  # psi1 - park size
-      estimates[first_psi1_isolation+(j-1),8]  # psi1 - isolation
+      fit_summary$summary[first_psi1_city+(j-1),5], # psi1 - intercept
+      fit_summary$summary[first_psi1_wingspan+(j-1),5],  # psi1 - wingspan
+      fit_summary$summary[first_psi1_parksize+(j-1),5],  # psi1 - park size
+      fit_summary$summary[first_psi1_isolation+(j-1),5]  # psi1 - isolation
     )
     
     upper_50[index_lower:index_upper] <- c(
-      estimates[first_psi1_city+(j-1),9], # psi1 - intercept
-      estimates[first_psi1_wingspan+(j-1),9],  # psi1 - wingspan
-      estimates[first_psi1_parksize+(j-1),9],  # psi1 - park size
-      estimates[first_psi1_isolation+(j-1),9]  # psi1 - isolation
+      fit_summary$summary[first_psi1_city+(j-1),7], # psi1 - intercept
+      fit_summary$summary[first_psi1_wingspan+(j-1),7],  # psi1 - wingspan
+      fit_summary$summary[first_psi1_parksize+(j-1),7],  # psi1 - park size
+      fit_summary$summary[first_psi1_isolation+(j-1),7]  # psi1 - isolation
     )
     
   }
@@ -229,38 +163,38 @@ for(i in 1:n_regions){
     index_upper <- 1 + ((j-1) * params) + (params - 1)
     
     Y[index_lower:index_upper] <- c(
-      estimates[psi1_0,2], 
-      estimates[psi1_wingspan,2],
-      estimates[psi1_parksize,2],
-      estimates[psi1_isolation,2]
+      fit_summary$summary[psi1_0,1], 
+      fit_summary$summary[psi1_wingspan,1],
+      fit_summary$summary[psi1_parksize,1],
+      fit_summary$summary[psi1_isolation,1]
     )
     
     lower_95[index_lower:index_upper] <- c(
-      estimates[psi1_0,6], 
-      estimates[psi1_wingspan,6], 
-      estimates[psi1_parksize,6], 
-      estimates[psi1_isolation,6]
+      fit_summary$summary[psi1_0,4], 
+      fit_summary$summary[psi1_wingspan,4], 
+      fit_summary$summary[psi1_parksize,4], 
+      fit_summary$summary[psi1_isolation,4]
     )
     
     upper_95[index_lower:index_upper] <- c(
-      estimates[psi1_0,7],
-      estimates[psi1_wingspan,7],
-      estimates[psi1_parksize,7],
-      estimates[psi1_isolation,7]
+      fit_summary$summary[psi1_0,8],
+      fit_summary$summary[psi1_wingspan,8],
+      fit_summary$summary[psi1_parksize,8],
+      fit_summary$summary[psi1_isolation,8]
     )
     
     lower_50[index_lower:index_upper] <- c(
-      estimates[psi1_0,8],
-      estimates[psi1_wingspan,8],
-      estimates[psi1_parksize,8],
-      estimates[psi1_isolation,8]
+      fit_summary$summary[psi1_0,5],
+      fit_summary$summary[psi1_wingspan,5],
+      fit_summary$summary[psi1_parksize,5],
+      fit_summary$summary[psi1_isolation,5]
     )
     
     upper_50[index_lower:index_upper] <- c(
-      estimates[psi1_0,9],
-      estimates[psi1_wingspan,9],
-      estimates[psi1_parksize,9],
-      estimates[psi1_isolation,9]
+      fit_summary$summary[psi1_0,7],
+      fit_summary$summary[psi1_wingspan,7],
+      fit_summary$summary[psi1_parksize,7],
+      fit_summary$summary[psi1_isolation,7]
     )
     
   }
@@ -358,6 +292,11 @@ for(i in 1:n_regions){
   
   city_name <- rep(cities, each=(params)) 
   
+  stan_out <- readRDS(paste0(
+    "./model_outputs/stan_out_", region, "2.rds"))
+  fit_summary <- rstan::summary(stan_out)
+  estimates <- as.data.frame(fit_summary)
+  
   # get indices for species random effects distributions for particular city
   gamma0 <- which( rownames(estimates)=="gamma0" )
   gamma_wingspan <- which( rownames(estimates)=="mu_gamma_wingspan" )
@@ -376,38 +315,38 @@ for(i in 1:n_regions){
     index_upper <- 1 + ((j-1) * params) + (params - 1)
     
     Y[index_lower:index_upper] <- c(
-      estimates[first_gamma_city+(j-1),2], # gamma - intercept
-      estimates[first_gamma_wingspan+(j-1),2],  # gamma - wingspan
-      estimates[first_gamma_parksize+(j-1),2],  # gamma - park size
-      estimates[first_gamma_isolation+(j-1),2]  # gamma - isolation
+      fit_summary$summary[first_gamma_city+(j-1),1], # gamma - intercept
+      fit_summary$summary[first_gamma_wingspan+(j-1),1],  # gamma - wingspan
+      fit_summary$summary[first_gamma_parksize+(j-1),1],  # gamma - park size
+      fit_summary$summary[first_gamma_isolation+(j-1),1]  # gamma - isolation
     )
     
     lower_95[index_lower:index_upper] <- c(
-      estimates[first_gamma_city+(j-1),6], # gamma - intercept
-      estimates[first_gamma_wingspan+(j-1),6],  # gamma - wingspan
-      estimates[first_gamma_parksize+(j-1),6],  # gamma - park size
-      estimates[first_gamma_isolation+(j-1),6]  # gamma - isolation
+      fit_summary$summary[first_gamma_city+(j-1),4], # gamma - intercept
+      fit_summary$summary[first_gamma_wingspan+(j-1),4],  # gamma - wingspan
+      fit_summary$summary[first_gamma_parksize+(j-1),4],  # gamma - park size
+      fit_summary$summary[first_gamma_isolation+(j-1),4]  # gamma - isolation
     )
     
     upper_95[index_lower:index_upper] <- c(
-      estimates[first_gamma_city+(j-1),7], # gamma - intercept
-      estimates[first_gamma_wingspan+(j-1),7],  # gamma - wingspan
-      estimates[first_gamma_parksize+(j-1),7],  # gamma - park size
-      estimates[first_gamma_isolation+(j-1),7]  # gamma - isolation
+      fit_summary$summary[first_gamma_city+(j-1),8], # gamma - intercept
+      fit_summary$summary[first_gamma_wingspan+(j-1),8],  # gamma - wingspan
+      fit_summary$summary[first_gamma_parksize+(j-1),8],  # gamma - park size
+      fit_summary$summary[first_gamma_isolation+(j-1),8]  # gamma - isolation
     )
     
     lower_50[index_lower:index_upper] <- c(
-      estimates[first_gamma_city+(j-1),8], # gamma - intercept
-      estimates[first_gamma_wingspan+(j-1),8],  # gamma - wingspan
-      estimates[first_gamma_parksize+(j-1),8],  # gamma - park size
-      estimates[first_gamma_isolation+(j-1),8]  # gamma - isolation
+      fit_summary$summary[first_gamma_city+(j-1),5], # gamma - intercept
+      fit_summary$summary[first_gamma_wingspan+(j-1),5],  # gamma - wingspan
+      fit_summary$summary[first_gamma_parksize+(j-1),5],  # gamma - park size
+      fit_summary$summary[first_gamma_isolation+(j-1),5]  # gamma - isolation
     )
     
     upper_50[index_lower:index_upper] <- c(
-      estimates[first_gamma_city+(j-1),9], # gamma - intercept
-      estimates[first_gamma_wingspan+(j-1),9],  # gamma - wingspan
-      estimates[first_gamma_parksize+(j-1),9],  # gamma - park size
-      estimates[first_gamma_isolation+(j-1),9]  # gamma - isolation
+      fit_summary$summary[first_gamma_city+(j-1),7], # gamma - intercept
+      fit_summary$summary[first_gamma_wingspan+(j-1),7],  # gamma - wingspan
+      fit_summary$summary[first_gamma_parksize+(j-1),7],  # gamma - park size
+      fit_summary$summary[first_gamma_isolation+(j-1),7]  # gamma - isolation
     )
     
   }
@@ -420,38 +359,38 @@ for(i in 1:n_regions){
     index_upper <- 1 + ((j-1) * params) + (params - 1)
     
     Y[index_lower:index_upper] <- c(
-      estimates[gamma0,2], 
-      estimates[gamma_wingspan,2],
-      estimates[gamma_parksize,2],
-      estimates[gamma_isolation,2]
+      fit_summary$summary[gamma0,1], 
+      fit_summary$summary[gamma_wingspan,1],
+      fit_summary$summary[gamma_parksize,1],
+      fit_summary$summary[gamma_isolation,1]
     )
     
     lower_95[index_lower:index_upper] <- c(
-      estimates[gamma0,6], 
-      estimates[gamma_wingspan,6], 
-      estimates[gamma_parksize,6], 
-      estimates[gamma_isolation,6]
+      fit_summary$summary[gamma0,4], 
+      fit_summary$summary[gamma_wingspan,4], 
+      fit_summary$summary[gamma_parksize,4], 
+      fit_summary$summary[gamma_isolation,4]
     )
     
     upper_95[index_lower:index_upper] <- c(
-      estimates[gamma0,7],
-      estimates[gamma_wingspan,7],
-      estimates[gamma_parksize,7],
-      estimates[gamma_isolation,7]
+      fit_summary$summary[gamma0,8],
+      fit_summary$summary[gamma_wingspan,8],
+      fit_summary$summary[gamma_parksize,8],
+      fit_summary$summary[gamma_isolation,8]
     )
     
     lower_50[index_lower:index_upper] <- c(
-      estimates[gamma0,8],
-      estimates[gamma_wingspan,8],
-      estimates[gamma_parksize,8],
-      estimates[gamma_isolation,8]
+      fit_summary$summary[gamma0,5],
+      fit_summary$summary[gamma_wingspan,5],
+      fit_summary$summary[gamma_parksize,5],
+      fit_summary$summary[gamma_isolation,5]
     )
     
     upper_50[index_lower:index_upper] <- c(
-      estimates[gamma0,9],
-      estimates[gamma_wingspan,9],
-      estimates[gamma_parksize,9],
-      estimates[gamma_isolation,9]
+      fit_summary$summary[gamma0,7],
+      fit_summary$summary[gamma_wingspan,7],
+      fit_summary$summary[gamma_parksize,7],
+      fit_summary$summary[gamma_isolation,7]
     )
     
   }
@@ -484,7 +423,7 @@ q <- ggplot(df_estimates) +
                              bquote(gamma["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-12, 5), breaks = c(-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-8, 5), breaks = c(-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=my_palette) + 
                                         geom_hline(yintercept = 0, lty = "dashed") +
@@ -540,6 +479,11 @@ for(i in 1:n_regions){
   
   city_name <- rep(cities, each=(params)) 
   
+  stan_out <- readRDS(paste0(
+    "./model_outputs/stan_out_", region, "2.rds"))
+  fit_summary <- rstan::summary(stan_out)
+  estimates <- as.data.frame(fit_summary)
+  
   # get indices for species random effects distributions for particular city
   phi0 <- which( rownames(estimates)=="phi0" )
   phi_wingspan <- which( rownames(estimates)=="mu_phi_wingspan" )
@@ -558,38 +502,38 @@ for(i in 1:n_regions){
     index_upper <- 1 + ((j-1) * params) + (params - 1)
     
     Y[index_lower:index_upper] <- c(
-      estimates[first_phi_city+(j-1),2], # phi - intercept
-      estimates[first_phi_wingspan+(j-1),2],  # phi - wingspan
-      estimates[first_phi_parksize+(j-1),2],  # phi - park size
-      estimates[first_phi_isolation+(j-1),2]  # phi - isolation
+      fit_summary$summary[first_phi_city+(j-1),1], # phi - intercept
+      fit_summary$summary[first_phi_wingspan+(j-1),1],  # phi - wingspan
+      fit_summary$summary[first_phi_parksize+(j-1),1],  # phi - park size
+      fit_summary$summary[first_phi_isolation+(j-1),1]  # phi - isolation
     )
     
     lower_95[index_lower:index_upper] <- c(
-      estimates[first_phi_city+(j-1),6], # phi - intercept
-      estimates[first_phi_wingspan+(j-1),6],  # phi - wingspan
-      estimates[first_phi_parksize+(j-1),6],  # phi - park size
-      estimates[first_phi_isolation+(j-1),6]  # phi - isolation
+      fit_summary$summary[first_phi_city+(j-1),4], # phi - intercept
+      fit_summary$summary[first_phi_wingspan+(j-1),4],  # phi - wingspan
+      fit_summary$summary[first_phi_parksize+(j-1),4],  # phi - park size
+      fit_summary$summary[first_phi_isolation+(j-1),4]  # phi - isolation
     )
     
     upper_95[index_lower:index_upper] <- c(
-      estimates[first_phi_city+(j-1),7], # phi - intercept
-      estimates[first_phi_wingspan+(j-1),7],  # phi - wingspan
-      estimates[first_phi_parksize+(j-1),7],  # phi - park size
-      estimates[first_phi_isolation+(j-1),7]  # phi - isolation
+      fit_summary$summary[first_phi_city+(j-1),8], # phi - intercept
+      fit_summary$summary[first_phi_wingspan+(j-1),8],  # phi - wingspan
+      fit_summary$summary[first_phi_parksize+(j-1),8],  # phi - park size
+      fit_summary$summary[first_phi_isolation+(j-1),8]  # phi - isolation
     )
     
     lower_50[index_lower:index_upper] <- c(
-      estimates[first_phi_city+(j-1),8], # phi - intercept
-      estimates[first_phi_wingspan+(j-1),8],  # phi - wingspan
-      estimates[first_phi_parksize+(j-1),8],  # phi - park size
-      estimates[first_phi_isolation+(j-1),8]  # phi - isolation
+      fit_summary$summary[first_phi_city+(j-1),5], # phi - intercept
+      fit_summary$summary[first_phi_wingspan+(j-1),5],  # phi - wingspan
+      fit_summary$summary[first_phi_parksize+(j-1),5],  # phi - park size
+      fit_summary$summary[first_phi_isolation+(j-1),5]  # phi - isolation
     )
     
     upper_50[index_lower:index_upper] <- c(
-      estimates[first_phi_city+(j-1),9], # phi - intercept
-      estimates[first_phi_wingspan+(j-1),9],  # phi - wingspan
-      estimates[first_phi_parksize+(j-1),9],  # phi - park size
-      estimates[first_phi_isolation+(j-1),9]  # phi - isolation
+      fit_summary$summary[first_phi_city+(j-1),7], # phi - intercept
+      fit_summary$summary[first_phi_wingspan+(j-1),7],  # phi - wingspan
+      fit_summary$summary[first_phi_parksize+(j-1),7],  # phi - park size
+      fit_summary$summary[first_phi_isolation+(j-1),7]  # phi - isolation
     )
     
   }
@@ -602,38 +546,38 @@ for(i in 1:n_regions){
     index_upper <- 1 + ((j-1) * params) + (params - 1)
     
     Y[index_lower:index_upper] <- c(
-      estimates[phi0,2], 
-      estimates[phi_wingspan,2],
-      estimates[phi_parksize,2],
-      estimates[phi_isolation,2]
+      fit_summary$summary[phi0,1], 
+      fit_summary$summary[phi_wingspan,1],
+      fit_summary$summary[phi_parksize,1],
+      fit_summary$summary[phi_isolation,1]
     )
     
     lower_95[index_lower:index_upper] <- c(
-      estimates[phi0,6], 
-      estimates[phi_wingspan,6], 
-      estimates[phi_parksize,6], 
-      estimates[phi_isolation,6]
+      fit_summary$summary[phi0,4], 
+      fit_summary$summary[phi_wingspan,4], 
+      fit_summary$summary[phi_parksize,4], 
+      fit_summary$summary[phi_isolation,4]
     )
     
     upper_95[index_lower:index_upper] <- c(
-      estimates[phi0,7],
-      estimates[phi_wingspan,7],
-      estimates[phi_parksize,7],
-      estimates[phi_isolation,7]
+      fit_summary$summary[phi0,8],
+      fit_summary$summary[phi_wingspan,8],
+      fit_summary$summary[phi_parksize,8],
+      fit_summary$summary[phi_isolation,8]
     )
     
     lower_50[index_lower:index_upper] <- c(
-      estimates[phi0,8],
-      estimates[phi_wingspan,8],
-      estimates[phi_parksize,8],
-      estimates[phi_isolation,8]
+      fit_summary$summary[phi0,5],
+      fit_summary$summary[phi_wingspan,5],
+      fit_summary$summary[phi_parksize,5],
+      fit_summary$summary[phi_isolation,5]
     )
     
     upper_50[index_lower:index_upper] <- c(
-      estimates[phi0,9],
-      estimates[phi_wingspan,9],
-      estimates[phi_parksize,9],
-      estimates[phi_isolation,9]
+      fit_summary$summary[phi0,7],
+      fit_summary$summary[phi_wingspan,7],
+      fit_summary$summary[phi_parksize,7],
+      fit_summary$summary[phi_isolation,7]
     )
     
   }
@@ -666,7 +610,7 @@ r <- ggplot(df_estimates) +
                              bquote(phi["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-6, 12), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-3, 7), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=my_palette) + 
                                         geom_hline(yintercept = 0, lty = "dashed") +
@@ -722,6 +666,11 @@ for(i in 1:n_regions){
   
   city_name <- rep(cities, each=(params)) 
   
+  stan_out <- readRDS(paste0(
+    "./model_outputs/stan_out_", region, "2.rds"))
+  fit_summary <- rstan::summary(stan_out)
+  estimates <- as.data.frame(fit_summary)
+  
   # get indices for species random effects distributions for particular city
   p0 <- which( rownames(estimates)=="p0" )
   p_wingspan <- which( rownames(estimates)=="p_wingspan" )
@@ -733,29 +682,22 @@ for(i in 1:n_regions){
   first_epsilon_regional_cluster <- which( rownames(estimates)=="epsilon_regional_cluster[1]" )
   first_p_city <- which( rownames(estimates)=="p_city[1]" )
   
-  # regions
-  # california = 1
-  # midwest = 2
-  # northeast = 3
-  # southeast = 4
-  # texas = 5
-  
-  #"Atlanta", 4
-  #"Boston", 3
-  #"Charlotte", 4
-  #"Chicago", 2
-  #"Dallas", 5
-  #"DC", 3
-  #"Denton", 5
-  #"Houston", 5
-  #"LA", 1
-  #"Minneapolis", 2
-  #"NYC", 3    
-  #"Philadelphia", 3
-  #"Raleigh", 4
-  #"SD", 1
-  #"SF" 1
-  regional_cluster <- c(4,3,4,2,5,3,5,5,1,2,3,3,4,1,1)
+  #"Atlanta", 3
+  #"Boston", 2
+  #"Charlotte", 3
+  #"Chicago", 1
+  #"Dallas",
+  #"DC", 2
+  #"Denton",
+  #"Houston",
+  #"LA",
+  #"Minneapolis", 1
+  #"NYC", 2    
+  #"Philadelphia", 2
+  #"Raleigh",
+  #"SD",
+  #"SF"
+  regional_cluster <- c(3,2,3,1,2,1,2,2)
   
   for(j in 1:(n_cities-1)){
     
@@ -767,33 +709,33 @@ for(i in 1:n_regions){
     index_upper <- 1 + ((j-1) * params) + (params - 1)
     
     Y[index_lower:index_upper] <- c(
-      estimates[first_p_city+(j-1),2], # p - intercept
-      estimates[first_delta_regional_cluster+(regionl_cluster_of_city-1),2],
-      estimates[first_epsilon_regional_cluster+(regionl_cluster_of_city-1),2]
+      fit_summary$summary[first_p_city+(j-1),1], # p - intercept
+      fit_summary$summary[first_delta_regional_cluster+(regionl_cluster_of_city-1),1],
+      fit_summary$summary[first_epsilon_regional_cluster+(regionl_cluster_of_city-1),1]
     )
     
     lower_95[index_lower:index_upper] <- c(
-      estimates[first_p_city+(j-1),6], # p - intercept
-      estimates[first_delta_regional_cluster+(regionl_cluster_of_city-1),6],
-      estimates[first_epsilon_regional_cluster+(regionl_cluster_of_city-1),6]
+      fit_summary$summary[first_p_city+(j-1),4], # p - intercept
+      fit_summary$summary[first_delta_regional_cluster+(regionl_cluster_of_city-1),4],
+      fit_summary$summary[first_epsilon_regional_cluster+(regionl_cluster_of_city-1),4]
     )
     
     upper_95[index_lower:index_upper] <- c(
-      estimates[first_p_city+(j-1),7], # p - intercept
-      estimates[first_delta_regional_cluster+(regionl_cluster_of_city-1),7],
-      estimates[first_epsilon_regional_cluster+(regionl_cluster_of_city-1),7]
+      fit_summary$summary[first_p_city+(j-1),8], # p - intercept
+      fit_summary$summary[first_delta_regional_cluster+(regionl_cluster_of_city-1),8],
+      fit_summary$summary[first_epsilon_regional_cluster+(regionl_cluster_of_city-1),8]
     )
     
     lower_50[index_lower:index_upper] <- c(
-      estimates[first_p_city+(j-1),8], # p - intercept
-      estimates[first_delta_regional_cluster+(regionl_cluster_of_city-1),8],
-      estimates[first_epsilon_regional_cluster+(regionl_cluster_of_city-1),8]
+      fit_summary$summary[first_p_city+(j-1),5], # p - intercept
+      fit_summary$summary[first_delta_regional_cluster+(regionl_cluster_of_city-1),5],
+      fit_summary$summary[first_epsilon_regional_cluster+(regionl_cluster_of_city-1),5]
     )
     
     upper_50[index_lower:index_upper] <- c(
-      estimates[first_p_city+(j-1),9], # p - intercept
-      estimates[first_delta_regional_cluster+(regionl_cluster_of_city-1),9],
-      estimates[first_epsilon_regional_cluster+(regionl_cluster_of_city-1),9]
+      fit_summary$summary[first_p_city+(j-1),7], # p - intercept
+      fit_summary$summary[first_delta_regional_cluster+(regionl_cluster_of_city-1),7],
+      fit_summary$summary[first_epsilon_regional_cluster+(regionl_cluster_of_city-1),7]
     )
     
   }
@@ -806,48 +748,48 @@ for(i in 1:n_regions){
     index_upper <- 1 + ((j-1) * params) + (params - 1)
     
     Y[index_lower:index_upper] <- c(
-      estimates[p0,2], 
-      estimates[p_wingspan,2],
-      estimates[p_feature_diversity,2],
-      estimates[p_ease_of_id,2],
-      estimates[delta0,2],
-      estimates[epsilon0,2]
+      fit_summary$summary[p0,1], 
+      fit_summary$summary[p_wingspan,1],
+      fit_summary$summary[p_feature_diversity,1],
+      fit_summary$summary[p_ease_of_id,1],
+      fit_summary$summary[delta0,1],
+      fit_summary$summary[epsilon0,1]
     )
     
     lower_95[index_lower:index_upper] <- c(
-      estimates[p0,6], 
-      estimates[p_wingspan,6],
-      estimates[p_feature_diversity,6],
-      estimates[p_ease_of_id,6],
-      estimates[delta0,6],
-      estimates[epsilon0,6]
+      fit_summary$summary[p0,4], 
+      fit_summary$summary[p_wingspan,4],
+      fit_summary$summary[p_feature_diversity,4],
+      fit_summary$summary[p_ease_of_id,4],
+      fit_summary$summary[delta0,4],
+      fit_summary$summary[epsilon0,4]
     )
     
     upper_95[index_lower:index_upper] <- c(
-      estimates[p0,7], 
-      estimates[p_wingspan,7],
-      estimates[p_feature_diversity,7],
-      estimates[p_ease_of_id,7],
-      estimates[delta0,7],
-      estimates[epsilon0,7]
+      fit_summary$summary[p0,8], 
+      fit_summary$summary[p_wingspan,8],
+      fit_summary$summary[p_feature_diversity,8],
+      fit_summary$summary[p_ease_of_id,8],
+      fit_summary$summary[delta0,8],
+      fit_summary$summary[epsilon0,8]
     )
     
     lower_50[index_lower:index_upper] <- c(
-      estimates[p0,8], 
-      estimates[p_wingspan,8],
-      estimates[p_feature_diversity,8],
-      estimates[p_ease_of_id,8],
-      estimates[delta0,8],
-      estimates[epsilon0,8]
+      fit_summary$summary[p0,5], 
+      fit_summary$summary[p_wingspan,5],
+      fit_summary$summary[p_feature_diversity,5],
+      fit_summary$summary[p_ease_of_id,5],
+      fit_summary$summary[delta0,5],
+      fit_summary$summary[epsilon0,5]
     )
     
     upper_50[index_lower:index_upper] <- c(
-      estimates[p0,9], 
-      estimates[p_wingspan,9],
-      estimates[p_feature_diversity,9],
-      estimates[p_ease_of_id,9],
-      estimates[delta0,9],
-      estimates[epsilon0,9]
+      fit_summary$summary[p0,7], 
+      fit_summary$summary[p_wingspan,7],
+      fit_summary$summary[p_feature_diversity,7],
+      fit_summary$summary[p_ease_of_id,7],
+      fit_summary$summary[delta0,7],
+      fit_summary$summary[epsilon0,7]
     )
     
   }
