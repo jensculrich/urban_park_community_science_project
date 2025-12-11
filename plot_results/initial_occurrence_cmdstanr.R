@@ -46,7 +46,7 @@ n_cities <- length(city_names)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./model_outputs/stan_out_dec7.rds")
+  "./model_outputs/stan_out_dec11.rds")
 
 tmp <- as.data.frame(stan_out$draws(variables = c("psi1_0", 
                                     "sigma_psi1_species",
@@ -104,13 +104,15 @@ tmp <- as.data.frame(stan_out$draws(variables = c("psi1_0",
                                     "phi_wingspan",
                                     "phi_park_size",
                                     "phi_isolation",
-                                    "p_city"))) # take estimates from each HMC step as a df
-#n_samp <- 10 # how many samples do we have from the HMC run?
-n_samp <- length(tmp[,1]) # how many samples do we have from the HMC run?
+                                    "p_city"),
+                                    format = "draws_matrix"
+                                    )) # take estimates from each HMC step as a df
 
-# handy for viewing column numbers
-fit_summary <- rstan::summary(stan_out)
-#View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
+rm(stan_out)
+gc()
+
+#n_samp <- 10 # how mann_chains#n_samp <- 10 # how many samples do we have from the HMC run?
+n_samp <- length(tmp[,1]) # how many samples do we have from the HMC run?
 
 ## get data from region
 df <- readRDS( paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))$site_data
@@ -122,7 +124,13 @@ pred_length <- nrow(df)
 ilogit <- function(x) exp(x)/(1+exp(x))
 logit <- function(x) log(x/(1-x))
 
-my_palette <- viridis::viridis(n=n_cities, option = "turbo")
+my_palette <- viridis::viridis(n=n_cities+2, option = "turbo")
+my_palette <- my_palette[3:(n_cities+2)] # remove the really dark colours
+
+# get important column names
+psi1_0 <- which( colnames(tmp)=="psi1_0" )
+psi1_parksize <- which( colnames(tmp)=="mu_psi1_park_size" )
+psi1_isolation <- which( colnames(tmp)=="mu_psi1_isolation" )
 
 #-------------------------------------------------------------------------------
 # get some prediction data
@@ -144,9 +152,9 @@ for(i in 1:n_samp){
   # community means don't depend on city effects
   predMean[,i] <- ilogit( # park size trend
     # psi1_0 + # the initial occurrence rate at a completely average park
-    tmp[i,1] + 
+    tmp[i,psi1_0] + 
       # psi1_park_size # the effect of park size on the initial occurrence rate
-      tmp[i,6]*size_pred
+      tmp[i,psi1_parksize]*size_pred
   )
     
 }
@@ -182,8 +190,8 @@ p <- ggplot(data = size_df, aes(size_pred, psi1_size_community_mean)) +
   xlim(c(min(size_pred), max(size_pred))) +
   ylim(c(0, 1)) +
   theme_bw() +
-  ylab("Initial Occurrence Rate \n(Regional Mean)") +
-  xlab("Park Size (Std. Deviations from Within-City Mean)") +
+  ylab("Initial Occurrence Rate\n(Mean Across All Cities)") +
+  xlab("Park Size\n(Std. Deviations from Mean Park Size)") +
   scale_y_continuous(limits = c(0,1),
                      breaks = c(0, 0.5, 1),
                      labels = scales::percent 
@@ -191,8 +199,8 @@ p <- ggplot(data = size_df, aes(size_pred, psi1_size_community_mean)) +
   theme(legend.position = "none",
         axis.text.x = element_text(size = 18),
         axis.text.y = element_text(size = 18, angle=45, vjust=-0.5),
-        axis.title.x = element_text(size=18),
-        axis.title.y = element_text(size = 18),
+        axis.title.x = element_text(size=16),
+        axis.title.y = element_text(size = 16),
         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"))
 p
@@ -254,7 +262,7 @@ for(city_number in 1:n_cities){
       # estimate city specific predictions about initial occurrence rate
       predCity[city_number,i,j] <- ilogit( 
         # psi1_0 + # global intercept
-        tmp[j,1] + 
+        tmp[j,psi1_0] + 
           # psi1_city + # city effect on the intercept
           tmp[j,(first_psi1+(city_number-1))] + 
           # psi1_park_size + # city specific effect of park size given real park size data
@@ -357,8 +365,8 @@ q <- ggplot(data = new_df, aes(x=park_size_original_ordered, y=mean, colour=city
   theme(#legend.position = "none",
         axis.text.x = element_text(size = 18),
         axis.text.y = element_text(size = 18, angle=45, vjust=-0.5),
-        axis.title.x = element_text(size=18),
-        axis.title.y = element_text(size = 18),
+        axis.title.x = element_text(size=16),
+        axis.title.y = element_text(size = 16),
         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"))
 q
@@ -391,9 +399,9 @@ for(i in 1:n_samp){
   # community means don't depend on city effects
   predMean[,i] <- ilogit( # park size trend
     # psi1_0 +
-    tmp[i,1] + 
+    tmp[i,psi1_0] + 
       # psi1_ +
-      tmp[i,8]*isolation_pred
+      tmp[i,psi1_isolation]*isolation_pred
   )
   
 }
@@ -427,8 +435,8 @@ r <- ggplot(data = isolation_df, aes(isolation_pred, psi1_isolation_community_me
   xlim(c(min(isolation_pred), max(isolation_pred))) +
   ylim(c(0, 1)) +
   theme_bw() +
-  ylab("Initial Occurrence Rate \n(Regional Mean)") +
-  xlab("Park Isolation (Std. Deviations from Within-City Mean)") +
+  ylab("Initial Occurrence Rate\n(Mean Across All Cities)") +
+  xlab("Park Isolation\n(Std. Deviations from Mean Isolation)") +
   scale_y_continuous(limits = c(0,1),
                      breaks = c(0, 0.5, 1),
                      labels = scales::percent 
@@ -438,8 +446,8 @@ r <- ggplot(data = isolation_df, aes(isolation_pred, psi1_isolation_community_me
   theme(legend.position = "none",
         axis.text.x = element_text(size = 18),
         axis.text.y = element_text(size = 18, angle=45, vjust=-0.5),
-        axis.title.x = element_text(size=18),
-        axis.title.y = element_text(size = 18),
+        axis.title.x = element_text(size=16),
+        axis.title.y = element_text(size = 16),
         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"))
 r
@@ -572,7 +580,7 @@ s <- ggplot(data = new_df, aes(x=park_isolation_original_ordered, y=mean, colour
   xlim(c(min(park_isolation_original_ordered), max(park_isolation_original_ordered))) +
   ylim(c(0, 1)) +
   theme_bw() +
-  ylab("Initial Occurrence Rate \n(City-Specific)") +
+  ylab("Initial Occurrence Rate\n(City-Specific)") +
   xlab("log(Park Isolation)") +
   scale_y_continuous(limits = c(0,1),
                      breaks = c(0, 0.5, 1),
@@ -585,8 +593,8 @@ s <- ggplot(data = new_df, aes(x=park_isolation_original_ordered, y=mean, colour
   theme(#legend.position = "none",
     axis.text.x = element_text(size = 18),
     axis.text.y = element_text(size = 18, angle=45, vjust=-0.5),
-    axis.title.x = element_text(size=18),
-    axis.title.y = element_text(size = 18),
+    axis.title.x = element_text(size=16),
+    axis.title.y = element_text(size = 16),
     panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
     panel.background = element_blank(), axis.line = element_line(colour = "black"))
 s

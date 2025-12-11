@@ -835,21 +835,21 @@ prep_data <- function(city_names,
             "Raleigh",
             "SD",
             "SF")
-  cluster <-c( "southeast",
-               "northeast", 
-               "southeast",
-               "midwest",
-               "texas",
-               "northeast",
-               "texas",
-               "texas",
-               "california",
-               "midwest",
-               "northeast",     
-               "northeast",
-               "southeast",
-               "california",
-               "california")
+  cluster <-c( "southeast", # atlanta
+               "northeast", # boston
+               "southeast", # charlotte
+               "midwest", # chicago
+               "texas", # dallas
+               "northeast", # dc
+               "texas", # denton
+               "texas", # houston
+               "california", # LA
+               "midwest", # minneapolis
+               "northeast", # nyc
+               "northeast", # philadelphia
+               "southeast", # raleigh
+               "california", # sd
+               "san_francisco") # sf
   x_name <- "city"
   y_name <- "cluster"
   

@@ -10,7 +10,7 @@ library(cmdstanr)
 
 # select a region
 regions <- c(
-  "all"
+  "Mean"
 )
 
 region <- regions[1]
@@ -18,7 +18,7 @@ region <- regions[1]
 # list of city names
 
 # all
-if(region == regions[5]){
+if(region == regions[1]){
   city_names <- c(
     "Atlanta",
     "Boston", 
@@ -44,7 +44,7 @@ n_regions <- length(region)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./model_outputs/stan_out_dec7.rds")
+  "./model_outputs/stan_out_dec11.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- as.data.frame(stan_out$summary(
@@ -117,7 +117,9 @@ rownames(estimates) <- estimates[, 1]
 # this line of code won't work until you've actually read in a stan fit object
 #View(cbind(1:nrow(estimates), estimates)) # View to see which row corresponds to the parameter of interest
 
-my_palette <- c("black", viridis::viridis(n=n_cities, option = "turbo"))
+my_palette <- viridis::viridis(n=n_cities+2, option = "turbo")
+my_palette <- my_palette[3:(n_cities+2)] # remove the really dark colours
+my_palette <- c("black", my_palette) # add black for the all cities mean
 
 #-------------------------------------------------------------------------------
 # initial occurrence (psi1)
@@ -484,7 +486,7 @@ q <- ggplot(df_estimates) +
                              bquote(gamma["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-12, 5), breaks = c(-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-10, 4), breaks = c(-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=my_palette) + 
                                         geom_hline(yintercept = 0, lty = "dashed") +
@@ -666,7 +668,7 @@ r <- ggplot(df_estimates) +
                              bquote(phi["isolation"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-6, 12), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-3, 11), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=my_palette) + 
                                         geom_hline(yintercept = 0, lty = "dashed") +

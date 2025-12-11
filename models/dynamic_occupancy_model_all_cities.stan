@@ -241,7 +241,7 @@ model {
   // initial state
   psi1_0 ~ normal(0, 1); // initial occurrence intercept
   psi1_city_raw ~ std_normal();
-  sigma_psi1_city ~ normal(0, 0.5);
+  sigma_psi1_city ~ normal(0, 1);
   psi1_species_raw ~ std_normal();
   sigma_psi1_species ~ normal(0, 1);
   mu_psi1_wingspan ~ normal(0, 2);
@@ -289,7 +289,7 @@ model {
   // detection
   p0 ~ normal(0, 1); // global intercept
   p_city_raw ~ std_normal();
-  sigma_p_city ~ normal(0, 0.5);
+  sigma_p_city ~ normal(0, 1);
   p_species_raw ~ std_normal();
   sigma_p_species ~ normal(0, 1);
   p_wingspan ~ normal(0, 2);
@@ -357,3 +357,37 @@ model {
   }  // end loop across all community sampling events
 
 } // end model
+
+generated quantities{
+  
+  //
+  // posterior predictive check (number of detections, binned by city)
+  //
+  array[n_cities] int<lower=0> W_city_rep; // sum of simulated detections
+
+  array[R] int z_simmed; // simulate occurrence
+
+  for(r in 1:R){
+    z_simmed[r] = bernoulli_rng(psi[r]); 
+  }
+  
+  // initialize repped detections at 0
+  for(i in 1:n_cities){
+    W_city_rep[i] = 0;
+  }
+      
+  // generating posterior predictive distribution
+  // Predict Z at sites
+  for(i in 1:R) { // loop across all site/year/species identities
+    for(l in 1:n_surveys){ // loop across surveys
+          
+          // detections in replicated data (us z_simmed from above)
+          W_city_rep[city_id_vector[r]] = W_city_rep[city_id_vector[r]] + 
+            // multiply by the NA indicator - if we didn't survey in real life
+            // we don't survey in this simulation.
+            (z_simmed[r] * bernoulli_rng(p[r,l]) * V_NA[r,l]);
+           
+    } // end loop across surveys
+  } // end loop across site/year/species identities
+  
+} // end generated quantities
