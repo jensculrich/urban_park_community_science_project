@@ -4,13 +4,31 @@ library(dplyr)
 library(raster)
 library(ggplot2)
 library(prettymapr)
+library(cowplot)
 
 
 # Load the LA park shape file (LA, NY, Seattle, dalla, houston, sf, riverside, sd)
-city <-"denton"
-state <- "TX"
-buffer_size<-50
+city <-"st_louis"
+state <- "MO"
+buffer_size<-0
 parks_data <- readRDS(paste0("E:/phd_study/urban_park_community_science_project/data/parks/", buffer_size , "m_merged_classified_parks_with_unclassified_parks_sqm_area_", city, ".rds"))
+
+#need to check if parks_data is in meters, denton is in ft
+st_crs(parks_data)
+
+#if it is in ft, then use this function to fix it
+# Simple function: transform to metric UTM based on location
+# to_meters <- function(sf_object) {
+#   center <- st_transform(st_centroid(st_union(sf_object)), 4326)
+#   coords <- st_coordinates(center)
+#   utm_zone <- floor((coords[1] + 180) / 6) + 1
+#   epsg <- ifelse(coords[2] >= 0, 32600 + utm_zone, 32700 + utm_zone)
+#   st_transform(sf_object, epsg)
+# }
+
+#parks_data <- to_meters(parks_data)
+
+st_area(parks_data[1,])
 
 # Load the biodiversity data
 leps_data <- read.csv(paste0("data/inat_data/02_filtered_data/Leps/leps_", state, "_data_coordUncertainty_cleaned.csv"))
@@ -38,7 +56,7 @@ unclassified_parks <- parks_data[parks_data$type == "unclassified", ]
 # Clip unclassified parks to only include areas within the buffer for further connectivity calculation
 # st_intersection will keep only the parts that overlap within the buffer
 unclassified_parks_clipped <- st_intersection(unclassified_parks, buffer_combined)
-#ensure the unclassified parks do not overalp with the classified ones
+#ensure the unclassified parks do not overlap with the classified ones
 unclassified_parks_clean <- st_difference(unclassified_parks_clipped, st_buffer( st_union(classified_parks), 0.001))
 
 #Check to see if they are still overlapping
@@ -71,18 +89,28 @@ st_write(result_parks, paste0("E:/phd_study/urban_park_community_science_project
 
 
 #join the clipped parks with the iNat Observation
-#observations_with_parks_clipped <- st_join(LA_observation_coords, la_buffer_combined, join = st_intersects)
-observations_with_parks <- st_join(observation_coords, result_parks, join = st_intersects) #this is a left join, which preserve the observations in the space between parks
+#observations_with_parks <- st_join(observation_coords, result_parks, join = st_intersects) #this is a left join, which preserve the observations in the space between parks
+
+# Create 50m detection range for each park
+result_parks_buffered <- st_buffer(result_parks, dist = 50)
+
+
+# Join
+observations_with_parks <- st_join(observation_coords, result_parks_buffered, join = st_intersects)
+
+
 
 #filter out observations by the 2km regional buffer
 observations_with_parks_2km_clipped <- st_intersection(observations_with_parks, buffer_combined)%>%
-  group_by(gbifID) %>%
-  slice(1) %>%
+  #group_by(gbifID) %>%
+  #slice(1) %>%
   ungroup()
 
 
 # See which values are duplicated
-observations_with_parks_2km_clipped$gbifID[duplicated(observations_with_parks_2km_clipped$gbifID)]
+#observations_with_parks_2km_clipped$gbifID[duplicated(observations_with_parks_2km_clipped$gbifID)]
+
+sum(duplicated(observations_with_parks_2km_clipped$gbifID))
 
 ggplot(result_parks) +
   geom_sf(aes(fill = type)) +
@@ -92,13 +120,13 @@ ggplot(result_parks) +
   labs(title = paste0(city,", Parks by Type")) +
   theme(legend.position = "right")
 
-length(unique(observations_with_parks_2km_clipped$gbifID))
+nrow(observations_with_parks_2km_clipped)
 
 as.data.frame(st_drop_geometry(observations_with_parks_2km_clipped))%>%filter(type=="classified")%>%dplyr::select(new_id)%>%unique()%>%pull%>%length()
 
 View(as.data.frame(st_drop_geometry(observations_with_parks_2km_clipped)))
 
-write.csv(as.data.frame(st_drop_geometry(observations_with_parks_2km_clipped)), paste0("E:/phd_study/urban_park_community_science_project/data/final_merged_data/01_", buffer_size, "m_", city, "_observations_parkID_2km_clipped.csv"), row.names = FALSE)
+write.csv(as.data.frame(st_drop_geometry(observations_with_parks_2km_clipped%>%dplyr::select(gbifID:type))), paste0("E:/phd_study/urban_park_community_science_project/data/final_merged_data/01_", buffer_size, "m_", city, "_observations_parkID_2km_clipped.csv"), row.names = FALSE)
 
 
 #### create a large regional species pool with a 20-km buffer around the classified park
@@ -128,28 +156,50 @@ result_parks <- rbind(
   unclassified_parks_clean
 )
 
-observations_with_parks <- st_join(observation_coords, result_parks, join = st_intersects)
+# Create 50m detection range for each park
+result_parks_buffered <- st_buffer(result_parks, dist = 50)
+
+
+# Join
+observations_with_parks <- st_join(observation_coords, result_parks_buffered, join = st_intersects)
+
 
 observations_with_parks_20km_clipped <- st_intersection(observations_with_parks, buffer_20km_combined)%>%
-  group_by(gbifID) %>%
-  slice(1) %>%
+  #group_by(gbifID) %>%
+  #slice(1) %>%
   ungroup()
 
 # See which values are duplicated
-observations_with_parks_20km_clipped$gbifID[duplicated(observations_with_parks_20km_clipped$gbifID)]
-
+#observations_with_parks_20km_clipped$gbifID[duplicated(observations_with_parks_20km_clipped$gbifID)]
+sum(duplicated(observations_with_parks_20km_clipped$gbifID))
 
 #plot the result
 ggplot() +
   #annotation_map_tile(type = "osm")+
-  geom_sf(data = result_parks, aes(fill = type), inherit.aes = FALSE) +
+  geom_sf(data = result_parks%>%filter(type== "classified"), aes(fill = type), inherit.aes = FALSE) +
   geom_sf(data= observations_with_parks_20km_clipped, color ="red", size=0.1) +
   scale_fill_viridis_d() +  # Use viridis color palette
   theme_minimal() +
   labs(title = "20km Regional Species Pool") +
-  theme(legend.position = "right")
+  theme(legend.position = "right")+
+  theme_cowplot()
 
-length(unique(observations_with_parks_20km_clipped$gbifID))
+id_lookup<-observations_with_parks_20km_clipped%>%
+  st_drop_geometry()%>%
+  filter(type== "classified")%>%
+  group_by(new_id)%>%
+  summarise(nrow=n())%>%
+  slice_max(order_by = nrow, n=1, with_ties = FALSE)%>%
+  dplyr::select(new_id)%>%
+  pull()
+
+
+ggplot()+
+  geom_sf(data = result_parks, aes(fill = type), inherit.aes = FALSE) +
+  geom_sf(data = result_parks%>%filter(new_id == id_lookup), inherit.aes = FALSE, fill = "green") +
+  geom_sf(data= observations_with_parks_20km_clipped%>%filter(new_id == id_lookup), color ="red", size=1)
+
+nrow(observations_with_parks_20km_clipped)
 
 
 write.csv(as.data.frame(st_drop_geometry(observations_with_parks_20km_clipped)), paste0("data/final_merged_data/02_",buffer_size,"m_", city, "_regional_species_pool.csv"), row.names = FALSE)
@@ -208,3 +258,4 @@ write.csv(as.data.frame(st_drop_geometry(flowers_with_parks_clipped)), paste0("E
 #   arrange(gbif_name)
 
 # write.csv(species_not_match_inat,"E:/phd_study/urban_park_community_science_project/data/final_merged_data/flagged_species_taxonomy.csv")
+

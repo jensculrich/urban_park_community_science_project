@@ -7,6 +7,7 @@ library(exactextractr)
 library(ggplot2)
 library(units)
 library(igraph)
+library(purrr)
 ## Load the park shapefile
 parks <- st_read("E:/phd_study/urban_park_community_science_project/data/Parkserve_Shapefiles_05212024/ParkServe_Parks.shp")
 
@@ -15,11 +16,12 @@ parks <- st_read("E:/phd_study/urban_park_community_science_project/data/Parkser
 #plot(st_geometry(essex_parks))
 
 ##Define the city (dallas, houston, sf, riverside, sd)
-city <- "NYC"
-state <- "Texas"
+city <- "st_louis"
+state <- "Missouri"
 
 #filter the park shapefile by state, check to see if the city is close to the state line. If so, may need to include the state next to it.
-parks_filtered <- parks %>% filter(Park_State == state)
+#parks_filtered <- parks %>% filter(Park_State == state | Park_State == "Maryland"  | Park_State == "Virginia" )
+parks_filtered <- parks %>% filter(Park_State == state | Park_State == "Illinois")
 
 table(parks_filtered$Park_State)
 
@@ -44,8 +46,49 @@ plot(st_geometry(parks_filtered))
 # Land cover data with classified values 0-9 (0 = Unclassified, 2 = Grass/Shrub, 3 = Tree Canopy; )
 land_cover <- rast(paste0("data/urbanwatch_data/03_classified_land_cover_data/", city, "_classified_land_cover.tif"))
 
-# Reproject parks to match the CRS of the land cover raster of the city
-parks_reproj <- st_transform(parks_filtered, crs = crs(land_cover))
+# Reproject parks to match the CRS of the land cover raster of the city, except dallas and denton which some multipolygons cannot be converted
+parks_reproj <- st_transform(parks_filtered, crs = crs(land_cover))%>%
+    st_cast(to = "POLYGON")
+
+#for dallas
+# safe_cast_row <- function(sf_row) {
+#   original_area <- st_area(sf_row)
+#   
+#   # Try to cast
+#   tryCatch({
+#     cast_result <- st_cast(sf_row, "POLYGON", do_split = TRUE)
+#     cast_area <- sum(st_area(cast_result))
+#     
+#     # Check if area is preserved (within 0.1% tolerance)
+#     if (abs(cast_area - original_area) / original_area < 0.001) {
+#       return(cast_result)  # Return cast version
+#     } else {
+#       return(sf_row)  # Keep original if area doesn't match
+#     }
+#   }, error = function(e) {
+#     return(sf_row)  # Keep original if error
+#   })
+# }
+# 
+#parks_reproj <- st_transform(parks_filtered, crs = crs(land_cover)) %>%
+#st_make_valid()
+
+#parks_reproj <- do.call(rbind, lapply(1:nrow(parks_reproj), function(i) {
+#  safe_cast_row(parks_reproj[i, ])
+#}))
+
+nrow(parks_filtered)
+nrow(parks_reproj)
+
+table(st_geometry_type(parks_filtered))
+table(st_geometry_type(parks_reproj))
+
+sum(st_area(parks_filtered))
+sum(st_area(parks_reproj))
+
+plot(st_geometry(parks_filtered))
+plot(st_geometry(parks_reproj))
+
 
 # Aggregate the land cover raster
 calculate_mode <- function(x) {
@@ -57,14 +100,16 @@ calculate_mode <- function(x) {
 }
 
 #I use a factor of 10 to merge 10x10 cells and `modal` function to keep the most frequent category in each block
-aggregated_land_cover <- aggregate(land_cover, fact = 10, fun = calculate_mode)
+#aggregated_land_cover <- aggregate(land_cover, fact = 10, fun = calculate_mode)
+
+
+# Save the aggregated raster as a GeoTIFF file
+#writeRaster(aggregated_land_cover, paste0("data/processing_data/10_meters_aggregated_urbanwatch_data/", city, "_aggregated_land_cover.tif"), overwrite = TRUE)
+
+aggregated_land_cover <- rast(paste0("E:/phd_study/urban_park_community_science_project/data/processing_data/10_meters_aggregated_urbanwatch_data/", city, "_aggregated_land_cover.tif"))
 
 plot(aggregated_land_cover, main=paste0(city, ", Land Cover Raster"), col=c("black", "grey",  "lightgreen", "darkgreen", "red", "magenta",  "blue",  "brown", "yellow", "white")) # Grass/Shrub=2; Tree Canopy=3
 
-# Save the aggregated raster as a GeoTIFF file
-writeRaster(aggregated_land_cover, paste0("data/processing_data/10_meters_aggregated_urbanwatch_data/", city, "_aggregated_land_cover.tif"), overwrite = TRUE)
-
-aggregated_land_cover <- rast(paste0("E:/phd_study/urban_park_community_science_project/data/processing_data/10_meters_aggregated_urbanwatch_data/", city, "_aggregated_land_cover.tif"))
 
 #Define a function to filter parks based on the mode of land cover values (classified vs. unclassified)
 filter_parks_by_mode <- function(parks, land_cover_raster) {
@@ -110,24 +155,24 @@ park_classification <- filter_parks_by_mode(st_make_valid(parks_reproj), aggrega
 
 
 ##For Denton County, we have to convert one classified park to unclassified because it is in Maryland
-park_classification$unclassified <- rbind(park_classification$unclassified, park_classification$classified%>%filter(ParkID %in% c("69400-0002", "4872530-0037")))
+#park_classification$unclassified <- rbind(park_classification$unclassified, park_classification$classified%>%filter(ParkID %in% c("69400-0002", "4872530-0037")))
 
-park_classification$classified<-park_classification$classified%>%filter(!ParkID %in% c("69400-0002", "4872530-0037"))
+#park_classification$classified<-park_classification$classified%>%filter(!ParkID %in% c("69400-0002", "4872530-0037"))
 #table(park_classification$classified$Park_State)
 
 #Check to see if that park is merged correctly
 #park_classification$unclassified%>%filter(ParkID=="2485100-0002")
 
+# Plot the park classification
+plot(st_geometry(park_classification$classified), col = "blue", pch = 20, cex = 1.5, main=paste0(city,", raw, classified park (blue), unclassified park (red)"))
+plot(st_geometry(park_classification$unclassified), add = TRUE, col = "red", pch = 20, cex = 1.5)
+
 saveRDS(park_classification, paste0("data/processing_data/classified_parks_urbanwatch/park_classification_", city, ".RData"))
 
 park_classification <-readRDS(paste0("data/processing_data/classified_parks_urbanwatch/park_classification_", city, ".RData"))
 
-# Plot the park classification
-plot(st_geometry(park_classification$classified), col = "blue", pch = 20, cex = 1.5, main=paste0(city,", raw, classified park (blue), unclassified park (red)"))
-plot(st_geometry(park_classification$unclassified), add = TRUE, col = "red", pch = 20, cex = 1.5)
-     
 #Create buffer around all the classified parks
-buffer_size<-25
+buffer_size<-0
 parks_buffered <- st_buffer(park_classification$classified, dist = buffer_size)
 
 ##Merge the buffer between classified park
@@ -262,6 +307,9 @@ classified_unclassified_parks$building_area <- sapply(exact_areas, function(df) 
   # Sum up the covered areas
   sum(unclassified_df$coverage_fraction * 100, na.rm = TRUE)
 })
+
+
+
 classified_unclassified_parks$parking_lot_area <- sapply(exact_areas, function(df) {
   # Filter for only the cells with value 0 (unclassified)
   unclassified_df <- df[df$value == 5, ]
@@ -280,6 +328,8 @@ classified_unclassified_parks$barren_area <- sapply(exact_areas, function(df) {
   # Sum up the covered areas
   sum(unclassified_df$coverage_fraction * 100, na.rm = TRUE)
 })
+
+
 classified_unclassified_parks$agriculture_area <- sapply(exact_areas, function(df) {
   # Filter for only the cells with value 0 (unclassified)
   unclassified_df <- df[df$value == 8, ]
@@ -321,5 +371,7 @@ nrow(classified_unclassified_parks[classified_unclassified_parks$type=="classifi
 
 saveRDS(classified_unclassified_parks, paste0("E:/phd_study/urban_park_community_science_project/data/parks/", buffer_size, "m_merged_classified_parks_with_unclassified_parks_sqm_area_", city, ".rds"))
 
-
+ggplot() +
+  #annotation_map_tile(type = "osm")+
+  geom_sf(data = classified_unclassified_parks%>%filter(type=="classified")%>%slice_max(order_by = total_area_sqm, n =1), inherit.aes = FALSE)
 

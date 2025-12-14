@@ -4,10 +4,96 @@ library(terra)
 library(tidyverse)
 library(lconnect)
 
-city<-"houston"
-buffer_size<-50
+city<-"st_louis"
+buffer_size<-0
 # Load the park shape file
-parks_data <- readRDS(paste0("data/data_for_calculating_connectivity/", buffer_size, "m_merged_classified_parks_with_unclassified_parks_sqm_area_", city, ".rds"))
+parks_data <- readRDS(paste0("data/parks/", buffer_size, "m_merged_classified_parks_with_unclassified_parks_sqm_area_", city, ".rds"))
+
+#need to check if parks_data is in meters, denton is in ft
+st_area(parks_data[1,])
+
+#if it is in ft, then use this function to fix it
+# Simple function: transform to metric UTM based on location
+# to_meters <- function(sf_object) {
+#   center <- st_transform(st_centroid(st_union(sf_object)), 4326)
+#   coords <- st_coordinates(center)
+#   utm_zone <- floor((coords[1] + 180) / 6) + 1
+#   epsg <- ifelse(coords[2] >= 0, 32600 + utm_zone, 32700 + utm_zone)
+#   st_transform(sf_object, epsg)
+# }
+
+#parks_data <- to_meters(parks_data)
+
+#st_area(parks_data[1,])
+
+#load the land cover data
+aggregated_land_cover <- rast(paste0("E:/phd_study/urban_park_community_science_project/data/processing_data/10_meters_aggregated_urbanwatch_data/", 
+                                     city, "_aggregated_land_cover.tif"))
+
+#align projection
+aggregated_land_cover <- project(aggregated_land_cover, crs(parks_data))
+
+#create water raster
+water_raster <- aggregated_land_cover == 6
+
+
+# Get indices of classified parks only
+classified_idx <- which(parks_data$type == "classified")
+
+# Store original areas for comparison
+parks_data$original_area <- as.numeric(st_area(parks_data))
+
+# Initialize tracking
+successful_subtractions <- 0
+failed_subtractions <- 0
+no_water_found <- 0
+
+for (i in classified_idx) {
+  
+  tryCatch({
+    # Convert park to SpatVector
+    park_vect <- vect(parks_data[i, ])
+    
+    # Crop and mask water raster to this park
+    water_crop <- crop(water_raster, park_vect)
+    water_mask <- mask(water_crop, park_vect)
+    
+    # Check if there's any water (value = 1) in this park
+    water_values <- values(water_mask)
+    if (sum(water_values == 1, na.rm = TRUE) == 0) {
+      # No water found in this park
+      no_water_found <- no_water_found + 1
+      next
+    }
+    
+    # Convert water pixels to polygons
+    water_poly <- as.polygons(water_mask)
+    
+    # Convert to sf
+    water_sf <- st_as_sf(water_poly)
+    
+    #Keep only water pixels (value = 1)
+    water_sf <- water_sf[water_sf$label == 1, ]
+
+    # Ensure same CRS
+    water_sf <- st_transform(water_sf, st_crs(parks_data))
+
+    # Subtract water from park geometry
+    permeable_geom <- st_difference(parks_data[i, ], st_union(water_sf))
+    
+    # Replace geometry
+    st_geometry(parks_data)[i] <- st_geometry(permeable_geom)
+    
+    successful_subtractions <- successful_subtractions + 1
+    
+  }, error = function(e) {
+    # If error occurs, keep original geometry
+    warning(paste("Could not subtract water from park", parks_data$ParkID[i], ":", e$message))
+    failed_subtractions <- failed_subtractions + 1
+  })
+}
+
+
 # Function required to calculate the isolation metrics
 isolation_fun <- function(parks_sf) {
   
@@ -31,7 +117,7 @@ isolation_fun <- function(parks_sf) {
       # clip parks within buffer (excluding current park)
       other_parks_sf <- st_intersection(parks_sf[other_parks,], buffer)
       
-      #calculate the clpped area of each park
+      #calculate the clipped area of each park
       other_parks_area <- as.numeric(st_area(other_parks_sf))
       
       #calculate the distance between i and each other park
@@ -46,6 +132,10 @@ isolation_fun <- function(parks_sf) {
   }
   return(parks_sf)
 }
+
+
+
+
 #handling the 2km buffer surrounding all the classified parks
 # Create a 2km buffer around classified parks
 classified_parks <- parks_data[parks_data$type == "classified", ]
@@ -56,32 +146,49 @@ buffer_combined <- st_union(buffer_2km)
 unclassified_parks <- parks_data[parks_data$type == "unclassified", ]
 # Clip unclassified parks to only include unclassified within the buffer
 unclassified_parks_clipped <- st_intersection(unclassified_parks, buffer_combined)
+
 #combine both datasets back together
 result_parks <- rbind(
   classified_parks,
-  unclassified_parks)
-ggplot(result_parks) +
+  unclassified_parks_clipped)
+
 
 #A visullization to make sure we have th correct data
-ggplot(parks_data) +
-  geom_sf(aes(fill = type))
+ggplot(result_parks) + geom_sf(aes(fill = type))
 
 # Calculate distance matrix between all parks
-#dist_matrix <- st_distance(result_parks)
-dist_matrix <- st_distance(st_centroid(parks_data)) #distance is calculated based on centroid
+dist_matrix <- st_distance(result_parks) #distance is calculated based on edge to edge
+#dist_matrix <- st_distance(st_centroid(parks_data)) 
 dist_matrix_numeric <- units::drop_units(dist_matrix)
 
 #distance-based metrics
-parks_with_isolation <- isolation_fun(parks_data)
+parks_with_isolation <- isolation_fun(result_parks)
 
-parks_with_isolation%>%
-  filter(type=="classified")%>%
-  ggplot() +
-  geom_sf(fill ="lightblue")+
-  geom_sf(data=parks_with_isolation%>%
-            filter(new_id==3)%>%st_buffer(1000), fill="red")+ #highest isolation
-  geom_sf(data=parks_with_isolation%>%
-            filter(new_id==56)%>%st_buffer(1000), fill="blue" ) #lowest isolation
+
+ggplot() +
+  geom_sf(data = parks_with_isolation%>%
+            filter(type=="classified"))+
+    geom_sf(data=parks_with_isolation%>%
+              filter(type=="classified")%>%
+              slice_max(order_by=isolation, n=1)%>%st_buffer(50), color = "darkgreen", linewidth = 1)+
+    geom_sf(data=parks_with_isolation%>%
+              filter(type=="classified")%>%
+              slice_min(order_by=isolation, n=1)%>%st_buffer(50), color = "blue", linewidth = 1)+
+
+    geom_sf(data=parks_with_isolation%>%
+              filter(type=="classified")%>%
+              slice_max(order_by=total_area_sqm, n=5), aes(fill = rank(total_area_sqm)))+
+    scale_fill_gradientn(colours = colorspace::heat_hcl(5))+
+    geom_sf_text(data=parks_with_isolation%>%
+                   filter(type=="classified")%>%
+                   slice_max(order_by=isolation, n=1), aes(label = round(isolation, digits = 4)), cex=4,  vjust = 2, color = "darkgreen")+
+    geom_sf_text(data=parks_with_isolation%>%
+                   filter(type=="classified")%>%
+                   slice_min(order_by=isolation, n=1), aes(label = round(isolation, digits = 4)), cex=4, hjust = -0.1, vjust = 2, color = "blue")+
+    labs(title = paste0(city, " (", buffer_size, "m-buffer), Ranked by park sizes (top 5), labeled with isolation values (max outlined in green, min outlined in blue)"), size=1)+
+    theme(plot.title = element_text(size =8))
+    
+  
 
 # Create final connectivity dataframe
 final_connectivity_df <- parks_with_isolation%>%
@@ -93,10 +200,10 @@ final_connectivity_df <- parks_with_isolation%>%
 
 
 # View results
-
+View(final_connectivity_df)
 sum(is.na(final_connectivity_df$isolation))
 sum(final_connectivity_df$isolation==Inf)
-write.csv(final_connectivity_df, paste0("data/final_merged_data/04_", buffer_size , "m_", city, "_isolation.csv"), row.names = FALSE)
+write.csv(final_connectivity_df, paste0("data/final_merged_data/04_", buffer_size , "m_", city, "_isolation_non_water_only.csv"), row.names = FALSE)
 
-final_connectivity_df<-read.csv(paste0("data/final_merged_data/04_", buffer_size , "m_", city, "_isolation.csv"))
+final_connectivity_df<-read.csv(paste0("data/final_merged_data/04_", buffer_size , "m_", city, "_isolation_non_water_only.csv"))
 
