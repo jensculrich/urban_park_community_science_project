@@ -46,7 +46,7 @@ n_cities <- length(city_names)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./model_outputs/stan_out_dec11.rds")
+  "./model_outputs/stan_out_dec12.rds")
 
 tmp <- as.data.frame(stan_out$draws(variables = c("psi1_0", 
                                     "sigma_psi1_species",

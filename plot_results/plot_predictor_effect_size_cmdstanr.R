@@ -44,7 +44,7 @@ n_regions <- length(region)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./model_outputs/stan_out_dec11.rds")
+  "./model_outputs/stan_out_dec17.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- as.data.frame(stan_out$summary(
@@ -82,6 +82,7 @@ estimates <- as.data.frame(stan_out$summary(
     "p0", 
     "sigma_p_species",
     "sigma_p_city",
+    "p_city_detections",
     "p_wingspan",
     "p_feature_diversity",
     "p_ease_of_id",
@@ -930,6 +931,7 @@ s <- s +
              position=position_dodge(width=0.5),
              size = 5, alpha = 0.8) 
 s
+
 
 
 #-------------------------------------------------------------------------------

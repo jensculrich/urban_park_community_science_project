@@ -63,8 +63,6 @@ my_data <- prep_data(city_names,
 saveRDS(my_data, paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))
 my_data <- readRDS( paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))
 
-# prepare to fit occupncy model
-library(rstan)
 
 # data to feed to the model
 # detection data
@@ -119,6 +117,12 @@ ggplot(site_data, aes(
   x = log_total_green_space_area, y = log(isolation), colour = city)) +
   geom_point()
 
+ggplot(site_data, aes(
+  x = log_total_green_space_area, y = total_detections_by_city, colour = city)) +
+  geom_point()
+
+# prepare to fit occupncy model
+library(rstan)
 
 stan_data <- c("R", "n_surveys", "surveys", 
                "V", "V_NA", "site_survey_year_vector",

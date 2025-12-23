@@ -39,6 +39,7 @@ data {
   vector[n_species] wingspan;
   vector[n_sites] park_size;
   vector[n_sites] isolation;
+  vector[n_sites] total_detections_by_city;
   // other stuff
   array[R] int<lower=0> confirmed_occurrence;
   array[R] int<lower=0> prev_index_vector;
@@ -100,6 +101,7 @@ parameters {
   real<lower=0> sigma_p_species;
   vector[n_cities] p_city_raw;
   real<lower=0> sigma_p_city;
+  real p_city_detections;
   real p_wingspan;
   real p_feature_diversity;
   real p_ease_of_id;
@@ -201,6 +203,7 @@ transformed parameters {
           p[r,l] = inv_logit( // probability (0-1) of detection is equal to..
             p_city[city_id_vector[r]] + 
             p_species[species_cluster_id_vector[r]] + // a species specific intercept
+            p_city_detections * total_detections_by_city[multicity_site_id_vector[r]] +
             p_wingspan * wingspan[species_integer_vector[r]] + // a species effect of wingspan
             p_feature_diversity * feature_diversity[species_integer_vector[r]] + // a species effect of feature diversity
             p_ease_of_id * ease_of_id[species_integer_vector[r]] + // a species effect of ease of identification
@@ -292,16 +295,15 @@ model {
   sigma_p_city ~ normal(0, 1);
   p_species_raw ~ std_normal();
   sigma_p_species ~ normal(0, 1);
+  p_city_detections ~ normal(0, 2);
   p_wingspan ~ normal(0, 2);
   p_feature_diversity ~ normal(0, 2);
   p_ease_of_id ~ normal(0, 2);
   p_date ~ normal(mu_p_species_date, sigma_p_species_date); // species-specific phenology (peak)
-  //mu_p_species_date ~ normal(0, 2); // mean
   delta0 ~ normal(0, 2); // community mean
   delta_regional_cluster ~ normal(0, 1); // effect of region
   sigma_p_species_date ~ normal(0, 2); // variation
   p_date_sq ~ normal(mu_p_species_date_sq, sigma_p_species_date_sq); // species-specific phenology (decay)
-  //mu_p_species_date_sq ~ normal(0, 1); // mean
   epsilon0 ~ normal(0, 1); // community mean
   epsilon_regional_cluster ~ normal(0, 0.5); // effect of region
   sigma_p_species_date_sq ~ normal(0, 1); // variation
@@ -378,11 +380,12 @@ generated quantities{
       
   // generating posterior predictive distribution
   // Predict Z at sites
-  for(i in 1:R) { // loop across all site/year/species identities
+  for(r in 1:R) { // loop across all site/year/species identities
     for(l in 1:n_surveys){ // loop across surveys
           
           // detections in replicated data (us z_simmed from above)
           W_city_rep[city_id_vector[r]] = W_city_rep[city_id_vector[r]] + 
+            // multiply occupancy state by a simulated detection, AND...
             // multiply by the NA indicator - if we didn't survey in real life
             // we don't survey in this simulation.
             (z_simmed[r] * bernoulli_rng(p[r,l]) * V_NA[r,l]);

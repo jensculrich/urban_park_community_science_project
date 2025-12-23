@@ -97,6 +97,33 @@ prep_data <- function(city_names,
     # so that we do not model responses in these sites
     filter(years_w_detection_by_site >= min_site_years_w_detection)
     
+  #-----------------------------------------------------
+  # get raw number of detections by city
+  total_detections_by_city <- df %>%
+    group_by(city) %>%
+    add_tally() %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(city, n) %>%
+    rename("total_detections" = "n") %>%
+    mutate(total_detections = center_scale(total_detections))
+  
+  #-----------------------------------------------------
+  # get median number of detections per recorder by city
+  recorder_detections_by_city <- df %>%
+    group_by(city, recordedBy) %>%
+    add_tally() %>%
+    select(city, recordedBy, n) %>%
+    slice(1) %>%
+    ungroup() %>%
+    group_by(city) %>%
+    mutate(mean_detections_by_contributor = mean(n), 
+           max_detections_by_contributor = max(n)) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(city, mean_detections_by_contributor, max_detections_by_contributor) %>%
+    mutate(mean_detections_by_contributor_scaled = center_scale(mean_detections_by_contributor),
+           max_detections_by_contributor_scaled = center_scale(max_detections_by_contributor))
   
   #-----------------------------------------------------
   # prep data for VECTOR format
@@ -236,6 +263,16 @@ prep_data <- function(city_names,
   ggplot(site_data, aes(
     x = log_total_green_space_area_scaled_across_all_cities, y = log_isolation_scaled_across_all_cities, colour = city)) +
     geom_point()
+  
+  # plot
+  ggplot(site_data, aes(
+    x = log_total_green_space_area_scaled_across_all_cities, y = plant_genera_density_scaled, colour = city)) +
+    geom_point()
+  
+  # add detections by city
+  site_data <- site_data %>%
+    left_join(., total_detections_by_city) %>%
+    left_join(., recorder_detections_by_city)
   
   ## --------------------------------------------------
   # Get species ranges
@@ -816,6 +853,15 @@ prep_data <- function(city_names,
     pull(prev_index_vector)
   
   R <- nrow(V)
+  
+  mean_species_per_event <- detections_df %>%
+    mutate(detection_one_or_more = ifelse(rowSums(.[,4:15]) > 0, 1, 0)) %>%
+    group_by(community_sample_id) %>%
+    summarize(sum(detection_one_or_more)) %>%
+    ungroup() %>%
+    as.matrix(.)
+  
+  mean_species_per_comm_sampling_event <- mean(as.numeric(mean_species_per_event[,2]))
   
   ## --------------------------------------------------
   ## get species by cluster integer to allow a species - cluster random effect on detection and initial occurrence

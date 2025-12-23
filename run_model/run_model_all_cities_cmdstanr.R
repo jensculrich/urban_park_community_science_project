@@ -67,8 +67,15 @@ wingspan <- species_info$aveWingspan_scaled
 # site
 park_size <- site_data$log_total_green_space_area_scaled_across_all_cities # scaled_2 is scaled to only parks being modeled
 isolation <- site_data$log_isolation_scaled_across_all_cities # scaled_2 is scaled to only parks being modeled
+total_detections_by_city <- site_data$total_detections
+contributor_detections_by_city <- site_data$max_detections_by_contributor_scaled
 city <- as.integer(as.factor(unique(site_data$city)))
 n_cities <- length(unique(city))
+
+temp <- site_data %>%
+  select(city, total_detections, mean_detections_by_contributor_scaled, max_detections_by_contributor_scaled) %>%
+  group_by(city) %>%
+  slice(1)
 
 ## ranges
 #ranges <- my_data$ranges 
@@ -94,7 +101,7 @@ stan_data <- list(R = R, n_surveys = n_surveys, surveys = surveys,
                   n_sites = n_sites, sites = sites, multicity_site_id_vector = multicity_site_id_vector,
                   n_cities = n_cities, city = city, city_id_vector = city_id_vector,
                   feature_diversity = feature_diversity, ease_of_id = ease_of_id, wingspan = wingspan,
-                  park_size = park_size, isolation = isolation, 
+                  park_size = park_size, isolation = isolation, total_detections_by_city = total_detections_by_city,
                   confirmed_occurrence = confirmed_occurrence, prev_index_vector = prev_index_vector, 
                   species_cluster_id_vector = species_cluster_id_vector, n_species_clusters = n_species_clusters,
                   regional_cluster_id_vector = regional_cluster_id_vector, n_regional_clusters = n_regional_clusters         
@@ -136,6 +143,7 @@ params <- c(
   "p0", 
   "sigma_p_species",
   "sigma_p_city",
+  "p_total_detections",
   "p_wingspan",
   "p_feature_diversity",
   "p_ease_of_id",
@@ -242,7 +250,7 @@ stan_out <- stan_model$sample(
 # save the object
 stan_out$save_object(file = "stan_out.rds")
 # or read the object back into the environment
-stan_out <- readRDS("./model_outputs/stan_out_dec7.rds")
+#stan_out <- readRDS("./model_outputs/stan_out_dec7.rds")
 
 
 # summarise all variables with default and additional summary measures
@@ -378,4 +386,8 @@ mcmc_trace(stan_out$draws(), pars = c(
   "sigma_gamma_park_size",
   "mu_gamma_isolation",
   "sigma_gamma_isolation"
+))
+
+mcmc_trace(stan_out$draws(), pars = c(
+  "p_city_detections"
 ))

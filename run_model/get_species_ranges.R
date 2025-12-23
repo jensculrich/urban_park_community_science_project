@@ -26,6 +26,15 @@ get_species_ranges <- function(city_names) {
                           "Papilionidae", "Pieridae", "Riodinidae")
   
   ranges <- ranges %>%
+    # The GBIF output doesn't recognize Rioidinidae or the common species Apodemia virgulti
+    mutate(family = ifelse(taxonRank=="Riodinidae", "Riodinidae", family)) %>%
+    mutate(species = ifelse(verbatimScientificName=="Apodemia virgulti", 
+                            "Apodemia virgulti", species)) %>%
+    
+    # use Riodinidae as Lycaenidae for comm survey purposes (to be discussed with group)
+    mutate(family = ifelse(family == "Riodinidae", 
+                           "Lycaenidae", 
+                           family)) %>%
     filter(family %in% butterfly_families) %>%
     filter(species != "") %>%
     group_by(city, species) %>%
