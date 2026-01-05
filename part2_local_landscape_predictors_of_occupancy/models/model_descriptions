@@ -1,0 +1,11 @@
+m2.1: This model includes all local and landscape predictors. 
+Following the DAG, this will allow us to determine the direct effect of park size and tree cover
+on butterfly occurrence. The plant species diversity predictor represents the effects
+of plant size on occurrence, with some of this effect coming through either park size and/or tree cover.
+Following the DAG, all other predictor estimates will reflect the total (direct) causal effect
+on butterfly occurrence.
+
+m2.2: This model removes plant diversity. This will allow us to determine the total
+causal effects of park size and tree cover on occurrence. If the effect size does not
+change much, then we can presume that most of the effects of park size and tree cover
+are direct rather than acting through increasing plant diversity.

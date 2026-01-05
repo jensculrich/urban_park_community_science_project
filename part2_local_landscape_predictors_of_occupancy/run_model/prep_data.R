@@ -195,7 +195,7 @@ prep_data <- function(city_names,
   ## get site covariate data
   
   # source the prep function
-  source("./run_model/get_site_data.R")
+  source("./part2_local_landscape_predictors_of_occupancy/run_model/get_site_data.R")
   
   site_data_temp <- get_site_data(city_names)
   
@@ -216,14 +216,24 @@ prep_data <- function(city_names,
            log_total_green_space_area_scaled_2 = center_scale(log_total_green_space_area),
            log_isolation_scaled_2 = center_scale(log(isolation))) %>%
     ungroup() %>%
-    mutate(isolation_scaled_across_all_cities = center_scale(isolation),
-           log_total_green_space_area_scaled_across_all_cities = center_scale(log_total_green_space_area),
-           log_isolation_scaled_across_all_cities = center_scale(log(isolation))) 
+    # these are the ones we actually use for the model
+    mutate(log_total_green_space_area_scaled_across_all_cities = center_scale(log_total_green_space_area),
+           plant_genera_density_scaled_across_all_cities = center_scale(plant_genera_density),
+           tree_cover_scaled_across_all_cities = center_scale(tree_percent_cover),
+           isolation_scaled_across_all_cities = center_scale(isolation),
+           log_isolation_scaled_across_all_cities = center_scale(log(isolation)),
+           landcover_type_diversity_scaled_across_all_cities = center_scale(shannon_diversity),
+           proportion_landscape_vegetation_scaled_across_all_cities = center_scale(log(proportion_landscape_vegetation+0.01)),
+           proportion_landscape_open_developed_scaled_across_all_cities = center_scale(log(proportion_landscape_open_developed+0.01)),
+           proportion_landscape_medhigh_developed_scaled_across_all_cities = center_scale(log(proportion_landscape_medhigh_developed+0.01)),
+           proportion_landscape_woody_scaled_across_all_cities = center_scale(log(proportion_landscape_woody+0.01)),
+           proportion_landscape_grassherb_scaled_across_all_cities = center_scale(log(proportion_landscape_grassherb+0.01))
+    ) 
     
   
   if(remove_outlier_parks == TRUE){
     site_data <- site_data %>%
-      filter(log_total_green_space_area_scaled_across_all_cities > -3) 
+      filter(total_green_space_area > 0.11) 
   }
   
   n_sites <- nrow(site_data <- site_data %>%
@@ -235,29 +245,26 @@ prep_data <- function(city_names,
   
   # plot the spread of the site covariate data
   par(mfrow=c(1,4))  
-  hist(site_data$log_total_green_space_area_scaled)
-  hist(site_data$log_isolation_scaled)  
-  hist(site_data$log_total_green_space_area_scaled_2)
-  hist(site_data$log_isolation_scaled_2)
+  hist(site_data$proportion_landscape_woody_scaled_across_all_cities)
+  hist(site_data$proportion_landscape_grassherb_scaled_across_all_cities)  
+  hist(site_data$plant_genera_density_scaled_across_all_cities)
+  hist(site_data$tree_cover_scaled_across_all_cities)
   #hist(site_data$perarea_idx_scaled)
   #hist(site_data$proximity_scaled)
   hist(site_data$log_total_green_space_area_scaled_across_all_cities)
   hist(site_data$log_isolation_scaled_across_all_cities)
+  hist(site_data$landcover_type_diversity_scaled_across_all_cities)
   
   par(mfrow=c(1,1)) 
   
   # how correlated are the site covariate data
   cor(site_data$log_total_green_space_area_scaled, site_data$log_isolation_scaled)
-  cor(site_data$log_total_green_space_area_scaled_2, site_data$log_isolation_scaled_2)
+  cor(site_data$proportion_landscape_woody_scaled_across_all_cities, site_data$landcover_type_diversity_scaled_across_all_cities)
   cor(site_data$plant_genera_density_scaled, site_data$log_total_green_space_area_scaled_2)
   cor(site_data$log_isolation_scaled_across_all_cities, site_data$log_total_green_space_area_scaled_across_all_cities)
   
   #plot(site_data$log_total_green_space_area_scaled_2, site_data$log_isolation_scaled_2)
-  
-  # plot
-  ggplot(site_data, aes(
-    x = log_total_green_space_area_scaled_2, y = log_isolation_scaled_2, colour = city)) +
-    geom_point()
+
   
   # plot
   ggplot(site_data, aes(
@@ -266,7 +273,12 @@ prep_data <- function(city_names,
   
   # plot
   ggplot(site_data, aes(
-    x = log_total_green_space_area_scaled_across_all_cities, y = plant_genera_density_scaled, colour = city)) +
+    x = log_total_green_space_area_scaled_across_all_cities, y = plant_genera_density_scaled_across_all_cities, colour = city)) +
+    geom_point()
+  
+  # plot
+  ggplot(site_data, aes(
+    x = proportion_landscape_vegetation_scaled_across_all_cities, y = landcover_type_diversity_scaled_across_all_cities, colour = city)) +
     geom_point()
   
   # add detections by city
@@ -278,7 +290,7 @@ prep_data <- function(city_names,
   # Get species ranges
   
   # source the prep function
-  source("./run_model/get_species_ranges.R")
+  source("./part2_local_landscape_predictors_of_occupancy/run_model/get_species_ranges.R")
   
   ranges_raw <- get_species_ranges(city_names)
   
@@ -929,11 +941,7 @@ prep_data <- function(city_names,
   # species morpho traits
   trait_df <- read.csv(
     "./data/lepidoptera_trait_data/lepidoptera_trait_data/SpeciesListForTraits.csv") %>%
-    select(GBIF_species, eButterfly_species, LepTraits_name, featureDiversity, aveWingspan, is_migratory) %>%
-    
-  # get a binary version of migratory status.
-  # assume that a species unknown or not considered (blank) is non-migratory
-    mutate(migratory = if_else(is_migratory == TRUE, 1, 0))
+    select(GBIF_species, eButterfly_species, LepTraits_name, featureDiversity, aveWingspan) 
   
   ## separate out all possible names for the species
   # first figure out how many possible names
@@ -1018,7 +1026,6 @@ prep_data <- function(city_names,
            aveWingspan, aveWingspan_scaled, 
            featureDiversity, featureDiversity_scaled, 
            research_grade_proportion, research_grade_proportion_scaled,
-           migratory,
            FlightDuration, DiapauseStage, Voltinism, OvipositionStyle, 
            CanopyAffinity, EdgeAffinity, MoistureAffinity, DisturbanceAffinity,
            NumberOfHostplantFamilies)
@@ -1198,11 +1205,6 @@ prep_data <- function(city_names,
            mean_plant_genera_density, sd_plant_genera_density)
   
   city_data <- left_join(city_data, city_site_data)
-  
-  if(write_city_data_csv == TRUE){
-    write.csv(city_data, paste0("./data/data_summaries/data_summary_", region, ".csv"),
-              row.names = FALSE)
-  }
   
   ## --------------------------------------------------
   # Return stuff

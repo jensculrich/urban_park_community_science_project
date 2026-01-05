@@ -59,6 +59,9 @@ n_surveys <- my_data$n_surveys
 surveys <- sequence(n_surveys)
 surveys <- (surveys - mean(surveys)) / sd(surveys)
 
+migratory <- species_info$migratory
+migratory[is.na(migratory)] <- 0
+
 ## predictors
 # species
 feature_diversity <- species_info$featureDiversity_scaled

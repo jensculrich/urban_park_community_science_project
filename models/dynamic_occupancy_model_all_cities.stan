@@ -37,6 +37,7 @@ data {
   vector[n_species] feature_diversity;
   vector[n_species] ease_of_id;
   vector[n_species] wingspan;
+  vector[n_species] migratory;
   vector[n_sites] park_size;
   vector[n_sites] isolation;
   vector[n_sites] total_detections_by_city;
@@ -72,6 +73,9 @@ parameters {
   real mu_gamma_wingspan;
   vector[n_cities] gamma_wingspan_raw;  
   real<lower=0> sigma_gamma_wingspan;
+  real mu_gamma_migratory;
+  vector[n_cities] gamma_migratory_raw;  
+  real<lower=0> sigma_gamma_migratory;
   real mu_gamma_park_size;
   vector[n_cities] gamma_park_size_raw;  
   real<lower=0> sigma_gamma_park_size;
@@ -88,6 +92,9 @@ parameters {
   real mu_phi_wingspan;
   vector[n_cities] phi_wingspan_raw;  
   real<lower=0> sigma_phi_wingspan;
+  real mu_phi_migratory;
+  vector[n_cities] phi_migratory_raw;  
+  real<lower=0> sigma_phi_migratory;
   real mu_phi_park_size;
   vector[n_cities] phi_park_size_raw;  
   real<lower=0> sigma_phi_park_size;
@@ -132,11 +139,13 @@ transformed parameters {
   vector[n_species] gamma_species;
   vector[n_cities] gamma_city;
   vector[n_cities] gamma_wingspan;
+  vector[n_cities] gamma_migratory;
   vector[n_cities] gamma_park_size;
   vector[n_cities] gamma_isolation;
   vector[n_species] phi_species;
   vector[n_cities] phi_city;
   vector[n_cities] phi_wingspan;
+  vector[n_cities] phi_migratory;
   vector[n_cities] phi_park_size;
   vector[n_cities] phi_isolation;
   vector[n_species_clusters] p_species;
@@ -153,11 +162,13 @@ transformed parameters {
   gamma_species = sigma_gamma_species * gamma_species_raw;
   gamma_city = gamma0 + sigma_gamma_city * gamma_city_raw;
   gamma_wingspan = mu_gamma_wingspan + sigma_gamma_wingspan * gamma_wingspan_raw;
+  gamma_migratory = mu_gamma_migratory + sigma_gamma_migratory * gamma_migratory_raw;
   gamma_park_size = mu_gamma_park_size + sigma_gamma_park_size * gamma_park_size_raw;
   gamma_isolation = mu_gamma_isolation + sigma_gamma_isolation * gamma_isolation_raw;
   phi_species = sigma_phi_species * phi_species_raw;
   phi_city = phi0 + sigma_phi_city * phi_city_raw;
   phi_wingspan = mu_phi_wingspan + sigma_phi_wingspan * phi_wingspan_raw;
+  phi_migratory = mu_phi_migratory + sigma_phi_migratory * phi_migratory_raw;
   phi_park_size = mu_phi_park_size + sigma_phi_park_size * phi_park_size_raw;
   phi_isolation = mu_phi_isolation + sigma_phi_isolation * phi_isolation_raw;
   p_species = sigma_p_species * p_species_raw;
@@ -182,6 +193,7 @@ transformed parameters {
           gamma_city[city_id_vector[r]] +
           gamma_species[species_integer_vector[r]] + // a species specific intercept
           gamma_wingspan[city_id_vector[r]] * wingspan[species_integer_vector[r]] + // a species effect of migratory
+          gamma_migratory[city_id_vector[r]] * migratory[species_integer_vector[r]] + // a species effect of migratory
           gamma_park_size[city_id_vector[r]] * park_size[multicity_site_id_vector[r]] + // a site effect of park size
           gamma_isolation[city_id_vector[r]] * isolation[multicity_site_id_vector[r]] // a site effect of park isolation
           ); // end gamma[i,j,k]
@@ -190,6 +202,7 @@ transformed parameters {
           phi_city[city_id_vector[r]] +
           phi_species[species_integer_vector[r]] + // a species specific intercept
           phi_wingspan[city_id_vector[r]] * wingspan[species_integer_vector[r]] + // a species effect of migratory
+          phi_migratory[city_id_vector[r]] * migratory[species_integer_vector[r]] + // a species effect of migratory
           phi_park_size[city_id_vector[r]] * park_size[multicity_site_id_vector[r]] + // a site effect of park size
           phi_isolation[city_id_vector[r]] * isolation[multicity_site_id_vector[r]] // a site effect of park isolation
           ); // end phi[i,j,k]
@@ -266,6 +279,9 @@ model {
   mu_gamma_wingspan ~ normal(0, 2);
   gamma_wingspan_raw ~ std_normal();
   sigma_gamma_wingspan ~ normal(0, 0.5);
+  mu_gamma_migratory ~ normal(0, 2);
+  gamma_migratory_raw ~ std_normal();
+  sigma_gamma_migratory ~ normal(0, 0.5);
   mu_gamma_park_size ~ normal(0, 2);
   gamma_park_size_raw ~ std_normal();
   sigma_gamma_park_size ~ normal(0, 0.5);
@@ -282,6 +298,9 @@ model {
   mu_phi_wingspan ~ normal(0, 2);
   phi_wingspan_raw ~ std_normal();
   sigma_phi_wingspan ~ normal(0, 0.5);
+  mu_phi_migratory ~ normal(0, 2);
+  phi_migratory_raw ~ std_normal();
+  sigma_phi_migratory ~ normal(0, 0.5);
   mu_phi_park_size ~ normal(0, 2);
   phi_park_size_raw ~ std_normal();
   sigma_phi_park_size ~ normal(0, 0.5);
