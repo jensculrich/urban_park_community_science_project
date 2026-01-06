@@ -64,9 +64,6 @@ parameters {
   real mu_psi_tree_cover;
   vector[n_cities] psi_tree_cover_raw;  
   real<lower=0> sigma_psi_tree_cover;
-  real mu_psi_plant_diversity;
-  vector[n_cities] psi_plant_diversity_raw;  
-  real<lower=0> sigma_psi_plant_diversity;
   real mu_psi_landscape_isolation;
   vector[n_cities] psi_landscape_isolation_raw;  
   real<lower=0> sigma_psi_landscape_isolation;
@@ -123,7 +120,6 @@ transformed parameters {
   psi_wingspan = mu_psi_wingspan + sigma_psi_wingspan * psi_wingspan_raw;
   psi_park_size = mu_psi_park_size + sigma_psi_park_size * psi_park_size_raw;
   psi_tree_cover = mu_psi_tree_cover + sigma_psi_tree_cover * psi_tree_cover_raw;
-  psi_plant_diversity = mu_psi_plant_diversity + sigma_psi_plant_diversity * psi_plant_diversity_raw;
   psi_landscape_isolation = mu_psi_landscape_isolation + sigma_psi_landscape_isolation * psi_landscape_isolation_raw;
   psi_landscape_grassherb = mu_psi_landscape_grassherb + sigma_psi_landscape_grassherb * psi_landscape_grassherb_raw;
   psi_landscape_woody = mu_psi_landscape_woody + sigma_psi_landscape_woody * psi_landscape_woody_raw;
