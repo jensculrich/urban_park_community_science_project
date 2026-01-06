@@ -1015,8 +1015,11 @@ prep_data <- function(city_names,
     slice(1) %>%
     ungroup()
   
-  species_info <- left_join(species_info, consensus, by="LepTraits_name")
-  
+  #species_info <- left_join(species_info, consensus, by="LepTraits_name")
+  species_info <- species_info %>%
+    mutate(trait_join_name = ifelse(is.na(LepTraits_name), species, LepTraits_name))
+  species_info <- left_join(species_info, consensus, by=c("trait_join_name" = "LepTraits_name")) 
+
   # now scale and select all the variables 
   species_info <- species_info %>%
     mutate(aveWingspan_scaled = center_scale(aveWingspan),

@@ -46,7 +46,7 @@ n_cities <- length(city_names)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./model_outputs/stan_out_dec12.rds")
+  "./model_outputs/stan_out_m2.1_jan2.rds")
 
 tmp <- as.data.frame(stan_out$draws(variables = c("psi1_0", 
                                     "sigma_psi1_species",
@@ -190,7 +190,7 @@ p <- ggplot(data = size_df, aes(size_pred, psi1_size_community_mean)) +
   xlim(c(min(size_pred), max(size_pred))) +
   ylim(c(0, 1)) +
   theme_bw() +
-  ylab("Initial Occurrence Rate\n(Mean Across All Cities)") +
+  ylab("Occupancy Rate\n(Mean Across All Cities)") +
   xlab("Park Size\n(Std. Deviations from Mean Park Size)") +
   scale_y_continuous(limits = c(0,1),
                      breaks = c(0, 0.5, 1),
@@ -352,7 +352,7 @@ q <- ggplot(data = new_df, aes(x=park_size_original_ordered, y=mean, colour=city
   xlim(c(min(park_size_original_ordered), max(park_size_original_ordered))) +
   ylim(c(0, 1)) +
   theme_bw() +
-  ylab("Initial Occurrence Rate \n(City-Specific)") +
+  ylab("Occupancy Rate \n(City-Specific)") +
   xlab("log(Park Size m^2)") +
   scale_y_continuous(limits = c(0,1),
                      breaks = c(0, 0.5, 1),
@@ -435,7 +435,7 @@ r <- ggplot(data = isolation_df, aes(isolation_pred, psi1_isolation_community_me
   xlim(c(min(isolation_pred), max(isolation_pred))) +
   ylim(c(0, 1)) +
   theme_bw() +
-  ylab("Initial Occurrence Rate\n(Mean Across All Cities)") +
+  ylab("Occupancy Rate\n(Mean Across All Cities)") +
   xlab("Park Isolation\n(Std. Deviations from Mean Isolation)") +
   scale_y_continuous(limits = c(0,1),
                      breaks = c(0, 0.5, 1),
@@ -580,7 +580,7 @@ s <- ggplot(data = new_df, aes(x=park_isolation_original_ordered, y=mean, colour
   xlim(c(min(park_isolation_original_ordered), max(park_isolation_original_ordered))) +
   ylim(c(0, 1)) +
   theme_bw() +
-  ylab("Initial Occurrence Rate\n(City-Specific)") +
+  ylab("Occupancy Rate\n(City-Specific)") +
   xlab("log(Park Isolation)") +
   scale_y_continuous(limits = c(0,1),
                      breaks = c(0, 0.5, 1),

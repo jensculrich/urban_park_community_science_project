@@ -107,7 +107,7 @@ my_palette <- my_palette[3:(n_cities+2)] # remove the really dark colours
 my_palette <- c("black", my_palette) # add black for the all cities mean
 
 #-------------------------------------------------------------------------------
-# initial occurrence (psi)
+# occupancy (psi)
 
 for(i in 1:n_regions){
   
@@ -339,7 +339,7 @@ p <- ggplot(df_estimates) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=my_palette) + 
    geom_hline(yintercept = 0, lty = "dashed") +
-   ggtitle("Initial Occurrence") +
+   ggtitle("Occupancy") +
    theme(plot.title = element_text(size = 18, face = "bold"),
          legend.text=element_text(size=10),
          axis.text.x = element_text(size = 18),
