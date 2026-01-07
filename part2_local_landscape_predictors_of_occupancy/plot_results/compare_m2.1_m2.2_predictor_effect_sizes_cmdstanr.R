@@ -59,8 +59,9 @@ gc()
   
   # ecological params
   # number of params to plot
-  params <- 5  # park size, park_size, tree cover, tree cover, plant diversity
+  params <- 5  # park size, park size, tree cover, tree cover, plant diversity
   X <- c("park size", "park size", "tree cover", "tree cover", "plant diversity")
+  Model <- c("m2.1", "m2.2", "m2.1", "m2.2", "m2.1")
   Y <- vector(length = params) # Y = mean estimate for a param of interest
   lower_95 <- vector(length = params)
   upper_95 <- vector(length = params)
@@ -109,9 +110,10 @@ gc()
     )
   
   # now bind all of the param names, city names, and quantiles into a df for plotting
-  df_estimates <- as.data.frame(cbind(X, Y, lower_95, upper_95, lower_50, upper_50))
+  df_estimates <- as.data.frame(cbind(X, Model, Y, lower_95, upper_95, lower_50, upper_50))
   
   df_estimates$X <- as.factor(df_estimates$X)
+  df_estimates$Model <- as.factor(df_estimates$Model)
   df_estimates$Y <- as.numeric(df_estimates$Y)
   df_estimates$lower_95 <- as.numeric(df_estimates$lower_95)
   df_estimates$upper_95 <- as.numeric(df_estimates$upper_95)
@@ -119,9 +121,12 @@ gc()
   df_estimates$upper_50 <- as.numeric(df_estimates$upper_50)
   
   
-# plot cities in alphabetical order
-# df_estimates$city_name <- fct_relevel(df_estimates$city_name, region_name)
-                                                     
+# plot params in alphabetical order
+df_estimates$X <- factor(df_estimates$X, 
+                         levels = c("park size", "tree cover", "plant diversity"))                                                     
+# plot models in alphabetical order
+df_estimates$Model <- factor(df_estimates$Model, 
+                         levels = c("m2.1", "m2.2"))  
 
 ## --------------------------------------------------
 ## Draw caterpillar plot
@@ -129,17 +134,17 @@ gc()
 # layout the plot
 p <- ggplot(df_estimates) +
    theme_bw() +
-   scale_x_discrete(name="", breaks = seq(1:3),
+   scale_x_discrete(name="", breaks = c("park size", "tree cover", "plant diversity"),
                     labels=c(bquote(psi["park size"]),
                              bquote(psi["tree cover"]),
                              bquote(psi["plant diversity"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-1, 3), breaks = c(-1, 0, 1, 2, 3)) +
-   guides(color = guide_legend(title = "city")) +
-   scale_color_manual(values=my_palette) + 
+                      limits = c(-0.5, 1), breaks = c(-0.5, 0, 0.5, 1, 1.5)) +
    geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("Occupancy") +
+   guides(color = guide_legend(title = "Model")) +
+   scale_color_manual(values=c("gray30", "gray80")) + 
    theme(plot.title = element_text(size = 18, face = "bold"),
          legend.text=element_text(size=10),
          axis.text.x = element_text(size = 18),
@@ -152,11 +157,11 @@ p <- ggplot(df_estimates) +
 
 # add estimates
 p <- p +
-  geom_errorbar(aes(x=X, ymin=lower_95, ymax=upper_95),
+  geom_errorbar(aes(x=X, ymin=lower_95, ymax=upper_95, group=Model, colour=Model),
                 position=position_dodge(width=0.5),width=0.1,size=1,alpha=0.5) +
-  geom_errorbar(aes(x=X, ymin=lower_50, ymax=upper_50),
+  geom_errorbar(aes(x=X, ymin=lower_50, ymax=upper_50, group=Model, colour=Model),
                 position=position_dodge(width=0.5),width=0,size=3,alpha=0.8) +
-  geom_point(aes(x=X, y=Y), 
+  geom_point(aes(x=X, y=Y, group=Model, colour=Model), 
              position=position_dodge(width=0.5),
              size = 5, alpha = 0.8) 
 

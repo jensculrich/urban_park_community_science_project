@@ -26,7 +26,7 @@ city_names <- unique(site_data$city)
 
 city_integer_vector <- my_data$city_integer_vector
 W_df <- as.data.frame(cbind(city_integer_vector, V)) %>%
-  mutate(row_sum_detections = rowSums(.[,2:ncol(.)])) %>%
+  mutate(row_sum_detections = rowSums(.[,2:ncol(.)]))%>%
   select(city_integer_vector, row_sum_detections) %>%
   group_by(city_integer_vector) %>%
   summarise(W_city = sum(row_sum_detections),
