@@ -930,6 +930,14 @@ prep_data <- function(city_names,
     mutate(species_cluster_integer_vector = as.integer(as.factor(species_cluster))) %>%
     pull(species_cluster_integer_vector)
   
+  # also get the species*cluster data in a form that is linked to species names
+  # for making predictive plots after fitting the models
+  species_region_cluster_id <- detections_df %>%
+    mutate(species_cluster_integer_vector = as.integer(as.factor(species_cluster))) %>%
+    select(species, cluster, region_cluster, species_cluster_integer_vector) %>%
+    group_by(species_cluster_integer_vector) %>%
+    slice(1) %>% ungroup
+  
   # get data of which cluster is being considered on each row of V
   region_cluster_integer_vector <- detections_df %>%
     mutate(region_cluster_integer_vector = as.integer(as.factor(region_cluster))) %>%
@@ -941,7 +949,11 @@ prep_data <- function(city_names,
   # species morpho traits
   trait_df <- read.csv(
     "./data/lepidoptera_trait_data/lepidoptera_trait_data/SpeciesListForTraits.csv") %>%
-    select(GBIF_species, eButterfly_species, LepTraits_name, featureDiversity, aveWingspan) 
+    select(GBIF_species, eButterfly_species, LepTraits_name, featureDiversity, aveWingspan, is_migratory) %>%
+    
+    # get a binary version of migratory status.
+    # assume that a species unknown or not considered (blank) is non-migratory
+    mutate(migratory = if_else(is_migratory == TRUE, 1, 0))
   
   ## separate out all possible names for the species
   # first figure out how many possible names
@@ -1029,6 +1041,7 @@ prep_data <- function(city_names,
            aveWingspan, aveWingspan_scaled, 
            featureDiversity, featureDiversity_scaled, 
            research_grade_proportion, research_grade_proportion_scaled,
+           migratory,
            FlightDuration, DiapauseStage, Voltinism, OvipositionStyle, 
            CanopyAffinity, EdgeAffinity, MoistureAffinity, DisturbanceAffinity,
            NumberOfHostplantFamilies)
@@ -1250,7 +1263,9 @@ prep_data <- function(city_names,
     
     region_cluster_integer_vector = region_cluster_integer_vector,
     
-    city_data = city_data
+    city_data = city_data,
+
+    species_region_cluster_id = species_region_cluster_id
 
   ))
 
