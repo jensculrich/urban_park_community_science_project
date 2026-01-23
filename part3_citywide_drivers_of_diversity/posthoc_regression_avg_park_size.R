@@ -96,7 +96,7 @@ n_cities <- length(city_names <- c(
 
 city_data <- city_data %>%
   filter(city %in% city_names) %>%
-  cbind(., city_factor = seq(1:length(n_cities)))
+  cbind(., city_factor = seq(1:n_cities))
 
 city_data <- city_data %>%
   mutate(log_avg_park_size = log(average_park_size_sqm),
@@ -136,9 +136,14 @@ for(city_number in 1:n_cities){
 
 df <- cbind(city_data, mean_psi_size) 
 
-ggplot(df, aes(log_avg_park_size , mean_psi_size)) +
+a <- ggplot(df, aes(log_avg_park_size , mean_psi_size)) +
   geom_point(aes(colour=city), size = 3)  +
-  geom_smooth(method = lm)
+  geom_smooth(method = lm) +
+  ylab("Mean(Estimated Importance\nof Park Size)") +
+  xlab("Mean log(Park Size)") +
+  theme_classic() + 
+  theme(axis.title = element_text(size = 16),
+        axis.text = element_text(size = 14))
 
 ##------------------------------------------------------------------------------
 # post hoc regression psi_park_isolation
@@ -155,9 +160,14 @@ for(city_number in 1:n_cities){
 
 df <- cbind(city_data, mean_psi_isolation) 
 
-ggplot(df, aes(log_avg_park_size , mean_psi_isolation)) +
+b <- ggplot(df, aes(log_avg_park_size , mean_psi_isolation)) +
   geom_point(aes(colour=city), size = 3)  +
-  geom_smooth(method = lm)
+  geom_smooth(method = lm) +
+  ylab("Mean(Estimated Importance\nof Park Isolation)") +
+  xlab("Mean log(Park Size)") +
+  theme_classic() + 
+  theme(axis.title = element_text(size = 16),
+        axis.text = element_text(size = 14))
 
 ##------------------------------------------------------------------------------
 # post hoc regression psi_park_isolation
@@ -174,6 +184,13 @@ for(city_number in 1:n_cities){
 
 df <- cbind(city_data, mean_psi_grassherb) 
 
-ggplot(df, aes(log_avg_park_size , mean_psi_grassherb)) +
+c <- ggplot(df, aes(log_avg_park_size , mean_psi_grassherb)) +
   geom_point(aes(colour=city), size = 3) +
-  geom_smooth(method = lm)
+  geom_smooth(method = lm) +
+  ylab("Mean(Estimated Importance\nof Landscape Herb. Cover)") +
+  xlab("Mean log(Park Size)") +
+  theme_classic() + 
+  theme(axis.title = element_text(size = 16),
+        axis.text = element_text(size = 14))
+
+cowplot::plot_grid(a, b, c, ncol = 3)
