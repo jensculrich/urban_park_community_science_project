@@ -12,7 +12,7 @@ library(tidyverse)
 ### Prepare data for model
 # for community sampling events inferred by [taxonomic] family, source this file:
 
-my_data <- readRDS( paste0("./run_model/prepped_data/prepped_data_all.rds"))
+my_data <- readRDS( paste0("./part1_urban_butterfly_community_dynamics/run_model/prepped_data/prepped_data_all.rds"))
 
 ## --------------------------------------------------
 ### Prepare data for model
@@ -37,7 +37,7 @@ W_df <- as.data.frame(cbind(city_integer_vector, V)) %>%
 # get W distributions from model
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./model_outputs/stan_out_jan5.rds")
+  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_jan27.rds")
 
 tmp <- as.data.frame(stan_out$draws(variables = "W_city_rep",
                                     format = "draws_matrix"

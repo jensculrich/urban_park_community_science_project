@@ -5,6 +5,8 @@
 // I've included a month-phenology covariate for detection
 
 // I've also added park site and species trait predictors 
+// contrast with model 1.1, I additionally added random effects in the detection
+// including an effect of migratory status on detectability
 
 // jcu, started may, 2024.
 
@@ -44,68 +46,60 @@ parameters {
 
   // initial state
   real psi1_0; // intercept
-  vector[n_species_clusters] psi1_species_raw;  
-  real<lower=0> sigma_psi1_species;
   vector[n_cities] psi1_city_raw;
   real<lower=0> sigma_psi1_city;
-  real mu_psi1_wingspan;
-  vector[n_cities] psi1_wingspan_raw;  
-  real<lower=0> sigma_psi1_wingspan;
   real mu_psi1_park_size;
   vector[n_cities] psi1_park_size_raw;  
   real<lower=0> sigma_psi1_park_size;
   real mu_psi1_isolation;
   vector[n_cities] psi1_isolation_raw;  
   real<lower=0> sigma_psi1_isolation;
+  vector[n_species_clusters] psi1_species;
+  real<lower=0> sigma_psi1_species;
+  real psi1_wingspan;
+  real psi1_migratory;
 
   // colonization
   real gamma0;
-  vector[n_species] gamma_species_raw;
-  real<lower=0> sigma_gamma_species;
   vector[n_cities] gamma_city_raw;
   real<lower=0> sigma_gamma_city;
-  real mu_gamma_wingspan;
-  vector[n_cities] gamma_wingspan_raw;  
-  real<lower=0> sigma_gamma_wingspan;
-  real mu_gamma_migratory;
-  vector[n_cities] gamma_migratory_raw;  
-  real<lower=0> sigma_gamma_migratory;
   real mu_gamma_park_size;
   vector[n_cities] gamma_park_size_raw;  
   real<lower=0> sigma_gamma_park_size;
   real mu_gamma_isolation;
   vector[n_cities] gamma_isolation_raw;  
   real<lower=0> sigma_gamma_isolation;
+  vector[n_species] gamma_species;
+  real<lower=0> sigma_gamma_species;
+  real gamma_wingspan;
+  real gamma_migratory;
 
   // persistence
   real phi0;
-  vector[n_species] phi_species_raw;
-  real<lower=0> sigma_phi_species;
   vector[n_cities] phi_city_raw;
   real<lower=0> sigma_phi_city;
-  real mu_phi_wingspan;
-  vector[n_cities] phi_wingspan_raw;  
-  real<lower=0> sigma_phi_wingspan;
-  real mu_phi_migratory;
-  vector[n_cities] phi_migratory_raw;  
-  real<lower=0> sigma_phi_migratory;
   real mu_phi_park_size;
   vector[n_cities] phi_park_size_raw;  
   real<lower=0> sigma_phi_park_size;
   real mu_phi_isolation;
   vector[n_cities] phi_isolation_raw;  
   real<lower=0> sigma_phi_isolation;
-
+  vector[n_species] phi_species;
+  real<lower=0> sigma_phi_species;
+  real phi_wingspan;
+  real phi_migratory;
+  
   // detection
   real p0; // intercept
-  vector[n_species_clusters] p_species_raw;
-  real<lower=0> sigma_p_species;
   vector[n_cities] p_city_raw;
   real<lower=0> sigma_p_city;
   real p_city_detections;
+  vector[n_species_clusters] p_species;
   real p_wingspan;
+  real p_migratory;
   real p_feature_diversity;
   real p_ease_of_id;
+  real<lower=0> sigma_p_species;
   vector[n_species_clusters] p_date; // phenology peak
   real delta0;
   vector[n_regional_clusters] delta_regional_cluster;
@@ -125,81 +119,78 @@ transformed parameters {
   array[R] real phi; // odds of persistence
   array[R, n_surveys] real p; // odds of detection
   
-  vector[n_species_clusters] psi1_species;
   vector[n_cities] psi1_city;
-  vector[n_cities] psi1_wingspan;
   vector[n_cities] psi1_park_size;
   vector[n_cities] psi1_isolation;
-  vector[n_species] gamma_species;
   vector[n_cities] gamma_city;
-  vector[n_cities] gamma_wingspan;
-  vector[n_cities] gamma_migratory;
   vector[n_cities] gamma_park_size;
   vector[n_cities] gamma_isolation;
-  vector[n_species] phi_species;
   vector[n_cities] phi_city;
-  vector[n_cities] phi_wingspan;
-  vector[n_cities] phi_migratory;
   vector[n_cities] phi_park_size;
   vector[n_cities] phi_isolation;
-  vector[n_species_clusters] p_species;
   vector[n_cities] p_city;
-  vector[n_species_clusters] mu_p_species_date; // community mean
-  vector[n_species_clusters] mu_p_species_date_sq; // variation
+  vector[n_species_clusters] mu_psi1_species; // phenology peak
+  vector[n_species] mu_gamma_species; // phenology peak
+  vector[n_species] mu_phi_species; // phenology peak
+  vector[n_species_clusters] mu_p_species; // phenology peak
+  vector[n_species_clusters] mu_p_species_date; // phenology peak
+  vector[n_species_clusters] mu_p_species_date_sq; // phenology curve
   
   // implies: xprocess_species ~ normal(mu_xprocess_species, sigma_xprocess_species)
-  psi1_species = sigma_psi1_species * psi1_species_raw;
   psi1_city = psi1_0 + sigma_psi1_city * psi1_city_raw;
-  psi1_wingspan = mu_psi1_wingspan + sigma_psi1_wingspan * psi1_wingspan_raw;
   psi1_park_size = mu_psi1_park_size + sigma_psi1_park_size * psi1_park_size_raw;
   psi1_isolation = mu_psi1_isolation + sigma_psi1_isolation * psi1_isolation_raw;
-  gamma_species = sigma_gamma_species * gamma_species_raw;
   gamma_city = gamma0 + sigma_gamma_city * gamma_city_raw;
-  gamma_wingspan = mu_gamma_wingspan + sigma_gamma_wingspan * gamma_wingspan_raw;
-  gamma_migratory = mu_gamma_migratory + sigma_gamma_migratory * gamma_migratory_raw;
   gamma_park_size = mu_gamma_park_size + sigma_gamma_park_size * gamma_park_size_raw;
   gamma_isolation = mu_gamma_isolation + sigma_gamma_isolation * gamma_isolation_raw;
-  phi_species = sigma_phi_species * phi_species_raw;
   phi_city = phi0 + sigma_phi_city * phi_city_raw;
-  phi_wingspan = mu_phi_wingspan + sigma_phi_wingspan * phi_wingspan_raw;
-  phi_migratory = mu_phi_migratory + sigma_phi_migratory * phi_migratory_raw;
   phi_park_size = mu_phi_park_size + sigma_phi_park_size * phi_park_size_raw;
   phi_isolation = mu_phi_isolation + sigma_phi_isolation * phi_isolation_raw;
-  p_species = sigma_p_species * p_species_raw;
   p_city = p0 + sigma_p_city * p_city_raw;
-  
   
   for(r in 1:R){
   
+    // phenology predictors
     mu_p_species_date[species_cluster_id_vector[r]] = delta0 + delta_regional_cluster[regional_cluster_id_vector[r]];
     mu_p_species_date_sq[species_cluster_id_vector[r]] = epsilon0 + epsilon_regional_cluster[regional_cluster_id_vector[r]];
-
-  
-        psi1[r] = inv_logit( // probability (0-1) of occurrence in year 1 is equal to..
-          psi1_city[city_id_vector[r]] +
-          psi1_species[species_cluster_id_vector[r]] + // a species specific intercept
-          psi1_wingspan[city_id_vector[r]] * wingspan[species_integer_vector[r]] + // a species effect of migratory
-          psi1_park_size[city_id_vector[r]] * park_size[multicity_site_id_vector[r]] + // a site effect of park size
-          psi1_isolation[city_id_vector[r]] * isolation[multicity_site_id_vector[r]] // a site effect of park isolation
-          ); // end psi1[r]
+    
+    // species traits predict expected value of species random effect
+    // species can get a different random effect depending on the geographical cluster 
+    // where the detection takes place (species_cluster_id_vector[r]), but the species traits
+    // for that species are always the same (species_integer_vector[r]) e.g. we don't
+    // have different measures of a species wingspan in different regions just one value of mean wingspan
+    mu_psi1_species[species_cluster_id_vector[r]] = psi1_wingspan*wingspan[species_integer_vector[r]] +
+        psi1_migratory*migratory[species_integer_vector[r]];
+    mu_gamma_species[species_integer_vector[r]] = gamma_wingspan*wingspan[species_integer_vector[r]] +
+        gamma_migratory*migratory[species_integer_vector[r]];
+    mu_phi_species[species_integer_vector[r]] = phi_wingspan*wingspan[species_integer_vector[r]] +
+        phi_migratory*migratory[species_integer_vector[r]];
+    mu_p_species[species_cluster_id_vector[r]] = p_wingspan*wingspan[species_integer_vector[r]] +
+        p_migratory*migratory[species_integer_vector[r]] + 
+        p_feature_diversity * feature_diversity[species_integer_vector[r]] +
+        p_ease_of_id * ease_of_id[species_integer_vector[r]];
         
-        gamma[r] = inv_logit( // probability (0-1) of colonization is equal to..
-          gamma_city[city_id_vector[r]] +
-          gamma_species[species_integer_vector[r]] + // a species specific intercept
-          gamma_wingspan[city_id_vector[r]] * wingspan[species_integer_vector[r]] + // a species effect of migratory
-          gamma_migratory[city_id_vector[r]] * migratory[species_integer_vector[r]] + // a species effect of migratory
-          gamma_park_size[city_id_vector[r]] * park_size[multicity_site_id_vector[r]] + // a site effect of park size
-          gamma_isolation[city_id_vector[r]] * isolation[multicity_site_id_vector[r]] // a site effect of park isolation
-          ); // end gamma[i,j,k]
-                
-        phi[r] = inv_logit( // probability (0-1) of persistence is equal to..
-          phi_city[city_id_vector[r]] +
-          phi_species[species_integer_vector[r]] + // a species specific intercept
-          phi_wingspan[city_id_vector[r]] * wingspan[species_integer_vector[r]] + // a species effect of migratory
-          phi_migratory[city_id_vector[r]] * migratory[species_integer_vector[r]] + // a species effect of migratory
-          phi_park_size[city_id_vector[r]] * park_size[multicity_site_id_vector[r]] + // a site effect of park size
-          phi_isolation[city_id_vector[r]] * isolation[multicity_site_id_vector[r]] // a site effect of park isolation
-          ); // end phi[i,j,k]
+    // ecological processes
+    psi1[r] = inv_logit( // probability (0-1) of occurrence in year 1 is equal to..
+      psi1_city[city_id_vector[r]] +
+      psi1_species[species_cluster_id_vector[r]] + // a species specific intercept
+      psi1_park_size[city_id_vector[r]] * park_size[multicity_site_id_vector[r]] + // a site effect of park size
+      psi1_isolation[city_id_vector[r]] * isolation[multicity_site_id_vector[r]] // a site effect of park isolation
+      ); // end psi1[r]
+    
+    gamma[r] = inv_logit( // probability (0-1) of colonization is equal to..
+      gamma_city[city_id_vector[r]] +
+      gamma_species[species_integer_vector[r]] + // a species specific intercept
+      gamma_park_size[city_id_vector[r]] * park_size[multicity_site_id_vector[r]] + // a site effect of park size
+      gamma_isolation[city_id_vector[r]] * isolation[multicity_site_id_vector[r]] // a site effect of park isolation
+      ); // end gamma[i,j,k]
+            
+    phi[r] = inv_logit( // probability (0-1) of persistence is equal to..
+      phi_city[city_id_vector[r]] +
+      phi_species[species_integer_vector[r]] + // a species specific intercept
+      phi_park_size[city_id_vector[r]] * park_size[multicity_site_id_vector[r]] + // a site effect of park size
+      phi_isolation[city_id_vector[r]] * isolation[multicity_site_id_vector[r]] // a site effect of park isolation
+      ); // end phi[i,j,k]
           
   } // end loop across all data
   
@@ -211,9 +202,6 @@ transformed parameters {
             p_city[city_id_vector[r]] + 
             p_species[species_cluster_id_vector[r]] + // a species specific intercept
             p_city_detections * total_detections_by_city[multicity_site_id_vector[r]] +
-            p_wingspan * wingspan[species_integer_vector[r]] + // a species effect of wingspan
-            p_feature_diversity * feature_diversity[species_integer_vector[r]] + // a species effect of feature diversity
-            p_ease_of_id * ease_of_id[species_integer_vector[r]] + // a species effect of ease of identification
             p_date[species_cluster_id_vector[r]] * surveys[l] + // a species-specific phenological detection effect (peak)
             p_date_sq[species_cluster_id_vector[r]] * (surveys[l])^2 // a species-specific phenological detection effect (decay)
             ); // end p[j,k,l]
@@ -251,67 +239,53 @@ model {
   // initial state
   psi1_0 ~ normal(0, 1); // initial occurrence intercept
   psi1_city_raw ~ std_normal();
-  sigma_psi1_city ~ normal(0, 1);
-  psi1_species_raw ~ std_normal();
-  sigma_psi1_species ~ normal(0, 1);
-  mu_psi1_wingspan ~ normal(0, 2);
-  psi1_wingspan_raw ~ std_normal();
-  sigma_psi1_wingspan ~ normal(0, 0.5);
+  sigma_psi1_city ~ normal(0, 0.5);
   mu_psi1_park_size ~ normal(0, 2);
   psi1_park_size_raw ~ std_normal();
   sigma_psi1_park_size ~ normal(0, 0.5);
   mu_psi1_isolation ~ normal(0, 2);
   psi1_isolation_raw ~ std_normal();
   sigma_psi1_isolation ~ normal(0, 0.5);
+  psi1_species ~ normal(mu_psi1_species, sigma_psi1_species); // species-specific random effect
+  psi1_wingspan ~ normal(0, 0.5); 
+  psi1_migratory ~ normal(0, 0.5);
+  sigma_psi1_species ~ normal(0, 1);
 
   // colonization
   gamma0 ~ normal(0, 1); // colonization intercept
   gamma_city_raw ~ std_normal();
   sigma_gamma_city ~ normal(0, 0.5);
-  gamma_species_raw ~ std_normal();
-  sigma_gamma_species ~ normal(0, 0.5);
-  mu_gamma_wingspan ~ normal(0, 2);
-  gamma_wingspan_raw ~ std_normal();
-  sigma_gamma_wingspan ~ normal(0, 0.5);
-  mu_gamma_migratory ~ normal(0, 2);
-  gamma_migratory_raw ~ std_normal();
-  sigma_gamma_migratory ~ normal(0, 0.5);
   mu_gamma_park_size ~ normal(0, 2);
   gamma_park_size_raw ~ std_normal();
   sigma_gamma_park_size ~ normal(0, 0.5);
   mu_gamma_isolation ~ normal(0, 2);
   gamma_isolation_raw ~ std_normal();
   sigma_gamma_isolation ~ normal(0, 0.5);
+  gamma_species ~ normal(mu_gamma_species, sigma_gamma_species); // species-specific random effect
+  gamma_wingspan ~ normal(0, 0.5); 
+  gamma_migratory ~ normal(0, 0.5);
+  sigma_gamma_species ~ normal(0, 1);
 
   // persistence
   phi0 ~ normal(0, 1); // global intercept
   phi_city_raw ~ std_normal();
   sigma_phi_city ~ normal(0, 0.5);
-  phi_species_raw ~ std_normal();
-  sigma_phi_species ~ normal(0, 0.5);
-  mu_phi_wingspan ~ normal(0, 2);
-  phi_wingspan_raw ~ std_normal();
-  sigma_phi_wingspan ~ normal(0, 0.5);
-  mu_phi_migratory ~ normal(0, 2);
-  phi_migratory_raw ~ std_normal();
-  sigma_phi_migratory ~ normal(0, 0.5);
   mu_phi_park_size ~ normal(0, 2);
   phi_park_size_raw ~ std_normal();
   sigma_phi_park_size ~ normal(0, 0.5);
   mu_phi_isolation ~ normal(0, 2);
   phi_isolation_raw ~ std_normal();
   sigma_phi_isolation ~ normal(0, 0.5);
+  phi_species ~ normal(mu_phi_species, sigma_phi_species); // species-specific random effect
+  phi_wingspan ~ normal(0, 0.5); 
+  phi_migratory ~ normal(0, 0.5);
+  sigma_phi_species ~ normal(0, 1);
 
   // detection
   p0 ~ normal(0, 1); // global intercept
   p_city_raw ~ std_normal();
-  sigma_p_city ~ normal(0, 1);
-  p_species_raw ~ std_normal();
-  sigma_p_species ~ normal(0, 1);
-  p_city_detections ~ normal(0, 2);
-  p_wingspan ~ normal(0, 2);
-  p_feature_diversity ~ normal(0, 2);
-  p_ease_of_id ~ normal(0, 2);
+  sigma_p_city ~ normal(0, 0.5);
+  p_city_detections ~ normal(0, 1);
   p_date ~ normal(mu_p_species_date, sigma_p_species_date); // species-specific phenology (peak)
   delta0 ~ normal(0, 2); // community mean
   delta_regional_cluster ~ normal(0, 1); // effect of region
@@ -320,6 +294,12 @@ model {
   epsilon0 ~ normal(0, 1); // community mean
   epsilon_regional_cluster ~ normal(0, 0.5); // effect of region
   sigma_p_species_date_sq ~ normal(0, 1); // variation
+  p_species ~ normal(mu_p_species, sigma_p_species); // species-specific random effect
+  p_wingspan ~ normal(0, 1); 
+  p_migratory ~ normal(0, 1);
+  p_feature_diversity ~ normal(0, 1);
+  p_ease_of_id ~ normal(0, 1);
+  sigma_p_species ~ normal(0, 1);
 
   // LIKELIHOOD
   for(r in 1:R){ // for each potential species X site X year detection

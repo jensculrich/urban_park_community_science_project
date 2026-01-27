@@ -44,7 +44,7 @@ n_regions <- length(region)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_jan5.rds")
+  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_jan27.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- as.data.frame(stan_out$summary(
@@ -52,42 +52,40 @@ estimates <- as.data.frame(stan_out$summary(
     "psi1_0", 
     "sigma_psi1_species",
     "sigma_psi1_city",
-    "mu_psi1_wingspan",
-    "sigma_psi1_wingspan",
+    "psi1_wingspan",
     "mu_psi1_park_size",
     "sigma_psi1_park_size",
     "mu_psi1_isolation",
     "sigma_psi1_isolation",
+    "psi1_wingspan",
+    "psi1_migratory",
     
     "gamma0", 
     "sigma_gamma_species",
     "sigma_gamma_city",
-    "mu_gamma_wingspan",
-    "sigma_gamma_wingspan",
-    "mu_gamma_migratory",
-    "sigma_gamma_migratory",
     "mu_gamma_park_size",
     "sigma_gamma_park_size",
     "mu_gamma_isolation",
     "sigma_gamma_isolation",
+    "gamma_wingspan",
+    "gamma_migratory",
     
     "phi0", 
     "sigma_phi_species",
     "sigma_phi_city",
-    "mu_phi_wingspan",
-    "sigma_phi_wingspan",
-    "mu_phi_migratory",
-    "sigma_phi_migratory",
     "mu_phi_park_size",
     "sigma_phi_park_size",
     "mu_phi_isolation",
     "sigma_phi_isolation",
+    "phi_wingspan",
+    "phi_migratory",
     
     "p0", 
     "sigma_p_species",
     "sigma_p_city",
     "p_city_detections",
     "p_wingspan",
+    "p_migratory",
     "p_feature_diversity",
     "p_ease_of_id",
     "delta0",
@@ -99,17 +97,12 @@ estimates <- as.data.frame(stan_out$summary(
     
     # city effects
     "psi1_city",
-    "psi1_wingspan",
     "psi1_park_size",
     "psi1_isolation",
     "gamma_city",
-    "gamma_wingspan",
-    "gamma_migratory",
     "gamma_park_size",
     "gamma_isolation",
     "phi_city",
-    "phi_wingspan",
-    "phi_migratory",
     "phi_park_size",
     "phi_isolation",
     "p_city"),

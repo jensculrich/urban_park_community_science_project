@@ -37,7 +37,7 @@ if(region == regions[5]){
 # or choose one city
 # city_names <- "Philadelphia"
 
-min_species_detections <- 2 # binary park/year/species detections
+min_species_detections <- 1 # binary park/year/species detections
 min_site_years_w_detection <- 2 # remove parks never surveyed across repeat years
 min_species_for_community_sampling_event <- 1 # if 1 species detected, any other species in same fam could have been 
 family_sampling <- TRUE # Should enter either TRUE or FALSE 
@@ -48,7 +48,7 @@ write_city_data_csv <- TRUE
 # if true only infer sampling event for butterflies in same family as any butterflies detected
 
 # for community sampling events inferred by [taxonomic] family, source this file:
-source("./run_model/prep_data.R")
+source("./part1_urban_butterfly_community_dynamics/run_model/prep_data.R")
 
 my_data <- prep_data(city_names,
                      min_species_detections,
@@ -60,8 +60,8 @@ my_data <- prep_data(city_names,
 )
 
 
-saveRDS(my_data, paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))
-my_data <- readRDS( paste0("./run_model/prepped_data/prepped_data_", region, ".rds"))
+saveRDS(my_data, paste0("./part1_urban_butterfly_community_dynamics/run_model/prepped_data/prepped_data_", region, ".rds"))
+my_data <- readRDS( paste0("./part1_urban_butterfly_community_dynamics/run_model/prepped_data/prepped_data_", region, ".rds"))
 
 
 # data to feed to the model
