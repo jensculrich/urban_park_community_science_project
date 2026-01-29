@@ -44,7 +44,7 @@ n_regions <- length(region)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_jan28.rds")
+  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_jan29.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- as.data.frame(stan_out$summary(
