@@ -46,6 +46,13 @@ n_regions <- length(region)
 stan_out <- readRDS(
   "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_jan29.rds")
 
+stan_out$diagnostic_summary()
+bayesplot::rhat(stan_out,pars="psi1_city")
+bayesplot::rhat(stan_out,pars="gamma_city")
+x <- stan_out$draws()
+bayesplot::mcmc_trace(x , regex_pars = "psi1_city")
+bayesplot::mcmc_trace(x , regex_pars = "gamma_city")
+
 # summarise all variables with default and additional summary measures
 estimates <- as.data.frame(stan_out$summary(
   variables = c(

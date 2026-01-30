@@ -943,6 +943,14 @@ prep_data <- function(city_names,
     mutate(region_cluster_integer_vector = as.integer(as.factor(region_cluster))) %>%
     pull(region_cluster_integer_vector)
   
+  species_city_cluster <- detections_df %>%
+    group_by(city, species) %>%
+    mutate(species_city_cluster = cur_group_id()) %>%
+    ungroup() %>%
+    pull(species_city_cluster)
+  
+  n_species_city_clusters <- length(unique(species_city_cluster))
+  
   ## --------------------------------------------------
   ## get species trait data
   
@@ -1265,7 +1273,11 @@ prep_data <- function(city_names,
     
     city_data = city_data,
 
-    species_region_cluster_id = species_region_cluster_id
+    species_region_cluster_id = species_region_cluster_id,
+    
+    species_city_cluster = species_city_cluster,
+    
+    n_species_city_clusters = n_species_city_clusters
 
   ))
 

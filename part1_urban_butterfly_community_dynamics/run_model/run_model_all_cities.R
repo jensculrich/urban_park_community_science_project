@@ -37,7 +37,7 @@ if(region == regions[5]){
 # or choose one city
 # city_names <- "Philadelphia"
 
-min_species_detections <- 1 # binary park/year/species detections
+min_species_detections <- 2 # binary park/year/species detections
 min_site_years_w_detection <- 2 # remove parks never surveyed across repeat years
 min_species_for_community_sampling_event <- 1 # if 1 species detected, any other species in same fam could have been 
 family_sampling <- TRUE # Should enter either TRUE or FALSE 

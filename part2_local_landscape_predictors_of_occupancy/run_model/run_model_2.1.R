@@ -37,7 +37,7 @@ if(region == regions[5]){
 # or choose one city
 # city_names <- "Philadelphia"
 
-min_species_detections <- 2 # binary park/year/species detections
+min_species_detections <- 1 # binary park/year/species detections
 min_site_years_w_detection <- 1 # remove parks never surveyed across repeat years
 min_species_for_community_sampling_event <- 1 # if 1 species detected, any other species in same fam could have been 
 family_sampling <- TRUE # Should enter either TRUE or FALSE 
@@ -114,6 +114,8 @@ species_cluster_id_vector <- my_data$species_cluster_integer_vector
 n_species_clusters <- length(unique(species_cluster_id_vector))
 regional_cluster_id_vector <- my_data$region_cluster_integer_vector
 n_regional_clusters <- length(unique(regional_cluster_id_vector))
+species_city_cluster <- my_data$species_city_cluster
+n_species_city_clusters <- length(unique(species_city_cluster))
 
 # plot
 library(tidyverse)
@@ -137,7 +139,8 @@ stan_data <- c("R", "n_surveys", "surveys",
                "park_size", "isolation", 
                "confirmed_occurrence", "prev_index_vector", 
                "species_cluster_id_vector", "n_species_clusters",
-               "regional_cluster_id_vector", "n_regional_clusters"
+               "regional_cluster_id_vector", "n_regional_clusters",
+               "species_city_cluster", "n_species_city_clusters"
                
 ) 
 

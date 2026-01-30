@@ -32,7 +32,7 @@ n_cities <- length(city_names <- c(
 
 ## get param estimates from m2.1
 stan_out_m2.1 <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_jan2.rds")
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_jan30.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- stan_out_m2.1$draws(
@@ -40,8 +40,6 @@ estimates <- stan_out_m2.1$draws(
     "psi_0", 
     "sigma_psi_species",
     "sigma_psi_city",
-    "mu_psi_wingspan",
-    "sigma_psi_wingspan",
     "mu_psi_park_size",
     "sigma_psi_park_size",
     "mu_psi_tree_cover",
@@ -55,23 +53,8 @@ estimates <- stan_out_m2.1$draws(
     "mu_psi_landscape_woody",
     "sigma_psi_landscape_woody",
     
-    "p0", 
-    "sigma_p_species",
-    "sigma_p_city",
-    "p_city_detections",
-    "p_wingspan",
-    "p_feature_diversity",
-    "p_ease_of_id",
-    "delta0",
-    "delta_regional_cluster",
-    "sigma_p_species_date",
-    "epsilon0",
-    "epsilon_regional_cluster",
-    "sigma_p_species_date_sq",
-    
     # city effects
     "psi_city",
-    "psi_wingspan",
     "psi_park_size",
     "psi_tree_cover",
     "psi_plant_diversity",
@@ -179,13 +162,14 @@ site_data_all$site_landscape_woody_pred <- (site_data_all$proportion_landscape_w
 # species cluster integer vector identifier
 # and the species integer vector identifier
 
-# get range data so we properly omit species that can't occur
-# source the prep function
-#source("./part2_local_landscape_predictors_of_occupancy/run_model/get_species_ranges.R")
-#range_data <- get_species_ranges(city_names)
-
-species_info <- my_data$species_info
-species_region_cluster_id <- my_data$species_region_cluster_id
+species_info <- my_data$species_info %>%
+  mutate(species_integer_vector = as.integer(as.factor(species)))
+#species_region_cluster_id <- my_data$species_region_cluster_id
+species_city_cluster_id <- my_data$species_city_cluster
+species_integer_vector <- my_data$species_integer_vector
+city_id_vector <- my_data$city_id_vector 
+species_city_cluster_id_df <- as.data.frame(cbind(city_id_vector, species_integer_vector, species_city_cluster_id)) %>%
+  group_by(city_id_vector, species_integer_vector) %>% slice(1) %>% ungroup()
 
 cluster <-c( "southeast", # atlanta
              "northeast", # boston
@@ -208,7 +192,8 @@ y_name <- "cluster"
 city_cluster <- data.frame(city_names,cluster)
 names(city_cluster) <- c(x_name,y_name)
 
-site_data_all <- left_join(site_data_all, city_cluster)
+site_data_all <- left_join(site_data_all, city_cluster) %>%
+  mutate(city_id_vector = as.integer(as.factor(city)))
 
 # get whether the city is in range (may not be for all cities in the same cluster)
 source("./part2_local_landscape_predictors_of_occupancy/run_model/get_species_ranges.R")
@@ -225,7 +210,6 @@ range_data <- get_species_ranges(city_names)
 psi_0 <- which( colnames(estimates)=="psi_0" )
 first_psi_city <- which( colnames(estimates)=="psi_city[1]" )
 first_psi_species <- which( colnames(estimates)=="psi_species[1]" )
-first_psi_wingspan <- which( colnames(estimates)=="psi_wingspan[1]" )
 first_psi_parksize <- which( colnames(estimates)=="psi_park_size[1]" )
 first_psi_tree_cover <- which( colnames(estimates)=="psi_tree_cover[1]" )
 first_psi_plant_diversity <- which( colnames(estimates)=="psi_plant_diversity[1]" )
@@ -255,8 +239,8 @@ for(city_number in 1:n_cities){
     temp <- filter(site_data_all, city == city_names[city_number])
     
     # get all of the species that could potentially occur at each site
-    temp <- left_join(temp, species_region_cluster_id)
-    temp <- left_join(temp, select(species_info, species, aveWingspan_scaled))
+    temp <- left_join(temp, species_city_cluster_id_df)
+    temp <- left_join(temp, select(species_info, species, species_integer_vector))
     
     # get the correct range data
     temp_ranges <- filter(range_data, city == city_names[city_number])
@@ -272,8 +256,7 @@ for(city_number in 1:n_cities){
     # get expected and realized occurrence  
     psi <- 
       as.numeric(estimates[rand, first_psi_city - 1 + city_number]) +
-      as.numeric(estimates[rand, first_psi_species - 1 + temp$species_cluster_integer_vector]) +
-      estimates[rand, first_psi_wingspan - 1 + city_number] * temp$aveWingspan_scaled +
+      as.numeric(estimates[rand, first_psi_species - 1 + temp$species_city_cluster_id]) +
       estimates[rand, first_psi_parksize - 1 + city_number] * temp$site_size_pred +
       estimates[rand, first_psi_tree_cover - 1 + city_number] * temp$site_tree_cover_pred +
       estimates[rand, first_psi_plant_diversity - 1 + city_number] * temp$site_plant_diversity_pred +
@@ -335,7 +318,7 @@ for(city_number in 1:n_cities){
     
   } # for each draw from the joint posterior
 } # for each city
-
+gc()
 
 #
 hist(mean_richness[,1])
@@ -462,7 +445,7 @@ c <- ggplot(gamma_richness_quantiles_df, aes(log_avg_park_size , mean)) +
   theme(axis.title = element_text(size = 16),
         axis.text = element_text(size = 14))
 
-cowplot::plot_grid(a, b, c, ncol = 3)
+cowplot::plot_grid(a, a2, b, c, ncol = 3)
 
 #-------------------------------------------------------------------------------
 # do it again with relative species richness
