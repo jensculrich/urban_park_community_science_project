@@ -68,7 +68,9 @@ for(i in 1:n_cities){
   land <- upload_land(paste0(
     "./data/city_shapefiles/", city, 
     "_classified.shp"), 
-    habitat = 1, max_dist = 2000)
+    habitat = 1, max_dist = 2000) 
+  # requires us to set a max dist between which parks can be connected
+  # I chose 2000 metres to be consistent with our park site isolation metric 
   
   # Confirm the class
   class(land)
@@ -76,6 +78,9 @@ for(i in 1:n_cities){
   #plot(land, main = "Landscape clusters")
   
   # Compute the connectivity metrics
+  # IIC is fast to calculate
+  # other metrics of interest might include AWF
+  # https://www.r-bloggers.com/2019/03/lconnect-connectivity-metrics/
   IIC[i] <- con_metric(land, metric = c("IIC"))
 }
 
@@ -85,6 +90,6 @@ df <- as.data.frame(cbind(city_names, IIC)) %>%
 ggplot(df) +
   geom_point(aes(x = as.factor(city_names), y = log(IIC)))
 
-# Save these outputs as shapefiles, using the sf package
+# Save these outputs as a csv
 write.csv(df, paste0(
-  "./data/city_wide_data/landscape_metrics.csv"), row.names=FALSE)
+  "./data/city_wide_data/landscape_connectivity_metrics.csv"), row.names=FALSE)
