@@ -7,8 +7,6 @@ center_scale <- function(x) {
   (x - mean(x)) / sd(x)
 }
 
-#size_of_regional_species_pools <- read.csv("./data/size_of_regional_species_pools.csv")
-
 n_cities <- length(city_names <- c(
   "Atlanta",
   "Boston", 
@@ -326,7 +324,7 @@ hist(mean_prop_disturbance_or_edge_avoidant[,1])
 hist(beta_diversity[,1])
 hist(gamma_diversity[,1])
 
-simmed_diversity <- list(mean_richness, beta_diversity, gamma_diversity)
+simmed_diversity <- list(mean_richness, mean_prop_disturbance_avoidant, beta_diversity, gamma_diversity)
 saveRDS(simmed_diversity, "./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
 # if you don't want to have to run this again just reload the simmed data from a previous session
 #simmed_diversity <- readRDS("./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
