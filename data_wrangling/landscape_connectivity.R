@@ -1,6 +1,7 @@
 ##------------------------------------------------------------------------------
 # class/landscape level connectivity vector metrics
 
+library(sf)
 library(lconnect)
 library(tidyverse)
 
@@ -8,69 +9,87 @@ library(tidyverse)
 # prepare the shapefile
 
 # list of city names
-city_names <- c(
-  # list in alphabetical order
+n_cities <- length(city_names <- c(
   "Atlanta",
-  "Boston",
+  "Boston", 
   "Charlotte",
+  "Chicago",
   "Dallas",
   "DC",
   "Denton",
   "Houston",
-  "NYC",
+  "LA",
+  "Minneapolis",
+  "NYC",     
   "Philadelphia",
-  "Raleigh"
-)
+  "Raleigh",
+  "SD",
+  "SF"
+))
 
-# now choose a city (enter the number of the city)
-city <- city_names[6]
 
-# lconnect requires us to have a habitat column in the shapefile
-# here we assign any greenspaces as "habitat" (habitat = 1)
-land_sf <- sf::read_sf(paste0(
-  "./data/city_shapefiles/", city, 
-  "/", city, 
-  "_50_buffered_park_2km_regional_pool.shp")) %>%
-  # filter(type == "classified") %>%
-  mutate(habitat = 1) %>%
-  select(habitat, ParkID, ParkCnt, type, new_id)
+for(i in 1:n_cities){
+  # now choose a city (enter the number of the city)
+  city <- city_names[i]
+  
+  # lconnect requires us to have a habitat column in the shapefile
+  # here we assign any greenspaces as "habitat" (habitat = 1)
+  sf <- readRDS(paste0(
+    "./data/city_shapefiles/park_classification_", city, 
+    ".Rdata")) 
+  
+  sf <- sf[[1]]
+  
+  #plot(sf$geometry)
+  
+  sf <- sf %>%
+    # filter(type == "classified") %>%
+    mutate(habitat = 1) %>%
+    select(habitat, ParkID)
+  
+  # save the modified file for lconnect 
+  sf::write_sf(sf, paste0(
+    "./data/city_shapefiles/", city, 
+    "_classified.shp"))
+}
 
-# save the modified file for lconnect 
-sf::write_sf(land_sf, paste0(
-  "./data/city_shapefiles/", city, 
-  "/", city, 
-  "_50_buffered_park_2km_regional_pool_with_habitat_column.shp"))
 
 
 ##------------------------------------------------------------------------------
 # calculate landscape connectivity metrics shapefile
 
-# Load the landscape data
-land <- upload_land(paste0(
-  "./data/city_shapefiles/", city, 
-  "/", city, 
-  "_50_buffered_park_2km_regional_pool_with_habitat_column.shp"), 
-  habitat = 1, max_dist = 1000)
+IIC <- vector(length=n_cities)
 
-# Confirm the class
-class(land)
-# Plot the landscape aggregate by clusters defined by the “max_dist” argument
-plot(land, main = "Landscape clusters")
+for(i in 1:n_cities){
+  # now choose a city (enter the number of the city)
+  city <- city_names[i]
+  
+  # Load the landscape data
+  land <- upload_land(paste0(
+    "./data/city_shapefiles/", city, 
+    "_classified.shp"), 
+    habitat = 1, max_dist = 2000) 
+  # requires us to set a max dist between which parks can be connected
+  # I chose 2000 metres to be consistent with our park site isolation metric 
+  
+  # Confirm the class
+  class(land)
+  # Plot the landscape aggregate by clusters defined by the “max_dist” argument
+  #plot(land, main = "Landscape clusters")
+  
+  # Compute the connectivity metrics
+  # IIC is fast to calculate
+  # other metrics of interest might include AWF
+  # https://www.r-bloggers.com/2019/03/lconnect-connectivity-metrics/
+  IIC[i] <- con_metric(land, metric = c("IIC"))
+}
 
-# Compute the connectivity metrics
-metrics <- con_metric(land, metric = c("IIC"))
+df <- as.data.frame(cbind(city_names, IIC)) %>%
+  mutate(IIC = as.numeric(IIC))
 
-# Visualize the metrics
-print(as.data.frame(metrics))
-df <- as.data.frame(metrics) %>%
-  mutate(city = city) %>%
-  rename("IIC" = "metrics")
-rownames(df) <- NULL
+ggplot(df) +
+  geom_point(aes(x = as.factor(city_names), y = log(IIC)))
 
-# Save these outputs as shapefiles, using the sf package
+# Save these outputs as a csv
 write.csv(df, paste0(
-  "./data/city_shapefiles/", city, 
-  "/", city, 
-  "_landscape_metrics.csv"), row.names=FALSE)
-#sf::st_write(land$landscape, "./data/city_shapefiles/NYC/land.shp")
-#sf::st_write(importance$landscape, "./data/city_shapefiles/NYC/importance.shp")
+  "./data/city_wide_data/landscape_connectivity_metrics.csv"), row.names=FALSE)

@@ -5,4 +5,5 @@
 data/
 /data/parkserve_national_shapefiles/
 .RDataTmp*
-
+part1_urban_butterfly_community_dynamics/model_outputs/
+part2_local_landscape_predictors_of_occupancy/model_outputs/
