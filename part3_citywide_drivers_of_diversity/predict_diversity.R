@@ -216,7 +216,7 @@ first_psi_landscape_grassherb <- which( colnames(estimates)=="psi_landscape_gras
 first_psi_landscape_woody <- which( colnames(estimates)=="psi_landscape_woody[1]" )
 
 # some random samples from the posterior
-n_draws = 25 # small number for testing bc it does take a few minutes to simulate results
+n_draws = 100 # small number for testing bc it does take a few minutes to simulate results
 #n_draws = nrow(list_of_draws) # number of samples from the posteriors
 random_draws_from_posterior = sample.int(nrow(estimates), n_draws) # use if not using the full posterior
 
@@ -320,7 +320,7 @@ gc()
 
 #
 hist(mean_richness[,1])
-hist(mean_prop_disturbance_or_edge_avoidant[,1])
+hist(mean_prop_disturbance_avoidant[,1])
 hist(beta_diversity[,1])
 hist(gamma_diversity[,1])
 

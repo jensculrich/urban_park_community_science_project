@@ -37,7 +37,7 @@ W_df <- as.data.frame(cbind(city_integer_vector, V)) %>%
 # get W distributions from model
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_jan29.rds")
+  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_feb3.rds")
 
 tmp <- as.data.frame(stan_out$draws(variables = "W_city_rep",
                                     format = "draws_matrix"

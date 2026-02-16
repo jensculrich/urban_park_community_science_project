@@ -44,13 +44,16 @@ n_regions <- length(region)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_jan29.rds")
+  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_feb3.rds")
 
 stan_out$diagnostic_summary()
 bayesplot::rhat(stan_out,pars="psi1_city")
 bayesplot::rhat(stan_out,pars="gamma_city")
+bayesplot::rhat(stan_out,pars="phi_city")
+bayesplot::rhat(stan_out,pars="p_city")
+bayesplot::rhat(stan_out,pars="psi1_species")
 x <- stan_out$draws()
-bayesplot::mcmc_trace(x , regex_pars = "psi1_city")
+bayesplot::mcmc_trace(x , regex_pars = "phi_city")
 bayesplot::mcmc_trace(x , regex_pars = "gamma_city")
 
 # summarise all variables with default and additional summary measures
@@ -330,7 +333,7 @@ p <- ggplot(df_estimates) +
                              bquote(psi["migratory"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-3, 4), breaks = c(-6, -4, -2, 0, 2, 4, 6, 8)) +
+                      limits = c(-2.5, 2.5), breaks = c(-6, -4, -2, 0, 2, 4, 6, 8)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=my_palette) + 
    geom_hline(yintercept = 0, lty = "dashed") +
@@ -564,7 +567,7 @@ q <- ggplot(df_estimates) +
                             bquote(gamma["migratory"])
                    )) +
   scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                     limits = c(-10, 4), breaks = c(-10, -8, -6, -4, -2, 0, 2, 4, 6, 8)) +
+                     limits = c(-7, 4), breaks = c(-10, -8, -6, -4, -2, 0, 2, 4, 6, 8)) +
   guides(color = guide_legend(title = "city")) +
   scale_color_manual(values=my_palette) + 
   geom_hline(yintercept = 0, lty = "dashed") +
@@ -795,7 +798,7 @@ r <- ggplot(df_estimates) +
                             bquote(phi["migratory"])
                    )) +
   scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                     limits = c(-4, 10), breaks = c(-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10)) +
+                     limits = c(-4, 7), breaks = c(-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10)) +
   guides(color = guide_legend(title = "city")) +
   scale_color_manual(values=my_palette) + 
   geom_hline(yintercept = 0, lty = "dashed") +
@@ -1046,7 +1049,7 @@ s <- ggplot(df_estimates) +
                              bquote(p["ease of ID"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-4, 4), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+                      limits = c(-3.5, 3), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=my_palette) + 
                                         geom_hline(yintercept = 0, lty = "dashed") +
@@ -1070,6 +1073,7 @@ s <- s +
              position=position_dodge(width=0.5),
              size = 5, alpha = 0.8) 
 s
+
 
 #-------------------------------------------------------------------------------
 # plot the 4 panels on a 2x2 grid
