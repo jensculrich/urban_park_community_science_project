@@ -9,19 +9,19 @@ library(units)
 library(igraph)
 library(purrr)
 ## Load the park shapefile
-parks <- st_read("E:/phd_study/urban_park_community_science_project/data/Parkserve_Shapefiles_05212024/ParkServe_Parks.shp")
+parks <- st_read("/Volumes/sea_angel/iNat_urbanwatch/data/Parkserve_Shapefiles_05212024/ParkServe_Parks.shp")
 
 #park shapefile of the Essex County in Ontario, Canada (needed for Detroit)
 #essex_parks <- st_read("E:/phd_study/urban_park_community_science_project/data/essex_county_Recreational_Areas/Recreational_Areas.shp")
 #plot(st_geometry(essex_parks))
 
 ##Define the city (dallas, houston, sf, riverside, sd)
-city <- "st_louis"
-state <- "Missouri"
+city <- "tamper"
+state <- "Florida"
 
 #filter the park shapefile by state, check to see if the city is close to the state line. If so, may need to include the state next to it.
 #parks_filtered <- parks %>% filter(Park_State == state | Park_State == "Maryland"  | Park_State == "Virginia" )
-parks_filtered <- parks %>% filter(Park_State == state | Park_State == "Illinois")
+parks_filtered <- parks %>% filter(Park_State == state)
 
 table(parks_filtered$Park_State)
 

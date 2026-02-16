@@ -27,48 +27,41 @@ n_cities <- length(city_names <- c(
   "SF"
 ))
 
+IIC <- list()
 
 for(i in 1:n_cities){
   # now choose a city (enter the number of the city)
   city <- city_names[i]
   
+  print(paste("Working on", city, ", reading in shapefile"))
   # lconnect requires us to have a habitat column in the shapefile
   # here we assign any greenspaces as "habitat" (habitat = 1)
-  sf <- readRDS(paste0(
-    "./data/city_shapefiles/park_classification_", city, 
-    ".Rdata")) 
   
-  sf <- sf[[1]]
+sf <- st_read(paste0(
+    "/Volumes/sea_angel/iNat_urbanwatch/data/shapefile_0m_buffered_park_2km_regional_pool/",city, "_0_buffered_park_2km_regional_pool.shp")) 
   
-  #plot(sf$geometry)
   
   sf <- sf %>%
-    # filter(type == "classified") %>%
+    filter(type == "classified") %>%
     mutate(habitat = 1) %>%
-    select(habitat, ParkID)
+    select(habitat, new_id)
   
-  # save the modified file for lconnect 
-  sf::write_sf(sf, paste0(
-    "./data/city_shapefiles/", city, 
-    "_classified.shp"))
-}
-
+  # Create a temporary shapefile path
+  temp_shp <- tempfile(fileext = ".shp")
+  
+  sf::write_sf(sf, temp_shp)
+  
 
 
 ##------------------------------------------------------------------------------
 # calculate landscape connectivity metrics shapefile
-
-IIC <- vector(length=n_cities)
-
-for(i in 1:n_cities){
-  # now choose a city (enter the number of the city)
-  city <- city_names[i]
+  print(paste("Working on", city, ", calculating landscape connectivity metrics"))
   
   # Load the landscape data
-  land <- upload_land(paste0(
-    "./data/city_shapefiles/", city, 
-    "_classified.shp"), 
-    habitat = 1, max_dist = 2000) 
+  land <- upload_land(temp_shp, 
+                      habitat = 1, 
+                      max_dist = 2000)
+
   # requires us to set a max dist between which parks can be connected
   # I chose 2000 metres to be consistent with our park site isolation metric 
   
@@ -81,15 +74,18 @@ for(i in 1:n_cities){
   # IIC is fast to calculate
   # other metrics of interest might include AWF
   # https://www.r-bloggers.com/2019/03/lconnect-connectivity-metrics/
-  IIC[i] <- con_metric(land, metric = c("IIC"))
+  result <- con_metric(land, metric = c("IIC", "CPL", "AWF"))
+  IIC[[i]]<-as.data.frame(t(test))
+  
+  print(paste(city, ", DONE!"))
+  
 }
 
-df <- as.data.frame(cbind(city_names, IIC)) %>%
-  mutate(IIC = as.numeric(IIC))
+df <- bind_rows(IIC)
 
 ggplot(df) +
   geom_point(aes(x = as.factor(city_names), y = log(IIC)))
 
 # Save these outputs as a csv
 write.csv(df, paste0(
-  "./data/city_wide_data/landscape_connectivity_metrics.csv"), row.names=FALSE)
+  "/Volumes/sea_angel/iNat_urbanwatch/data/final_merged_data/add_on_parameters/02_urbanwatch_city_wide_connectivity_metrics_classified_parks_only.csv"), row.names=FALSE)
