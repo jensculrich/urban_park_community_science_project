@@ -188,22 +188,18 @@ for (city in cities){
   #read in the sf object
   parks <- readRDS(paste0("parks/0m_merged_classified_parks_with_unclassified_parks_sqm_area_", city, ".rds"))
   
-  #loop to extract both the attributes and geometries
-  for (i in 1:nrow(parks)) {
-    current_row <- parks[i, ]
-    geom <- st_geometry(current_row)
-  }
-  
   #average size
   average_park_size<-parks%>%
     st_drop_geometry()%>%
     filter(type == "classified")%>%
-    summarise(average_park_size = mean(total_area_sqm))%>%
-    dplyr::select(average_park_size)%>%pull()
+    summarise(mean_park_size_sqm = mean(total_area_sqm),
+              median_park_size_sqm = median(total_area_sqm),
+              mean_log_park_size = mean(log(total_area_sqm)),
+              median_log_park_size = median(log(total_area_sqm)))%>%
+    mutate(city = city)%>%
+    select(city, everything())
   
-  df <- data.frame( city = city,  average_park_size_sqm = average_park_size)
-  
-  result_df<-rbind(result_df, df)
+  result_df<-rbind(result_df, average_park_size)
 } 
 
 write.csv(result_df, paste0("final_merged_data/add_on_parameters/all_cities_average_park_size_classified_parks_only.csv"), row.names = FALSE)
