@@ -22,14 +22,21 @@ if(region == regions[5]){
     "Dallas",
     "DC",
     "Denton",
+    "Denver",
+    "Des_moines",
+    "Detroit",
     "Houston",
     "LA",
     "Minneapolis",
     "NYC",     
     "Philadelphia",
+    "Phoenix",
     "Raleigh",
+    "Riverside",
     "SD",
-    "SF"
+    "SF",
+    "St_louis",
+    "Tampa"
   )
 }
 
@@ -42,7 +49,7 @@ min_site_years_w_detection <- 1 # remove parks never surveyed across repeat year
 min_species_for_community_sampling_event <- 1 # if 1 species detected, any other species in same fam could have been 
 family_sampling <- TRUE # Should enter either TRUE or FALSE 
 remove_outlier_parks <- TRUE # remove very small parks
-write_city_data_csv <- FALSE
+write_city_data_csv <- TRUE
 # family_sampling:
 # if false infer sampling event for all butterflies if any butterflies detected
 # if true only infer sampling event for butterflies in same family as any butterflies detected

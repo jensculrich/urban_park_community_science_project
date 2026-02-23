@@ -885,14 +885,21 @@ prep_data <- function(city_names,
             "Dallas",
             "DC",
             "Denton",
+            "Denver",
+            "Des_moines",
+            "Detroit",
             "Houston",
             "LA",
             "Minneapolis",
             "NYC",     
             "Philadelphia",
+            "Phoenix",
             "Raleigh",
+            "Riverside",
             "SD",
-            "SF")
+            "SF",
+            "St_louis",
+            "Tampa")
   cluster <-c( "southeast", # atlanta
                "northeast", # boston
                "southeast", # charlotte
@@ -900,14 +907,23 @@ prep_data <- function(city_names,
                "texas", # dallas
                "northeast", # dc
                "texas", # denton
+               "central", # denver
+               "central", # des moines
+               "midwest", # detroit
                "texas", # houston
                "california", # LA
                "midwest", # minneapolis
                "northeast", # nyc
                "northeast", # philadelphia
+               "interior_southwest", # phoenix
                "southeast", # raleigh
+               "california", # riverside
                "california", # sd
-               "san_francisco") # sf
+               "san_francisco", # sf
+               "midwest", # st louis
+               "southeast" # tampa
+  )
+
   x_name <- "city"
   y_name <- "cluster"
   
@@ -1229,6 +1245,11 @@ prep_data <- function(city_names,
            mean_plant_genera_density, sd_plant_genera_density)
   
   city_data <- left_join(city_data, city_site_data)
+  
+  if(write_city_data_csv == TRUE){
+    write.csv(city_data, paste0("./data/data_summaries/data_summary_", region, ".csv"),
+              row.names = FALSE)
+  }
   
   ## --------------------------------------------------
   # Return stuff

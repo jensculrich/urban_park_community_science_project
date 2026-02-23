@@ -25,16 +25,23 @@ if(region == regions[1]){
     "Charlotte",
     "Chicago",
     "Dallas",
-    "DC",
+    "D.C.",
     "Denton",
+    "Denver",
+    "Des Moines",
+    "Detroit",
     "Houston",
-    "LA",
+    "Los Angeles",
     "Minneapolis",
     "NYC",     
     "Philadelphia",
+    "Phoenix",
     "Raleigh",
-    "SD",
-    "SF"
+    "Riverside",
+    "San Diego",
+    "San Fransisco",
+    "St. Louis",
+    "Tampa"
   )
 }
 
@@ -44,7 +51,7 @@ n_regions <- length(region)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_jan30.rds")
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_feb23.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- as.data.frame(stan_out$summary(
@@ -108,8 +115,8 @@ my_palette <- my_palette[3:(n_cities+2)] # remove the really dark colours
 my_palette <- c("black", my_palette) # add black for the all cities mean
 
 bayesplot::rhat(stan_out,pars="psi_city")
-x <- stan_out$draws()
-bayesplot::mcmc_trace(x , regex_pars = "psi_city")
+#x <- stan_out$draws()
+#bayesplot::mcmc_trace(x , regex_pars = "psi_city")
 
 #-------------------------------------------------------------------------------
 # occupancy (psi)
@@ -363,13 +370,14 @@ p <- ggplot(df_estimates) +
                              bquote(psi["migratory"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-3.5, 3.5), breaks = c(-6, -4, -2, 0, 2, 4, 6, 8)) +
+                      limits = c(-3, 2), breaks = c(-6, -4, -2, 0, 2, 4, 6, 8)) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=my_palette) + 
    geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("Occupancy") +
    theme(plot.title = element_text(size = 18, face = "bold"),
-         legend.text=element_text(size=10),
+         legend.position = "none",
+         #legend.text=element_text(size=10),
          axis.text.x = element_text(size = 18),
          axis.text.y = element_text(size = 20, angle=45, vjust=-0.5),
          axis.title.x = element_text(size = 18),
@@ -438,28 +446,30 @@ for(i in 1:n_regions){
   first_p_city <- which( rownames(estimates)=="p_city[1]" )
   
   # regions
-  # california = 1
-  # midwest = 2
-  # northeast = 3
-  # southeast = 4
-  # texas = 5
-  
-  #"Atlanta", 4
-  #"Boston", 3
-  #"Charlotte", 4
-  #"Chicago", 2
-  #"Dallas", 5
-  #"DC", 3
-  #"Denton", 5
-  #"Houston", 5
-  #"LA", 1
-  #"Minneapolis", 2
-  #"NYC", 3    
-  #"Philadelphia", 3
-  #"Raleigh", 4
-  #"SD", 1
-  #"SF" 1
-  regional_cluster <- c(4,3,4,2,5,3,5,5,1,2,3,3,4,1,1)
+  #cluster <-c( "southeast", # atlanta 7
+  #             "northeast", # boston 5
+  #             "southeast", # charlotte 7
+  #             "midwest", # chicago 4
+  #             "texas", # dallas 8
+  #             "northeast", # dc 5
+  #             "texas", # denton 8
+  #             "central", # denver 2
+  #             "central", # des moines 2
+  #             "midwest", # detroit 4
+  #             "texas", # houston 8
+  #             "california", # LA 1
+  #             "midwest", # minneapolis 4
+  #             "northeast", # nyc 5
+  #             "northeast", # philadelphia 5
+  #             "interior_southwest", # phoenix 3
+  #             "southeast", # raleigh 7
+  #             "california", # riverside 1
+  #             "california", # sd 1
+  #             "san_francisco", # sf 6
+  #             "midwest", # st louis 4
+  #             "southeast" # tampa 7
+  #)
+  regional_cluster <- c(7,5,7,4,8,5,8,2,2,4,8,1,4,5,5,3,7,1,1,6,4,7)
   
   for(j in 1:(n_cities-1)){
     
@@ -614,8 +624,8 @@ q <- ggplot(df_estimates) +
                              bquote(p["ease of ID"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-4, 4), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
-   guides(color = guide_legend(title = "city")) +
+                      limits = c(-4, 3), breaks = c(-8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12)) +
+   guides(color = guide_legend(title = "City")) +
    scale_color_manual(values=my_palette) + 
                                         geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("Detection") +
@@ -639,7 +649,7 @@ q <- q +
              size = 5, alpha = 0.8) 
 q
 
-cowplot::plot_grid(p, q, ncol = 2, rel_widths = c(1, 1, 1),
+cowplot::plot_grid(p, q, ncol = 2, rel_widths = c(1, 1.5),
                    labels = c('a)', 'b)'),
                    label_size = 20)
 
@@ -648,9 +658,9 @@ cowplot::plot_grid(p, q, ncol = 2, rel_widths = c(1, 1, 1),
 
 # for simplicity, we will only compare the mean effects (not city specific) 
 
-## get param estimates from m2.1
-stan_out_m2.1 <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_jan2.rds")
+## get param estimates from the region
+stan_out <- readRDS(
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_feb23.rds")
 
 # summarise all variables with default and additional summary measures
 estimates1 <- as.data.frame(stan_out_m2.1$summary(
@@ -672,7 +682,7 @@ gc()
 
 ## get param estimates from m2.2
 stan_out_m2.2 <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.2_jan6.rds")
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.2_feb24.rds")
 
 # summarise all variables with default and additional summary measures
 estimates2 <- as.data.frame(stan_out_m2.2$summary(

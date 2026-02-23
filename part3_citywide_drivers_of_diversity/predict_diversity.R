@@ -7,7 +7,8 @@ center_scale <- function(x) {
   (x - mean(x)) / sd(x)
 }
 
-n_cities <- length(city_names <- c(
+n_cities <- length(city_names <-
+c(
   "Atlanta",
   "Boston", 
   "Charlotte",
@@ -15,14 +16,19 @@ n_cities <- length(city_names <- c(
   "Dallas",
   "DC",
   "Denton",
+  "Des_moines",
+  "Detroit",
   "Houston",
   "LA",
   "Minneapolis",
   "NYC",     
   "Philadelphia",
+  "Phoenix",
   "Raleigh",
+  "Riverside",
   "SD",
-  "SF"
+  "SF",
+  "St_louis"
 ))
 
 ##------------------------------------------------------------------------------
@@ -30,7 +36,7 @@ n_cities <- length(city_names <- c(
 
 ## get param estimates from m2.1
 stan_out_m2.1 <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_jan30.rds")
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_feb10.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- stan_out_m2.1$draws(
@@ -176,14 +182,20 @@ cluster <-c( "southeast", # atlanta
              "texas", # dallas
              "northeast", # dc
              "texas", # denton
+             "central", # des moines
+             "midwest", # detroit
              "texas", # houston
              "california", # LA
              "midwest", # minneapolis
              "northeast", # nyc
              "northeast", # philadelphia
+             "interior_southwest", # phoenix
              "southeast", # raleigh
+             "california", # riverside
              "california", # sd
-             "san_francisco") # sf
+             "san_francisco", # sf
+             "midwest" # st louis
+)
 x_name <- "city"
 y_name <- "cluster"
 
@@ -216,11 +228,12 @@ first_psi_landscape_grassherb <- which( colnames(estimates)=="psi_landscape_gras
 first_psi_landscape_woody <- which( colnames(estimates)=="psi_landscape_woody[1]" )
 
 # some random samples from the posterior
-n_draws = 100 # small number for testing bc it does take a few minutes to simulate results
+n_draws = 50 # small number for testing bc it does take a few minutes to simulate results
 #n_draws = nrow(list_of_draws) # number of samples from the posteriors
 random_draws_from_posterior = sample.int(nrow(estimates), n_draws) # use if not using the full posterior
 
 mean_richness <- array(dim = c(n_cities, n_draws))
+median_richness <- array(dim = c(n_cities, n_draws))
 mean_prop_disturbance_avoidant <- array(dim = c(n_cities, n_draws))
 mean_prop_edge_avoidant <- array(dim = c(n_cities, n_draws))
 mean_prop_disturbance_or_edge_avoidant <- array(dim = c(n_cities, n_draws))
@@ -274,6 +287,16 @@ for(city_number in 1:n_cities){
     slice(1) %>%
     pull(city_mean_alpha_richness)
   
+  # median richness of dims n_cities, n_draws  
+  median_richness[city_number, draw] <- cbind(temp, occurrence) %>%
+    group_by(new_id) %>%
+    mutate(site_richness = sum(occurrence)) %>%
+    slice(1) %>%
+    ungroup() %>%
+    mutate(city_median_alpha_richness = median(site_richness)) %>%
+    slice(1) %>%
+    pull(city_median_alpha_richness)
+  
   # what proportion of occurring species are disturbance avoidant v disturbance tolerant
   # what proportion of occurring species are edge avoidant
   percentage_disturbance_edge_avoidant <- cbind(temp, occurrence) %>%
@@ -320,11 +343,12 @@ gc()
 
 #
 hist(mean_richness[,1])
+hist(median_richness[,1])
 hist(mean_prop_disturbance_avoidant[,1])
 hist(beta_diversity[,1])
 hist(gamma_diversity[,1])
 
-simmed_diversity <- list(mean_richness, mean_prop_disturbance_avoidant, beta_diversity, gamma_diversity)
+simmed_diversity <- list(mean_richness, median_richness, mean_prop_disturbance_avoidant, beta_diversity, gamma_diversity)
 saveRDS(simmed_diversity, "./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
 # if you don't want to have to run this again just reload the simmed data from a previous session
 #simmed_diversity <- readRDS("./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")

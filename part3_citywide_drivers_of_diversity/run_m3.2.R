@@ -110,7 +110,10 @@ city_data <- select(city_data, city, city_factor,
 
 simmed_diversity <- readRDS("./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
 
-mean_prop_disturbance_avoidant <- simmed_diversity[[2]] #* 100 # get percent scale
+mean_prop_disturbance_avoidant <- simmed_diversity[[2]] 
+# get proportions as deviations from average so we can model on a continuous response scale
+# which worked better for the vsel function
+mean_prop_disturbance_avoidant <- center_scale(mean_prop_disturbance_avoidant)
 
 #  calculate Means and CI's for the diversity metrics for each city
 mean_prop_disturbance_avoidant_quantiles <- apply(mean_prop_disturbance_avoidant, MARGIN = 1, FUN = quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
@@ -131,7 +134,7 @@ a1 <- ggplot(city_data, aes(log_park_size_scaled , mean)) +
   geom_errorbar(aes(ymin = lower50, ymax=upper50, colour=city), size=2) +
   geom_errorbar(aes(ymin = lower90, ymax=upper90, colour=city), size=1) +
   geom_point(aes(colour=city), size = 4) +
-  ylab("Mean (%)\nDisturbance Avoidant Species") +
+  ylab("(%) Disturbance Avoidant Species\n(in St. Dev. from Mean)") +
   xlab("Median log(Park Size)") +
   scale_color_manual(values=my_palette) + 
   theme_classic() + 
@@ -143,7 +146,7 @@ a2 <- ggplot(city_data, aes(log_IIC_scaled , mean)) +
   geom_errorbar(aes(ymin = lower50, ymax=upper50, colour=city), size=2) +
   geom_errorbar(aes(ymin = lower90, ymax=upper90, colour=city), size=1) +
   geom_point(aes(colour=city), size = 4) +
-  ylab("Mean (%)\nDisturbance Avoidant Species") +
+  ylab("(%) Disturbance Avoidant Species\n(in St. Dev. from Mean)") +
   xlab("Connectivity (IIC)") +
   scale_color_manual(values=my_palette) + 
   theme_classic() + 
@@ -155,7 +158,7 @@ a3 <- ggplot(city_data, aes(percent_semi_natural_scaled , mean)) +
   geom_errorbar(aes(ymin = lower50, ymax=upper50, colour=city), size=2) +
   geom_errorbar(aes(ymin = lower90, ymax=upper90, colour=city), size=1) +
   geom_point(aes(colour=city), size = 4) +
-  ylab("Mean (%)\nDisturbance Avoidant Species") +
+  ylab("(%) Disturbance Avoidant Species\n(in St. Dev. from Mean)") +
   xlab("Vegetation Cover") +
   scale_color_manual(values=my_palette) + 
   theme_classic() + 
@@ -179,7 +182,7 @@ library(projpred)
 #---------------------------------------------------------
 m3.2 <- rstanarm::stan_glm(mean ~ log_park_size_scaled + log_IIC_scaled + percent_semi_natural_scaled, 
                            data = city_data, 
-                           family = Gamma)
+                           family = gaussian)
 
 summary(m3.2)
 plot(m3.2)
@@ -202,7 +205,7 @@ loo_compare(loo0, loo)
 #fitg_cv <- cv_varsel(m3.2, method='forward', cv_method='LOO')
 #plot(fitg_cv, stats = c('elpd', 'rmse'))
 vs <- varsel(m3.2, method = "L1", nterms_max = 3, nclusters_pred = 10,
-             seed = 5555, stats=)
+             seed = 5555)
 a4 <- plot(vs, stats = c('elpd', 'rmse'))
 
 # And we get a LOO based recommendation for the model size to choose
@@ -222,12 +225,8 @@ cowplot::plot_grid(a4, a5, ncol = 1, rel_heights = c(2,1))
 # alternatively fit the reduced model suggested by vsel separately
 
 vsel # use these params in the formula
-m3.2.1 <- rstanarm::stan_glm(mean_scaled ~ percent_semi_natural_scaled, 
+m3.2.1 <- rstanarm::stan_glm(mean ~ percent_semi_natural_scaled, 
                              data = city_data)
-
-city_data$mean_scaled <- center_scale(city_data$mean)
-fit3.2.1 <- stan_betareg(mean_scaled ~ percent_semi_natural_scaled, 
-                         data = city_data, seed = 12345)
 
 plot(m3.2.1)
 pp_check(m3.2.1) # ?bayesplot::ppc_hist
@@ -242,8 +241,11 @@ plot(m3.2.1, "areas", pars=c("(Intercept)",vsel), prob = 0.9)
 # But we actually have uncertainty in those diversity estimates
 # Let's propagate the uncretainty into the submodel chosen by varsel()
 
-# get the full matrix of estimates richness values (not just the quantile summaries)
-mean_prop_disturbance_avoidant <- simmed_diversity[[2]] #* 100 # get percent scale
+# get the full matrix of estimates of diversity values (not just the quantile summaries)
+mean_prop_disturbance_avoidant <- simmed_diversity[[2]] 
+# get proportions as deviations from average so we can model on a continuous response scale
+# which worked better for the vsel function
+mean_prop_disturbance_avoidant <- center_scale(mean_prop_disturbance_avoidant)
 
 # how many samples to take from each model fit to each draw of the response data?
 n_subsamples <- 20
@@ -271,25 +273,28 @@ for(i in 1:n_models){
 
 posterior_draws <- as.data.frame(cbind(intercept, percent_semi_natural_scaled, sigma))
 # plot the sample densities
-mcmc_areas(posterior_draws, 
+mcmc_areas <- mcmc_areas(posterior_draws, 
                        pars = c("intercept", "percent_semi_natural_scaled")) +
   labs(title = 
-         "Posterior densities of samples from\nmodels fit 100 simulated communities") +
-  theme_classic()
+         "Posterior densities of sampled parameters from\nmodels fit 100 simulated communities") +
+  theme_classic() +
+  scale_y_discrete(labels = c("Intercept", "Percent Seminatural Veg.")) +
+  theme(axis.text = element_text(size = 14),
+        axis.text.y = element_text(angle = 45))
 
 
 
 # plot on a predictive scale
 base <- ggplot(city_data, aes(x = percent_semi_natural_scaled, y = mean)) +
-  ylab("Mean (%)\nDisturbance Avoidant Species") +
-  xlab("Vegetation Cover") +
+  ylab("(%) Disturbance Avoidant Species\n(in St. Dev. from Mean)") +
+  xlab("City-wide Vegetation Cover") +
   scale_color_manual(values=my_palette) + 
   theme_classic() + 
   theme(axis.title = element_text(size = 16),
         axis.text = element_text(size = 14))
 
 n_draws <- 100
-base + geom_abline(
+base <- base + geom_abline(
   aes(intercept = intercept, slope = percent_semi_natural_scaled), 
   data = sample_n(posterior_draws, n_draws), 
   color = "black", 
@@ -301,3 +306,4 @@ base + geom_abline(
   geom_errorbar(aes(ymin = lower90, ymax=upper90, colour=city), size=1) +
   geom_point(aes(colour=city), size = 4)
 
+cowplot::plot_grid(mcmc_areas, base, ncol = 2)

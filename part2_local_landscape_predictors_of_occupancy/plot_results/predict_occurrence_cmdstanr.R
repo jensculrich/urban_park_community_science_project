@@ -30,29 +30,60 @@ if(region == regions[5]){
     "Dallas",
     "DC",
     "Denton",
+    "Denver",
+    "Des_moines",
+    "Detroit",
     "Houston",
     "LA",
     "Minneapolis",
     "NYC",     
     "Philadelphia",
+    "Phoenix",
     "Raleigh",
+    "Riverside",
     "SD",
-    "SF"
+    "SF",
+    "St_louis",
+    "Tampa"
   )
 }
 
+city_names_labels <- c(
+  "Atlanta",
+  "Boston", 
+  "Charlotte",
+  "Chicago",
+  "Dallas",
+  "Washington D.C.",
+  "Denton",
+  "Denver",
+  "Des Moines",
+  "Detroit",
+  "Houston",
+  "Los Angeles",
+  "Minneapolis",
+  "New York City",     
+  "Philadelphia",
+  "Phoenix",
+  "Raleigh",
+  "Riverside",
+  "San Diego",
+  "San Fransisco",
+  "St. Louis",
+  "Tampa"
+)
 
 n_cities <- length(city_names)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_jan2.rds")
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_feb23.rds")
 
 tmp <- as.data.frame(stan_out$draws(variables = c("psi_0", 
                                                   "sigma_psi_species",
                                                   "sigma_psi_city",
-                                                  "mu_psi_wingspan",
-                                                  "sigma_psi_wingspan",
+                                                  "psi_wingspan",
+                                                  "psi_migratory",
                                                   "mu_psi_park_size",
                                                   "sigma_psi_park_size",
                                                   "mu_psi_tree_cover",
@@ -71,6 +102,7 @@ tmp <- as.data.frame(stan_out$draws(variables = c("psi_0",
                                                   "sigma_p_city",
                                                   "p_city_detections",
                                                   "p_wingspan",
+                                                  "p_migratory",
                                                   "p_feature_diversity",
                                                   "p_ease_of_id",
                                                   "delta0",
@@ -251,9 +283,11 @@ for(city_number in 1:n_cities){
       # estimate city specific predictions about initial occurrence rate
       predCity[city_number,i,j] <- ilogit( 
         # psi1_0 + # global intercept
-        tmp[j,psi_0] + 
+        #tmp[j,psi_0] + 
           # psi1_city + # city effect on the intercept
-          tmp[j,(first_psi+(city_number-1))] + 
+        # in our current model the city intercept includes both the mean intercept and the deviation
+        # for the city, so don't also include the global mean
+          tmp[j,(first_psi+(city_number-1))] +  
           # psi1_park_size + # city specific effect of park size given real park size data
           tmp[j,(first_psi_size+(city_number-1))] * park_size_pred_data_list[[city_number]][i]
       )
@@ -329,15 +363,17 @@ new_df <- as.data.frame(cbind(new_df$city_names, new_df$site, quants)) %>%
 ## --------------------------------------------------
 ## Draw multicity plot
 
+
+# replot q to remove the legend automatically
 # plot the relationships
 q <- ggplot(data = new_df, aes(x=park_size_original_ordered, y=mean, colour=city)) +
   geom_ribbon(aes(
     ymin=lower_50, 
-    ymax=upper_50, fill=city), alpha=0.3) +
+    ymax=upper_50, fill=city), alpha=0.1) +
   #geom_ribbon(aes(
-    #ymin=lower_90, 
-    #ymax=upper_90, fill=city), alpha=0.2) +
-  geom_line(size=3, lty=1) +
+  #ymin=lower_90, 
+  #ymax=upper_90, fill=city), alpha=0.2) +
+  geom_line(size=1, lty=1) +
   xlim(c(min(park_size_original_ordered), max(park_size_original_ordered))) +
   ylim(c(0, 1)) +
   theme_bw() +
@@ -347,19 +383,18 @@ q <- ggplot(data = new_df, aes(x=park_size_original_ordered, y=mean, colour=city
                      breaks = c(0, 0.5, 1),
                      labels = scales::percent 
   ) +
-  scale_color_manual(values=my_palette) + 
-                                          
-  scale_fill_manual(values=my_palette) + 
-                                       
-  theme(#legend.position = "none",
-        axis.text.x = element_text(size = 18),
-        axis.text.y = element_text(size = 18, angle=45, vjust=-0.5),
-        axis.title.x = element_text(size=16),
-        axis.title.y = element_text(size = 16),
-        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  scale_color_manual(values=my_palette, labels=city_names_labels ) + 
+  
+  scale_fill_manual(values=my_palette, labels=city_names_labels) + 
+  
+  theme(legend.position = "none",
+    axis.text.x = element_text(size = 18),
+    axis.text.y = element_text(size = 18, angle=45, vjust=-0.5),
+    axis.title.x = element_text(size=16),
+    axis.title.y = element_text(size = 16),
+    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+    panel.background = element_blank(), axis.line = element_line(colour = "black"))
 q
-
 
 #-------------------------------------------------------------------------------
 # cowplot
@@ -492,7 +527,7 @@ for(city_number in 1:n_cities){
       # estimate city specific predictions about initial occurrence rate
       predCity[city_number,i,j] <- ilogit( 
         # psi1_0 + # global intercept
-        tmp[j,psi_0] + 
+        #tmp[j,psi_0] + 
           # psi1_city + # city effect on the intercept
           tmp[j,(first_psi+(city_number-1))] + 
           # psi1_park_size + # city specific effect of park size given real park size data
@@ -574,11 +609,8 @@ new_df <- as.data.frame(cbind(new_df$city_names, new_df$site, quants)) %>%
 s <- ggplot(data = new_df, aes(x=park_pd_original_ordered, y=mean, colour=city)) +
   geom_ribbon(aes(
     ymin=lower_50, 
-    ymax=upper_50, fill=city), alpha=0.3) +
-  #geom_ribbon(aes(
-  #ymin=lower_90, 
-  #ymax=upper_90, fill=city), alpha=0.2) +
-  geom_line(size=3, lty=1) +
+    ymax=upper_50, fill=city), alpha=0.1) +
+  geom_line(size=1, lty=1) +
   xlim(c(min(park_pd_original_ordered), max(park_pd_original_ordered))) +
   ylim(c(0, 1)) +
   theme_bw() +
@@ -592,7 +624,7 @@ s <- ggplot(data = new_df, aes(x=park_pd_original_ordered, y=mean, colour=city))
   
   scale_fill_manual(values=my_palette) + 
   
-  theme(#legend.position = "none",
+  theme(legend.position = "none",
     axis.text.x = element_text(size = 18),
     axis.text.y = element_text(size = 18, angle=45, vjust=-0.5),
     axis.title.x = element_text(size=16),
@@ -717,7 +749,7 @@ for(city_number in 1:n_cities){
       # community means don't depend on city effects
       predCity[city_number,i,j] <- ilogit( # park isolation trend
         # psi1_0 +
-        tmp[j,1] + 
+        #tmp[j,1] + 
           # psi1_city +
           tmp[j,(first_psi+(city_number-1))] + 
           # psi1_park_isolation +
@@ -790,11 +822,8 @@ new_df <- as.data.frame(cbind(new_df$city_names, new_df$site, quants)) %>%
 u <- ggplot(data = new_df, aes(x=park_isolation_original_ordered, y=mean, colour=city)) +
   geom_ribbon(aes(
     ymin=lower_50, 
-    ymax=upper_50, fill=city), alpha=0.3) +
-  #geom_ribbon(aes(
-    #ymin=lower_90, 
-    #ymax=upper_90, fill=city), alpha=0.2) +
-  geom_line(size=3, lty=1) +
+    ymax=upper_50, fill=city), alpha=0.1) +
+  geom_line(size=1, lty=1) +
   xlim(c(min(park_isolation_original_ordered), max(park_isolation_original_ordered))) +
   ylim(c(0, 1)) +
   theme_bw() +
@@ -808,7 +837,7 @@ u <- ggplot(data = new_df, aes(x=park_isolation_original_ordered, y=mean, colour
                                          
   scale_fill_manual(values=my_palette) + 
                                         
-  theme(#legend.position = "none",
+  theme(legend.position = "none",
     axis.text.x = element_text(size = 18),
     axis.text.y = element_text(size = 18, angle=45, vjust=-0.5),
     axis.title.x = element_text(size=16),
@@ -931,7 +960,7 @@ for(city_number in 1:n_cities){
       # community means don't depend on city effects
       predCity[city_number,i,j] <- ilogit( # park isolation trend
         # psi1_0 +
-        tmp[j,1] + 
+        #tmp[j,1] + 
           # psi1_city +
           tmp[j,(first_psi+(city_number-1))] + 
           # psi1_park_isolation +
@@ -1004,11 +1033,8 @@ new_df <- as.data.frame(cbind(new_df$city_names, new_df$site, quants))%>%
 w <- ggplot(data = new_df, aes(x=park_landscape_grassherb_original_ordered, y=mean, colour=city)) +
   geom_ribbon(aes(
     ymin=lower_50, 
-    ymax=upper_50, fill=city), alpha=0.3) +
-  #geom_ribbon(aes(
-  #ymin=lower_90, 
-  #ymax=upper_90, fill=city), alpha=0.2) +
-  geom_line(size=3, lty=1) +
+    ymax=upper_50, fill=city), alpha=0.1) +
+  geom_line(size=1, lty=1) +
   xlim(c(min(park_landscape_grassherb_original_ordered), max(park_landscape_grassherb_original_ordered))) +
   ylim(c(0, 1)) +
   theme_bw() +
@@ -1022,7 +1048,7 @@ w <- ggplot(data = new_df, aes(x=park_landscape_grassherb_original_ordered, y=me
   
   scale_fill_manual(values=my_palette) + 
   
-  theme(#legend.position = "none",
+  theme(legend.position = "none",
     axis.text.x = element_text(size = 18),
     axis.text.y = element_text(size = 18, angle=45, vjust=-0.5),
     axis.title.x = element_text(size=16),
@@ -1146,9 +1172,9 @@ for(city_number in 1:n_cities){
       # community means don't depend on city effects
       predCity[city_number,i,j] <- ilogit( # park isolation trend
         # psi1_0 +
-        tmp[j,1] + 
-          # psi1_city +
-          tmp[j,(first_psi+(city_number-1))] + 
+        #tmp[j,1] + 
+        # psi1_city +
+        tmp[j,(first_psi+(city_number-1))] + 
           # psi1_park_isolation +
           tmp[j,(first_psi_landscape_woody+(city_number-1))] * park_landscape_woody_pred_data_list[[city_number]][i]
       )
@@ -1216,14 +1242,42 @@ new_df <- as.data.frame(cbind(new_df$city_names, new_df$site, quants))%>%
 ## --------------------------------------------------
 ## Draw multicity plot
 
+# plot with the legend which we will pull out to panel underneath the plot grid
 y <- ggplot(data = new_df, aes(x=park_landscape_woody_original_ordered, y=mean, colour=city)) +
   geom_ribbon(aes(
     ymin=lower_50, 
-    ymax=upper_50, fill=city), alpha=0.3) +
-  #geom_ribbon(aes(
-  #ymin=lower_90, 
-  #ymax=upper_90, fill=city), alpha=0.2) +
-  geom_line(size=3, lty=1) +
+    ymax=upper_50, fill=city), alpha=0.1) +
+  geom_line(size=1, lty=1) +
+  xlim(c(min(park_landscape_woody_original_ordered), max(park_landscape_woody_original_ordered))) +
+  ylim(c(0, 1)) +
+  theme_bw() +
+  ylab("Occupancy Rate\n(City-Specific)") +
+  xlab("log(Landscape % Woody Cover)") +
+  scale_y_continuous(limits = c(0,1),
+                     breaks = c(0, 0.5, 1),
+                     labels = scales::percent 
+  ) +
+  scale_color_manual(values=my_palette, name = "City", labels = city_names_labels) + 
+  
+  scale_fill_manual(values=my_palette,name = "City", labels = city_names_labels) + 
+  
+  theme(legend.position = "top",
+    axis.text.x = element_text(size = 18),
+    axis.text.y = element_text(size = 18, angle=45, vjust=-0.5),
+    axis.title.x = element_text(size=16),
+    axis.title.y = element_text(size = 16),
+    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+    panel.background = element_blank(), axis.line = element_line(colour = "black"))
+y
+
+legend <- cowplot::get_legend(y)
+
+# replot without the legend
+y <- ggplot(data = new_df, aes(x=park_landscape_woody_original_ordered, y=mean, colour=city)) +
+  geom_ribbon(aes(
+    ymin=lower_50, 
+    ymax=upper_50, fill=city), alpha=0.1) +
+  geom_line(size=1, lty=1) +
   xlim(c(min(park_landscape_woody_original_ordered), max(park_landscape_woody_original_ordered))) +
   ylim(c(0, 1)) +
   theme_bw() +
@@ -1237,20 +1291,25 @@ y <- ggplot(data = new_df, aes(x=park_landscape_woody_original_ordered, y=mean, 
   
   scale_fill_manual(values=my_palette) + 
   
-  theme(#legend.position = "none",
-    axis.text.x = element_text(size = 18),
-    axis.text.y = element_text(size = 18, angle=45, vjust=-0.5),
-    axis.title.x = element_text(size=16),
-    axis.title.y = element_text(size = 16),
-    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-    panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 18),
+        axis.text.y = element_text(size = 18, angle=45, vjust=-0.5),
+        axis.title.x = element_text(size=16),
+        axis.title.y = element_text(size = 16),
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))
 y
 
 #-------------------------------------------------------------------------------
 # cowplot
 
-cowplot::plot_grid(p, q, t, u, v, w, x, y, ncol = 2, rel_widths = c(1, 1.5),
+grid <- cowplot::plot_grid(p, q, t, u, v, w, x, y, ncol = 2, rel_widths = c(1, 1),
                    labels = c('a)', 'b)', 'c)', 'd)',
                               'e)', 'f)', 'g)', 'h)'),
                    label_size = 20)
 
+grid_w_legend <- cowplot::plot_grid(grid, legend, 
+                                    ncol = 1, 
+                                    rel_heights = c(8,1))
+grid_w_legend
+# save as portrait 16x18 ratio seems to look pretty good

@@ -12,14 +12,19 @@ n_cities <- length(city_names <- c(
   "Dallas",
   "DC",
   "Denton",
+  "Des_moines",
+  "Detroit",
   "Houston",
   "LA",
   "Minneapolis",
   "NYC",     
   "Philadelphia",
+  "Phoenix",
   "Raleigh",
+  "Riverside",
   "SD",
-  "SF"
+  "SF",
+  "St_louis"
 ))
 
 my_palette <- viridis::viridis(n=n_cities+2, option = "turbo")
@@ -102,7 +107,8 @@ ggplot(city_data) +
   theme(axis.title = element_text(size=16))
 
 city_data <- select(city_data, city, city_factor, 
-                    log_park_size_scaled, log_IIC_scaled,
+                    log_park_size_scaled, 
+                    #log_IIC_scaled,
                     percent_semi_natural_scaled, percent_semi_natural_20km_scaled)
 
 #-------------------------------------------------------------------------------
@@ -110,7 +116,7 @@ city_data <- select(city_data, city, city_factor,
 
 simmed_diversity <- readRDS("./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
 
-mean_richness <- simmed_diversity[[1]]
+mean_richness <- simmed_diversity[[2]] # 2 is median not the mean
 
 #  calculate Means and CI's for the diversity metrics for each city
 mean_richness_quantiles <- apply(mean_richness, MARGIN = 1, FUN = quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
@@ -177,8 +183,10 @@ library(bayesplot)
 library(projpred)
 
 #---------------------------------------------------------
-m3.1 <- rstanarm::stan_glm(mean ~ log_park_size_scaled + log_IIC_scaled + percent_semi_natural_scaled, 
-                           data = city_data_richness)
+m3.1 <- rstanarm::stan_glm(mean ~ log_park_size_scaled + 
+                             #log_IIC_scaled + 
+                             percent_semi_natural_scaled, 
+                           data = city_data)
 
 summary(m3.1)
 plot(m3.1)
@@ -195,7 +203,7 @@ mcmc_pairs(as.matrix(m3.1),pars = c("log_park_size_scaled","log_IIC_scaled","per
 # most to the predictive power of the model
 
 m3.1.0 <- rstanarm::stan_glm(mean ~ 1, 
-                           data = city_data_richness)
+                           data = city_data)
 
 (loo <- loo(m3.1))
 (loo0 <- loo(m3.1.0))
@@ -222,7 +230,7 @@ cowplot::plot_grid(a4, a5, ncol = 1, rel_heights = c(2,1))
 
 #---------------------------------------------------------
 m3.1.1 <- rstanarm::stan_glm(mean ~ log_park_size_scaled, 
-                             data = city_data_richness)
+                             data = city_data)
 
 plot(m3.1.1)
 pp_check(m3.1.1) # ?bayesplot::ppc_hist
@@ -266,16 +274,19 @@ for(i in 1:n_models){
 
 posterior_draws <- as.data.frame(cbind(intercept, log_park_size_scaled, sigma))
 # plot the sample densities
-mcmc_areas(posterior_draws, 
+mcmc_areas <- mcmc_areas(posterior_draws, 
            pars = c("intercept", "log_park_size_scaled")) +
   labs(title = 
          "Posterior densities of samples from\nmodels fit 100 simulated communities") +
-  theme_classic()
+  theme_classic() +
+  scale_y_discrete(labels = c("Intercept", "Median log(Park Size)")) +
+  theme(axis.text = element_text(size = 14),
+        axis.text.y = element_text(angle = 45))
 
 
 # plot on a predictive scale
 base <- ggplot(city_data, aes(x = log_park_size_scaled, y = mean)) +
-  ylab("Mean Species Richness") +
+  ylab("Median Species Richness") +
   xlab("Median log(Park Size)") +
   scale_color_manual(values=my_palette) + 
   theme_classic() + 
@@ -283,7 +294,7 @@ base <- ggplot(city_data, aes(x = log_park_size_scaled, y = mean)) +
         axis.text = element_text(size = 14))
 
 n_draws <- 100 # draw n lines from the post-posterior
-base + geom_abline(
+base <- base + geom_abline(
   aes(intercept = intercept, slope = log_park_size_scaled), 
   data = sample_n(posterior_draws, n_draws), 
   color = "grey", 
@@ -294,4 +305,6 @@ base + geom_abline(
   geom_errorbar(aes(ymin = lower50, ymax=upper50, colour=city), size=2) +
   geom_errorbar(aes(ymin = lower90, ymax=upper90, colour=city), size=1) +
   geom_point(aes(colour=city), size = 4)
+
+cowplot::plot_grid(mcmc_areas, base, ncol = 2)
 
