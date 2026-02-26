@@ -374,9 +374,9 @@ p <- ggplot(df_estimates) +
    guides(color = guide_legend(title = "city")) +
    scale_color_manual(values=my_palette) + 
    geom_hline(yintercept = 0, lty = "dashed") +
-   ggtitle("Occupancy") +
+   ggtitle("") +
    theme(plot.title = element_text(size = 18, face = "bold"),
-         legend.position = "none",
+         #legend.position = "none",
          #legend.text=element_text(size=10),
          axis.text.x = element_text(size = 18),
          axis.text.y = element_text(size = 20, angle=45, vjust=-0.5),
@@ -663,7 +663,7 @@ stan_out <- readRDS(
   "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_feb23.rds")
 
 # summarise all variables with default and additional summary measures
-estimates1 <- as.data.frame(stan_out_m2.1$summary(
+estimates1 <- as.data.frame(stan_out$summary(
   variables = c(
     "mu_psi_park_size",
     "mu_psi_tree_cover",
@@ -677,7 +677,7 @@ estimates1 <- as.data.frame(stan_out_m2.1$summary(
 rownames(estimates1) <- estimates1[, 1]
 
 # clear space
-rm(stan_out_m2.1)
+rm(stan_out)
 gc()
 
 ## get param estimates from m2.2
@@ -793,7 +793,7 @@ r <- ggplot(df_estimates) +
   scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
                      limits = c(-0.5, 1), breaks = c(-0.5, 0, 0.5, 1, 1.5)) +
   geom_hline(yintercept = 0, lty = "dashed") +
-  ggtitle("Occupancy") +
+  ggtitle("") +
   guides(color = guide_legend(title = "Model")) +
   scale_color_manual(values=c("gray30", "gray80")) + 
   theme(plot.title = element_text(size = 18, face = "bold"),
@@ -822,6 +822,6 @@ r
 #-------------------------------------------------------------------------------
 # plot the 3 panels on a 2x2 grid
 
-cowplot::plot_grid(p, r, ncol = 2, rel_widths = c(1, 1, 1),
+cowplot::plot_grid(p, r, ncol = 2, rel_widths = c(1, 0.67),
                    labels = c('a)', 'b)'),
                    label_size = 20)

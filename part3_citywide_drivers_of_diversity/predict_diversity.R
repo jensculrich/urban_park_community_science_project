@@ -2,6 +2,7 @@
 
 library(tidyverse)
 library(vegan)
+library(adespatial)
 
 center_scale <- function(x) {
   (x - mean(x)) / sd(x)
@@ -16,6 +17,7 @@ c(
   "Dallas",
   "DC",
   "Denton",
+  "Denver",
   "Des_moines",
   "Detroit",
   "Houston",
@@ -28,7 +30,8 @@ c(
   "Riverside",
   "SD",
   "SF",
-  "St_louis"
+  "St_louis",
+  "Tampa"
 ))
 
 ##------------------------------------------------------------------------------
@@ -36,7 +39,7 @@ c(
 
 ## get param estimates from m2.1
 stan_out_m2.1 <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_feb10.rds")
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_feb23.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- stan_out_m2.1$draws(
@@ -182,6 +185,7 @@ cluster <-c( "southeast", # atlanta
              "texas", # dallas
              "northeast", # dc
              "texas", # denton
+             "central", # denver
              "central", # des moines
              "midwest", # detroit
              "texas", # houston
@@ -194,7 +198,8 @@ cluster <-c( "southeast", # atlanta
              "california", # riverside
              "california", # sd
              "san_francisco", # sf
-             "midwest" # st louis
+             "midwest", # st louis
+             "southeast" # tampa
 )
 x_name <- "city"
 y_name <- "cluster"
@@ -208,6 +213,7 @@ site_data_all <- left_join(site_data_all, city_cluster) %>%
 # get whether the city is in range (may not be for all cities in the same cluster)
 source("./part2_local_landscape_predictors_of_occupancy/run_model/get_species_ranges.R")
 range_data <- get_species_ranges(city_names)
+gc()
 
 ## --------------------------------------------------
 # Now grab all the sites from a city, get the expected psi rate
@@ -228,17 +234,21 @@ first_psi_landscape_grassherb <- which( colnames(estimates)=="psi_landscape_gras
 first_psi_landscape_woody <- which( colnames(estimates)=="psi_landscape_woody[1]" )
 
 # some random samples from the posterior
-n_draws = 50 # small number for testing bc it does take a few minutes to simulate results
+n_draws = 100 # small number for testing bc it does take a few minutes to simulate results
 #n_draws = nrow(list_of_draws) # number of samples from the posteriors
 random_draws_from_posterior = sample.int(nrow(estimates), n_draws) # use if not using the full posterior
 
 mean_richness <- array(dim = c(n_cities, n_draws))
 median_richness <- array(dim = c(n_cities, n_draws))
+median_richness_prop <- array(dim = c(n_cities, n_draws))
 mean_prop_disturbance_avoidant <- array(dim = c(n_cities, n_draws))
 mean_prop_edge_avoidant <- array(dim = c(n_cities, n_draws))
 mean_prop_disturbance_or_edge_avoidant <- array(dim = c(n_cities, n_draws))
 beta_diversity <- array(dim = c(n_cities, n_draws))
+beta_repl <- array(dim = c(n_cities, n_draws))
+beta_richdif <- array(dim = c(n_cities, n_draws))
 gamma_diversity <- array(dim = c(n_cities, n_draws))
+gamma_diversity_prop <- array(dim = c(n_cities, n_draws))
 
 for(city_number in 1:n_cities){
   for(draw in 1:n_draws){
@@ -251,6 +261,7 @@ for(city_number in 1:n_cities){
     
     # get all of the species that could potentially occur at each site
     temp <- left_join(temp, species_city_cluster_id_df)
+    # and get their triat info (not actually needed here because it was pulled into the species random effect)
     temp <- left_join(temp, select(species_info, species, species_integer_vector))
     
     # get the correct range data
@@ -268,12 +279,12 @@ for(city_number in 1:n_cities){
     psi <- 
       as.numeric(estimates[rand, first_psi_city - 1 + city_number]) +
       as.numeric(estimates[rand, first_psi_species - 1 + temp$species_city_cluster_id]) +
-      estimates[rand, first_psi_parksize - 1 + city_number] * temp$site_size_pred +
-      estimates[rand, first_psi_tree_cover - 1 + city_number] * temp$site_tree_cover_pred +
-      estimates[rand, first_psi_plant_diversity - 1 + city_number] * temp$site_plant_diversity_pred +
-      estimates[rand, first_psi_isolation - 1 + city_number] * temp$site_isolation_pred +
-      estimates[rand, first_psi_landscape_grassherb - 1 + city_number] * temp$site_landscape_grassherb_pred +
-      estimates[rand, first_psi_landscape_woody - 1 + city_number] * temp$site_landscape_woody_pred 
+      as.vector(estimates[rand, first_psi_parksize - 1 + city_number]) * temp$site_size_pred +
+      as.vector(estimates[rand, first_psi_tree_cover - 1 + city_number]) * temp$site_tree_cover_pred +
+      as.vector(estimates[rand, first_psi_plant_diversity - 1 + city_number]) * temp$site_plant_diversity_pred +
+      as.vector(estimates[rand, first_psi_isolation - 1 + city_number]) * temp$site_isolation_pred +
+      as.vector(estimates[rand, first_psi_landscape_grassherb - 1 + city_number]) * temp$site_landscape_grassherb_pred +
+      as.vector(estimates[rand, first_psi_landscape_woody - 1 + city_number]) * temp$site_landscape_woody_pred 
     
     occurrence <- rbinom(length(psi), 1, ilogit(psi)) 
 
@@ -296,6 +307,8 @@ for(city_number in 1:n_cities){
     mutate(city_median_alpha_richness = median(site_richness)) %>%
     slice(1) %>%
     pull(city_median_alpha_richness)
+  
+  median_richness_prop[city_number, draw] <- median_richness[city_number, draw] / length(temp_ranges$species)
   
   # what proportion of occurring species are disturbance avoidant v disturbance tolerant
   # what proportion of occurring species are edge avoidant
@@ -320,8 +333,6 @@ for(city_number in 1:n_cities){
   mean_prop_edge_avoidant[city_number, draw] <- percentage_disturbance_edge_avoidant$mean_percentage_edge_avoidant[1]
   mean_prop_disturbance_or_edge_avoidant[city_number, draw] <- percentage_disturbance_edge_avoidant$mean_percentage_disturbance_edge_avoidant[1]
   
-
-  
   # mean dissimilarity among parks
   temp_wide <- cbind(temp, occurrence) %>%
     select(new_id, species, occurrence) %>%
@@ -329,13 +340,20 @@ for(city_number in 1:n_cities){
     as.matrix(.)
   temp_wide <- temp_wide[,-1] 
   # higher values indicate low similarity
-  beta_diversity[city_number, draw] <- mean(vegan::vegdist(temp_wide, method = "jaccard", binary = TRUE))
+  #beta_diversity[city_number, draw] <- mean(vegan::vegdist(temp_wide, method = "jaccard", binary = TRUE))
 
+  betad_temp <- beta.div.comp(temp_wide, coef = "J", quant = FALSE, save.abc = FALSE)
+  beta_diversity[city_number, draw] <- betad_temp$part[1]
+  beta_repl[city_number, draw] <- betad_temp$part[2]
+  beta_richdif[city_number, draw] <- betad_temp$part[3]
+  
   # overall diversity supported in greenspaces
   gamma_diversity[city_number, draw] <- nrow(cbind(temp, occurrence) %>%
     filter(occurrence == 1) %>%
     group_by(species) %>%
     slice(1))
+  
+  gamma_diversity_prop[city_number, draw] <- gamma_diversity[city_number, draw] / length(temp_ranges$species)
     
   } # for each draw from the joint posterior
 } # for each city
@@ -346,25 +364,23 @@ hist(mean_richness[,1])
 hist(median_richness[,1])
 hist(mean_prop_disturbance_avoidant[,1])
 hist(beta_diversity[,1])
+hist(beta_repl[,1])
+hist(beta_richdif[,1])
 hist(gamma_diversity[,1])
+hist(gamma_diversity_prop[,1])
 
-simmed_diversity <- list(mean_richness, median_richness, mean_prop_disturbance_avoidant, beta_diversity, gamma_diversity)
-saveRDS(simmed_diversity, "./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
+simmed_diversity <- list(mean_richness, median_richness, median_richness_prop,
+                         mean_prop_disturbance_avoidant, mean_prop_edge_avoidant, mean_prop_disturbance_or_edge_avoidant,
+                         beta_diversity, beta_repl, beta_richdif,
+                         gamma_diversity, gamma_diversity_prop)
+saveRDS(simmed_diversity, "./part3_citywide_drivers_of_diversity/simmed_diversity2.RDS")
 # if you don't want to have to run this again just reload the simmed data from a previous session
 #simmed_diversity <- readRDS("./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
 
 #-------------------------------------------------------------------------------
 # get the city covariate data
 city_data <- read.csv("./data/city_wide_data/all_cities_average_park_size_classified_parks_only.csv")
-
-city_data <- city_data %>%
-  filter(city %in% city_names) %>%
-  cbind(., city_factor = seq(1:n_cities))
-
-city_data <- city_data %>%
-  mutate(log_avg_park_size = log(average_park_size_sqm),
-         log_park_size_scaled = center_scale(log_avg_park_size))
-
+city_data <- city_data[order(city_data$city), ]
 
 #-------------------------------------------------------------------------------
 # summarize uncertainty and plot relationships
@@ -375,15 +391,16 @@ my_palette <- my_palette[3:(n_cities+2)] # remove the really dark colours
 #-------------------------------------------------------------------------------
 # mean species richness
 
+
 #  calculate Means and CI's for the diversity metrics for each city
-mean_richness_quantiles <- apply(mean_richness, MARGIN = 1, FUN = quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
+mean_richness_quantiles <- apply(median_richness, MARGIN = 1, FUN = quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
 mean_richness_quantiles_df <- as.data.frame(t(mean_richness_quantiles))
 colnames(mean_richness_quantiles_df) <- c("lower90", "lower50",
                                           "mean", "upper50", "upper90")
 
 mean_richness_quantiles_df <- cbind(city_data, mean_richness_quantiles_df)
 
-a <- ggplot(mean_richness_quantiles_df, aes(log_avg_park_size , mean)) +
+a <- ggplot(mean_richness_quantiles_df, aes(median_log_park_size , mean)) +
   geom_smooth(method = lm) +
   geom_errorbar(aes(ymin = lower50, ymax=upper50, colour=city), size=2) +
   geom_errorbar(aes(ymin = lower90, ymax=upper90, colour=city), size=1) +
@@ -432,7 +449,7 @@ colnames(mean_beta_quantiles_df) <- c("lower90", "lower50",
 
 mean_beta_quantiles_df <- cbind(city_data, mean_beta_quantiles_df)
 
-b <- ggplot(mean_beta_quantiles_df, aes(log_avg_park_size , mean)) +
+b <- ggplot(mean_beta_quantiles_df, aes(median_log_park_size , mean)) +
   geom_smooth(method = lm) +
   geom_errorbar(aes(ymin = lower50, ymax=upper50, colour=city), size=2) +
   geom_errorbar(aes(ymin = lower90, ymax=upper90, colour=city), size=1)  +
@@ -448,14 +465,14 @@ b <- ggplot(mean_beta_quantiles_df, aes(log_avg_park_size , mean)) +
 # gamma (city-wide) species richness
 
 #  calculate Means and CI's for the diversity metrics for each city
-gamma_richness_quantiles <- apply(gamma_diversity, MARGIN = 1, FUN = quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
+gamma_richness_quantiles <- apply(gamma_diversity_prop, MARGIN = 1, FUN = quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
 gamma_richness_quantiles_df <- as.data.frame(t(gamma_richness_quantiles))
 colnames(gamma_richness_quantiles_df) <- c("lower90", "lower50",
                                           "mean", "upper50", "upper90")
 
 gamma_richness_quantiles_df <- cbind(city_data, gamma_richness_quantiles_df)
 
-c <- ggplot(gamma_richness_quantiles_df, aes(log_avg_park_size , mean)) +
+c <- ggplot(gamma_richness_quantiles_df, aes(median_log_park_size , mean)) +
   geom_smooth(method = lm) +
   geom_errorbar(aes(ymin = lower50, ymax=upper50, colour=city), size=2) +
   geom_errorbar(aes(ymin = lower90, ymax=upper90, colour=city), size=1)  +
