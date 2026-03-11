@@ -37,9 +37,7 @@ my_palette <- my_palette[3:(n_cities+2)] # remove the really dark colours
 
 park_size_data <- read.csv("./data/city_wide_data/all_cities_average_park_size_classified_parks_only.csv") 
 connectivity_data <- read.csv("./data/city_wide_data/04_city_wide_isolation_metrics.csv") 
-IIC_connectivity_data <- read.csv("./data/city_wide_data/landscape_connectivity_IIC.csv") %>%
-  rename("city" = "city_names")
-IIC_connectivity_data <- IIC_connectivity_data[1:22,] # last row got duplicated in processing
+IIC_connectivity_data <- read.csv("./data/city_wide_data/02_urbanwatch_city_wide_connectivity_metrics_classified_parks_only.csv") 
 landcover_data <- read.csv("./data/city_wide_data/02_urbanwatch_city_wide_land_cover_area_diversity.csv") %>%
   rowwise() %>%
   mutate(semi_natural = sum(grass_shrub, tree)) %>%
