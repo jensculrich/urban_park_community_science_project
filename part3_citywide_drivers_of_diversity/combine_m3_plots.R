@@ -1,3 +1,14 @@
+
+f5.1 <- readRDS("./part3_citywide_drivers_of_diversity/figures/m3_plots/figure5.1.rds")
+f5.2 <- readRDS("./part3_citywide_drivers_of_diversity/figures/m3_plots/figure5.2.rds")
+f5.3 <- readRDS("./part3_citywide_drivers_of_diversity/figures/m3_plots/figure5.3.rds")
+
+cowplot::plot_grid(f5.1, f5.2, f5.3, ncol = 1
+)
+
+
+## supp plots
+
 m3.1 <- readRDS("./part3_citywide_drivers_of_diversity/figures/m3_plots/m3.1_plot.rds")
 m3.2 <- readRDS("./part3_citywide_drivers_of_diversity/figures/m3_plots/m3.2_plot.rds")
 m3.3.1 <- readRDS("./part3_citywide_drivers_of_diversity/figures/m3_plots/m3.3.1_plot.rds")

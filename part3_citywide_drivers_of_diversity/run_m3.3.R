@@ -6,6 +6,8 @@ center_scale <- function(x) {
   (x - mean(x)) / sd(x)
 }
 
+ilogit <- function(x){exp(x)/(1+exp(x))}
+
 n_cities <- length(city_names <- c(
   "Atlanta",
   "Boston", 
@@ -615,6 +617,122 @@ for(i in 1:n_models){
 posterior_draws <- as.data.frame(cbind(
   intercept, log_park_size_scaled, percent_tree_scaled, 
   percent_grassshrub_scaled, log_IIC_scaled, sigma))
+
+##-----------------------------------------------------------------------------
+# make a classic counterfactual interval band plot
+# now plot the first trend
+
+sd_size <- sd(city_data$median_log_park_size)
+mean_size <- mean(city_data$median_log_park_size)
+pred = seq(-2, 2, length.out=100)
+x <- pred * sd_size + mean_size
+
+pred_data <- as.data.frame(cbind(x, pred))
+
+n_draws <- 2000 # draw n lines from the post-posterior
+predictions <- matrix(nrow = nrow(pred_data), ncol = n_draws)
+sampled_posterior <- sample_n(posterior_draws, n_draws)
+
+# for each value of pred data
+for(i in 1:nrow(predictions)){
+  # draw a potential relationship, and predict the outcome given the pred value
+  for(j in 1:n_draws){
+    
+    predictions[i,j] <- ilogit(
+      sampled_posterior[j, 1] + sampled_posterior[j,2] * pred_data[i,2])
+  }
+}
+
+#  calculate Means and CI's for the diversity metrics for each city
+prediction_quantiles <- apply(predictions, MARGIN = 1, FUN = quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
+prediction_quantiles_df <- as.data.frame(t(prediction_quantiles))
+colnames(prediction_quantiles_df) <- c("lower90", "lower50",
+                                       "mean", "upper50", "upper90")
+
+prediction_quantiles_df <- as.data.frame(cbind(pred_data, prediction_quantiles_df))
+
+ylim_lower <- 0.15
+temp <- as.data.frame(cbind(park_size_data$median_log_park_size, ylim_lower))
+# plot on a predictive scale
+p <- ggplot(prediction_quantiles_df, aes(x = x, y = mean)) +
+  ylab("Community Dissimilarity\n(Jaccard Index)") +
+  theme_classic() + 
+  geom_ribbon(aes(ymin=lower90, ymax=upper90), alpha=0.25) +
+  geom_ribbon(aes(ymin=lower50, ymax=upper50), alpha = 0.5) +
+  geom_line() +
+  ylim(ylim_lower, 0.4) +
+  geom_point(data=temp, aes(V1, ylim_lower), shape = "|", size = 10, colour="#A25050") +
+  scale_x_continuous(name=expression(paste("Median log(Park Size (m"^2, "))")), 
+                     limits=c(min(x), max(x))) +
+  theme(axis.title = element_text(size = 16),
+        axis.text = element_text(size = 16))
+p
+
+##------------------------------------------------------------------------------
+# now plot the second trend
+
+sd_IIC <- sd(city_data$log_IIC)
+mean_IIC <- mean(city_data$log_IIC)
+pred = seq(-3.25, 2, length.out=100)
+x <- pred * sd_IIC + mean_IIC
+
+pred_data <- as.data.frame(cbind(x, pred))
+
+n_draws <- 2000 # draw n lines from the post-posterior
+predictions <- matrix(nrow = nrow(pred_data), ncol = n_draws)
+sampled_posterior <- sample_n(posterior_draws, n_draws)
+
+# for each value of pred data
+for(i in 1:nrow(predictions)){
+  # draw a potential relationship, and predict the outcome given the pred value
+  for(j in 1:n_draws){
+    
+    predictions[i,j] <- ilogit(
+      sampled_posterior[j, 1] + sampled_posterior[j,5] * pred_data[i,2])
+    
+  }
+}
+
+#  calculate Means and CI's for the diversity metrics for each city
+prediction_quantiles <- apply(predictions, MARGIN = 1, FUN = quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
+prediction_quantiles_df <- as.data.frame(t(prediction_quantiles))
+colnames(prediction_quantiles_df) <- c("lower90", "lower50",
+                                       "mean", "upper50", "upper90")
+
+prediction_quantiles_df <- as.data.frame(cbind(pred_data, prediction_quantiles_df))
+
+ylim_lower <- 0.15
+temp <- as.data.frame(cbind(log(IIC_connectivity_data$IIC), ylim_lower))
+# plot on a predictive scale
+p2 <- ggplot(prediction_quantiles_df, aes(x = x, y = mean)) +
+  ylab("Community Dissimilarity\n(Jaccard Index)") +
+  xlab("log(IIC - Connectivity)") +
+  ylim(ylim_lower, 45) +
+  scale_x_continuous(limits = c(min(x), max(x))) + 
+  theme_classic() + 
+  geom_ribbon(aes(ymin=lower90, ymax=upper90), alpha=0.25) +
+  geom_ribbon(aes(ymin=lower50, ymax=upper50), alpha = 0.5) +
+  geom_line() +
+  ylim(ylim_lower, 0.4) +
+  geom_point(data=temp, aes(V1, ylim_lower), shape = "|", size = 10, colour="#A25050") +
+  theme(legend.position = c(0.025, 0.975), # x=1 (right), y=0 (bottom)
+        legend.justification = c(0, 1), # Justify the bottom-right corner of the legend box to these coordinates
+        legend.text = element_text(size=14),
+        legend.title = element_text(size=16),
+        axis.title = element_text(size = 16),
+        axis.text = element_text(size = 16))
+p2
+
+figure5.2 <- cowplot::plot_grid(p, p2, ncol = 2,
+                                labels = c("c)", "d)"), 
+                                label_size = 16)
+figure5.2
+
+saveRDS(figure5.2, "./part3_citywide_drivers_of_diversity/figures/m3_plots/figure5.2.rds")
+
+
+##------------------------------------------------------------------------------
+# mcmc areas and regression lines sampled from the posterior
 # plot the sample densities
 mcmc_areas <- mcmc_areas(posterior_draws, 
                          pars = c("log_park_size_scaled", 
@@ -624,8 +742,8 @@ mcmc_areas <- mcmc_areas(posterior_draws,
   scale_x_continuous(name = "Posterior Model Estimate") +
   scale_y_discrete(labels = c("Median log(Park Size)", "% Tree Cover", "% Grass/Shrub Cover", "log(IIC)")) +
   theme(axis.title = element_text(size = 16),
-        axis.text = element_text(size = 14),
-        axis.text.y = element_text(angle = 45))
+        axis.text = element_text(size = 14)
+        )
 
 city_names_labels <- c(
   "Atlanta",

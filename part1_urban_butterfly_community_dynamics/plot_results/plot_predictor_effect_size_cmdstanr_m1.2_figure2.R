@@ -10,7 +10,7 @@ library(cmdstanr)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_feb3.rds")
+  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_apr2.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- as.data.frame(stan_out$summary(
@@ -52,6 +52,9 @@ rownames(estimates) <- estimates[, 1]
 # handy for viewing column numbers
 # this line of code won't work until you've actually read in a stan fit object
 #View(cbind(1:nrow(estimates), estimates)) # View to see which row corresponds to the parameter of interest
+
+rm(stan_out)
+gc() 
 
 #-------------------------------------------------------------------------------
 # initial occurrence (psi1)
@@ -145,9 +148,9 @@ rownames(estimates) <- estimates[, 1]
 p <- ggplot(df_estimates) +
    theme_bw() +
    scale_x_discrete(name="", breaks = seq(1:params),
-                    labels=c(bquote(psi["intercept"]),
-                             bquote(psi["park size"]),
-                             bquote(psi["isolation"])#,
+                    labels=c(bquote(psi[1]["intercept"]),
+                             bquote(psi[1]["park size"]),
+                             bquote(psi[1]["isolation"])#,
                              #bquote(psi["wingspan"]),
                              #bquote(psi["migratory"])
                     )) +
@@ -544,7 +547,7 @@ s <- ggplot(df_estimates) +
                             bquote(p["ease of ID"])
                    )) +
   scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                     limits = c(-3, 3), breaks = c(-6, -4, -2, 0, 2, 4, 6, 8)) +
+                     limits = c(-4, 2), breaks = c(-6, -4, -2, 0, 2, 4, 6, 8)) +
   geom_hline(yintercept = 0, lty = "dashed") +
   ggtitle("Persistence") +
   theme(plot.title = element_text(size = 18, face = "bold"),
@@ -575,10 +578,10 @@ s
 #cowplot::plot_grid(p, q, r, s, ncol = 2)
 
 cowplot::plot_grid(p, q, r, labels = c("a)", "b)", "c)"),
-                   ncol = 3, label_size = 16)
+                   ncol = 3, label_size = 18)
 
 #ggplot(site_data) +
 #  ggridges::geom_density_ridges(aes(x=log_total_green_space_area, y=city, fill = city), alpha = 0.3)
 
 #ggplot(site_data) +
-  ggridges::geom_density_ridges(aes(x=log_isolation_scaled_across_all_cities, y=city, fill = city), alpha = 0.3)
+#  ggridges::geom_density_ridges(aes(x=log_isolation_scaled_across_all_cities, y=city, fill = city), alpha = 0.3)

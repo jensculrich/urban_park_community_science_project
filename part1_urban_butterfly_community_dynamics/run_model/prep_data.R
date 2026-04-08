@@ -1,6 +1,6 @@
-# create a detection array from iNaturalist data.
+# create some detection data from iNaturalist data.
 # this will join detections to sites.
-# non-detections are currently added whenever we don't see a species.
+# non-detections are currently added whenever we don't see a species, despite some inferred sampling effort.
 # sampling effort could then be modeled as a function of species/site/year/time,
 # using the months within year as repeat "survey periods".
 # but possibly we could look to identify "community sampling events"
@@ -67,8 +67,6 @@ prep_data <- function(city_names,
   filter(family %in% butterfly_families) %>%
   
   filter(coordinateUncertaintyInMeters < 100) 
-  
-  # genus <- unique(df$genus)
   
   # write a file with list of genera that we need to gather data for (only need to do this once)
   #write.csv(genus, "data/lepidoptera_trait_data/ease_of_id/identifiability_by_genus.csv")
@@ -873,14 +871,21 @@ prep_data <- function(city_names,
             "Dallas",
             "DC",
             "Denton",
+            "Denver",
+            "Des_moines",
+            "Detroit",
             "Houston",
             "LA",
             "Minneapolis",
             "NYC",     
             "Philadelphia",
+            "Phoenix",
             "Raleigh",
+            "Riverside",
             "SD",
-            "SF")
+            "SF",
+            "St_louis",
+            "Tampa")
   cluster <-c( "southeast", # atlanta
                "northeast", # boston
                "southeast", # charlotte
@@ -888,14 +893,23 @@ prep_data <- function(city_names,
                "texas", # dallas
                "northeast", # dc
                "texas", # denton
+               "central", # denver
+               "central", # des moines
+               "midwest", # detroit
                "texas", # houston
                "california", # LA
                "midwest", # minneapolis
                "northeast", # nyc
                "northeast", # philadelphia
+               "interior_southwest", # phoenix
                "southeast", # raleigh
+               "california", # riverside
                "california", # sd
-               "san_francisco") # sf
+               "san_francisco", # sf
+               "midwest", # st louis
+               "southeast" # tampa
+  )
+  
   x_name <- "city"
   y_name <- "cluster"
   
@@ -1032,7 +1046,9 @@ prep_data <- function(city_names,
            migratory,
            FlightDuration, DiapauseStage, Voltinism, OvipositionStyle, 
            CanopyAffinity, EdgeAffinity, MoistureAffinity, DisturbanceAffinity,
-           NumberOfHostplantFamilies)
+           NumberOfHostplantFamilies) %>%
+    # assume NA species are non-migratory (only 1 species lacking data)
+    mutate(migratory = replace_na(migratory, 0))
   
   species_info_plot <- species_info %>%
     mutate(cond1 = ifelse(aveWingspan_scaled > 0, 0, 1),
@@ -1211,7 +1227,7 @@ prep_data <- function(city_names,
   city_data <- left_join(city_data, city_site_data)
   
   if(write_city_data_csv == TRUE){
-    write.csv(city_data, paste0("./data/data_summaries/data_summary_", region, ".csv"),
+    write.csv(city_data, paste0("./data/data_summaries/data_summary_.csv"),
               row.names = FALSE)
   }
   

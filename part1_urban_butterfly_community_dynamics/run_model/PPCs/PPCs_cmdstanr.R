@@ -12,7 +12,7 @@ library(tidyverse)
 ### Prepare data for model
 # for community sampling events inferred by [taxonomic] family, source this file:
 
-my_data <- readRDS( paste0("./part1_urban_butterfly_community_dynamics/run_model/prepped_data/prepped_data_all.rds"))
+my_data <- readRDS( paste0("./part1_urban_butterfly_community_dynamics/run_model/prepped_data/prepped_data_m1.rds"))
 
 ## --------------------------------------------------
 ### Prepare data for model
@@ -37,7 +37,7 @@ W_df <- as.data.frame(cbind(city_integer_vector, V)) %>%
 # get W distributions from model
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_feb3.rds")
+  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_apr2.rds")
 
 tmp <- as.data.frame(stan_out$draws(variables = "W_city_rep",
                                     format = "draws_matrix"
@@ -64,15 +64,15 @@ quants <- apply(
   X = tmp,
   MARGIN = 2, # 2 indicates columns
   FUN = quantile,
-  probs = c(0.05, 0.25, 0.5, 0.75, 0.95) # Optional: specify desired probabilities
+  probs = c(0.025, 0.25, 0.5, 0.75, 0.975) # Optional: specify desired probabilities
 )
 
 df_estimates <- t(data.frame(quants))
 
 df_estimates <- cbind(W_df, df_estimates) %>%
   mutate(city_names = as.factor(city_names)) %>%
-  rename("lower_95" = "5%",
-         "upper_95" = "95%",
+  rename("lower_95" = "2.5%",
+         "upper_95" = "97.5%",
          "lower_50" = "25%",
          "upper_50" = "75%") 
 

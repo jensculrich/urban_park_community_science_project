@@ -1,20 +1,13 @@
+# I was originally using this file as I prefer to use the rstan library on my personal computer
+# However, our cluster is currently only compatible with cmdstanr library. So I rewrote 
+# the code slightly in the run_model_m1_cmdstanr.R file, which is what was used to 
+# fit the final model reported in the manuscript
 
-# select a region
-regions <- c(
-  "northeast",
-  "southeast",
-  "texas",
-  "california",
-  "all"
-)
+# define the parameters for preparing the data
 
-region <- regions[5]
-
-# list of city names
-
-# all
-if(region == regions[5]){
-  city_names <- c(
+# city names for cities that we will be looking at:
+# all cities
+city_names <- c(
     "Atlanta",
     "Boston", 
     "Charlotte",
@@ -22,27 +15,29 @@ if(region == regions[5]){
     "Dallas",
     "DC",
     "Denton",
+    "Denver",
+    "Des_moines",
+    "Detroit",
     "Houston",
     "LA",
     "Minneapolis",
     "NYC",     
     "Philadelphia",
+    "Phoenix",
     "Raleigh",
+    "Riverside",
     "SD",
-    "SF"
+    "SF",
+    "St_louis",
+    "Tampa"
   )
-}
 
-
-# or choose one city
-# city_names <- "Philadelphia"
-
-min_species_detections <- 2 # binary park/year/species detections
-min_site_years_w_detection <- 2 # remove parks never surveyed across repeat years
-min_species_for_community_sampling_event <- 1 # if 1 species detected, any other species in same fam could have been 
-family_sampling <- TRUE # Should enter either TRUE or FALSE 
-remove_outlier_parks <- TRUE # remove very small parks
-write_city_data_csv <- TRUE
+min_species_detections <- 1 # only include species detected n or more times (binary park/year/species detections)
+min_site_years_w_detection <- 2 # 2 == remove parks never surveyed across more than one years (i.e., site must be surveyed in 2 or more years)
+min_species_for_community_sampling_event <- 1 # if n species detected, any other species in same taxonomic group could have been 
+family_sampling <- TRUE # TRUE == non-detection inferred only if species from the same family were detecteted
+remove_outlier_parks <- TRUE # remove very small parks from the model fitting procedure
+write_city_data_csv <- TRUE # save some info about the cities and the detections/parks in them
 # family_sampling:
 # if false infer sampling event for all butterflies if any butterflies detected
 # if true only infer sampling event for butterflies in same family as any butterflies detected
@@ -60,9 +55,8 @@ my_data <- prep_data(city_names,
 )
 
 
-saveRDS(my_data, paste0("./part1_urban_butterfly_community_dynamics/run_model/prepped_data/prepped_data_", region, ".rds"))
-my_data <- readRDS( paste0("./part1_urban_butterfly_community_dynamics/run_model/prepped_data/prepped_data_", region, ".rds"))
-
+saveRDS(my_data, paste0("./part1_urban_butterfly_community_dynamics/run_model/prepped_data/prepped_data_m1.rds"))
+my_data <- readRDS( paste0("./part1_urban_butterfly_community_dynamics/run_model/prepped_data/prepped_data_m1.rds"))
 
 # data to feed to the model
 # detection data
@@ -88,6 +82,7 @@ surveys <- (surveys - mean(surveys)) / sd(surveys)
 feature_diversity <- species_info$featureDiversity_scaled
 ease_of_id <- species_info$research_grade_proportion_scaled
 wingspan <- species_info$aveWingspan_scaled
+migratory <- species_info$migratory
 # site
 park_size <- site_data$log_total_green_space_area_scaled_across_all_cities # scaled_2 is scaled to only parks being modeled
 isolation <- site_data$log_isolation_scaled_across_all_cities # scaled_2 is scaled to only parks being modeled
@@ -210,7 +205,7 @@ params <- c(
 # MCMC settings
 n_iterations <- 300
 n_thin <- 1
-n_burnin <- 150
+n_warmup <- 150
 n_chains <- 4
 n_cores <- n_chains
 delta = 0.97
@@ -262,8 +257,7 @@ inits <- lapply(1:n_chains, function(i)
 ### Run model
 
 # choose a model
-#stan_model <- "./models/dynamic_occupancy_model.stan"
-stan_model <- "./models/dynamic_occupancy_model_all_cities.stan"
+stan_model <- "./part1_urban_butterfly_community_dynamics/models/dynamic_occupancy_model_m1.stan"
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
@@ -271,17 +265,17 @@ stan_out <- stan(stan_model,
                  init = inits, 
                  pars = params,
                  chains = n_chains, iter = n_iterations, 
-                 warmup = n_burnin, thin = n_thin,
+                 warmup = n_warmup, thin = n_thin,
                  seed = 1,
                  control=list(adapt_delta=delta),
                  open_progress = FALSE,
                  cores = n_cores)
 
 
-saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "3.rds"))
+#saveRDS(stan_out, paste0("./model_outputs/stan_out_m1.rds"))
 
 # read old data
-#stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, "_dec5.rds"))
+#stan_out <- readRDS( paste0("./model_outputs/stan_out_m1.rds"))
 
 # print outputs
 print(stan_out, digits = 3, 
