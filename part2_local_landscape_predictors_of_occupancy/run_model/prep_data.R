@@ -267,19 +267,46 @@ prep_data <- function(city_names,
 
   
   # plot
-  ggplot(site_data, aes(
-    x = log_total_green_space_area_scaled_across_all_cities, y = log_isolation_scaled_across_all_cities, colour = city)) +
-    geom_point()
+  a <- ggplot(site_data, aes(
+    x = log_total_green_space_area, y = log(isolation), colour = city)) +
+    geom_point() + theme_classic() +
+    xlab("log park size(m^2)") + 
+    ylab("log isolation") +
+    theme(legend.position = "none") + 
+    theme(axis.title = element_text(size=18),
+          axis.text = element_text(size=18))
   
   # plot
-  ggplot(site_data, aes(
-    x = log_total_green_space_area_scaled_across_all_cities, y = plant_genera_density_scaled_across_all_cities, colour = city)) +
-    geom_point()
+  b <- ggplot(site_data, aes(
+    x = log_total_green_space_area, y = plant_genera_density, colour = city)) +
+    geom_point() + theme_classic() +
+    xlab("log park size(m^2)") + 
+    ylab("log plant genera / park area") +
+    theme(legend.position = "none") + 
+    theme(axis.title = element_text(size=18),
+          axis.text = element_text(size=18))
   
   # plot
-  ggplot(site_data, aes(
-    x = proportion_landscape_vegetation_scaled_across_all_cities, y = landcover_type_diversity_scaled_across_all_cities, colour = city)) +
-    geom_point()
+  c <- ggplot(site_data, aes(
+    x = log_total_green_space_area, y = proportion_landscape_woody, colour = city)) +
+    geom_point() + theme_classic() +
+    xlab("log park size(m^2)") + 
+    ylab("proportion landscape woody veg.") +
+    theme(legend.position = "none") + 
+    theme(axis.title = element_text(size=18),
+          axis.text = element_text(size=18))
+  
+  # plot
+  d <- ggplot(site_data, aes(
+    x = log_total_green_space_area, y = proportion_landscape_grassherb, colour = city)) +
+    geom_point() + theme_classic() +
+    xlab("log park size(m^2)") + 
+    ylab("proportion landscape herbaceous veg.") +
+    theme(legend.position = "none") + 
+    theme(axis.title = element_text(size=18),
+          axis.text = element_text(size=18))
+  
+  #cowplot::plot_grid(a,b,c,d)
   
   # add detections by city
   site_data <- site_data %>%
@@ -864,6 +891,9 @@ prep_data <- function(city_names,
     mutate(prev_index_vector = prev_index) %>%
     pull(prev_index_vector)
   
+  year_id_vector <- detections_df %>%
+    pull(year)
+  
   R <- nrow(V)
   
   mean_species_per_event <- detections_df %>%
@@ -1076,14 +1106,40 @@ prep_data <- function(city_names,
            cond3 = ifelse(research_grade_proportion_scaled > 0, 0, 1))
   
   # plot the species trait data
-  ggplot(species_info_plot, aes(x=as.factor(species), y=aveWingspan_scaled, 
+  a <- ggplot(species_info_plot[1:(nrow(species_info)/3),], aes(x=as.factor(species), y=aveWingspan_scaled, 
                                 fill = as.factor(cond1))) +
     geom_col() +
     theme_classic() +
     ylab("Wingspan (scaled)") +
     theme(legend.position = "none",
-          axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
-          axis.title.x=element_blank()) 
+          axis.text.x = element_text(angle = 90, vjust = 0, hjust=1, size=16),
+          axis.title.x=element_blank(),
+          axis.text.y = element_text(size=16),
+          axis.title.y = element_text(size=18)) 
+  
+  b <- ggplot(species_info_plot[(nrow(species_info)/3):(2*(nrow(species_info)/3)),], aes(x=as.factor(species), y=aveWingspan_scaled, 
+                                                           fill = as.factor(cond1))) +
+    geom_col() +
+    theme_classic() +
+    ylab("Wingspan (scaled)") +
+    theme(legend.position = "none",
+          axis.text.x = element_text(angle = 90, vjust = 0, hjust=1, size=16),
+          axis.title.x=element_blank(),
+          axis.text.y = element_text(size=16),
+          axis.title.y = element_text(size=18)) 
+  
+  c <- ggplot(species_info_plot[(2*(nrow(species_info)/3)):nrow(species_info),], aes(x=as.factor(species), y=aveWingspan_scaled, 
+                                                                                    fill = as.factor(cond1))) +
+    geom_col() +
+    theme_classic() +
+    ylab("Wingspan (scaled)") +
+    theme(legend.position = "none",
+          axis.text.x = element_text(angle = 90, vjust = 0, hjust=1, size=16),
+          axis.title.x=element_blank(),
+          axis.text.y = element_text(size=16),
+          axis.title.y = element_text(size=18))
+  
+  cowplot::plot_grid(a,b,c, ncol=1)
   
   ggplot(species_info_plot, aes(x=as.factor(species), y=featureDiversity_scaled, 
                                 fill = as.factor(cond2))) +
@@ -1247,7 +1303,7 @@ prep_data <- function(city_names,
   city_data <- left_join(city_data, city_site_data)
   
   if(write_city_data_csv == TRUE){
-    write.csv(city_data, paste0("./data/data_summaries/data_summary_", region, ".csv"),
+    write.csv(city_data, paste0("./data/data_summaries/data_summary.csv"),
               row.names = FALSE)
   }
   
@@ -1283,6 +1339,8 @@ prep_data <- function(city_names,
     multicity_site_id_vector = multicity_site_id_vector,
     
     city_id_vector = city_id_vector, 
+    
+    year_id_vector = year_id_vector,
     
     site_survey_year_vector = site_survey_year_vector,
     

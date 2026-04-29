@@ -6,7 +6,7 @@ library(cmdstanr)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_feb23.rds")
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_apr9.rds")
 
 estimates <- as.data.frame(stan_out$draws(variables = c("psi_0", 
                                                   "sigma_psi_species",
@@ -191,7 +191,7 @@ df2 <- as.data.frame(cbind(scaled_pred, criMean_plantdiversity[3,],
          "upper95" = "V4",
          "lower50" = "V5",
          "upper50" = "V6") %>%
-  mutate(Predictor = "Lcoal Plant Diversity")
+  mutate(Predictor = "Local Plant Diversity")
 
 df3 <- as.data.frame(cbind(scaled_pred, criMean_treecover[3,], 
                            criMean_treecover[1,], criMean_treecover[5,],
@@ -247,13 +247,13 @@ df_combined2 <- rbind(df4, df5, df6) # landscape
 
 # order factor variables for consistency
 df_combined1$Predictor <- fct_relevel(df_combined1$Predictor, 
-      "Local Tree Cover", "Plant Diversity", "Park Size")
+      "Local Tree Cover", "Local Plant Diversity", "Park Size")
 
 df_combined2$Predictor <- fct_relevel(df_combined2$Predictor, 
       "Landscape Woody Cover", "Landscape Herbaceous Cover", "Landscape Isolation")
 
 # choose palette
-my_palette <- viridis::viridis(n=7, option = "cividis")
+my_palette <- viridis::viridis(n=7, option = "viridis")
 my_palette1 <- my_palette[c(1, 3, 5)] # drop black colour
 my_palette2 <- my_palette[c(2, 4, 6)] # drop black colour
 
@@ -261,10 +261,10 @@ my_palette2 <- my_palette[c(2, 4, 6)] # drop black colour
 p1 <- ggplot(data = df_combined1, aes(scaled_pred, mean, colour=Predictor, fill=Predictor)) +
   geom_ribbon(aes(
     ymin=lower95, 
-    ymax=upper95), alpha=0.1) +
+    ymax=upper95), alpha=0.1, colour = NA) +
   geom_ribbon(aes(
     ymin=lower50, 
-    ymax=upper50), alpha=0.2) +
+    ymax=upper50), alpha=0.2, colour = NA) +
   geom_line(size=2, lty=1) +
   scale_colour_manual(name="", values=my_palette1) +  
   scale_fill_manual(name="", values=my_palette1) +
@@ -292,10 +292,10 @@ p1
 p2 <- ggplot(data = df_combined2, aes(scaled_pred, mean, colour=Predictor, fill=Predictor)) +
   geom_ribbon(aes(
     ymin=lower95, 
-    ymax=upper95), alpha=0.1) +
+    ymax=upper95), alpha=0.1, colour = NA) +
   geom_ribbon(aes(
     ymin=lower50, 
-    ymax=upper50), alpha=0.2) +
+    ymax=upper50), alpha=0.2, colour = NA) +
   geom_line(size=2, lty=1) +
   scale_colour_manual(name="", values=my_palette2) +  
   scale_fill_manual(name="", values=my_palette2) +
@@ -534,7 +534,7 @@ my_palette <- my_palette[3:(n_cities+2)] # remove the really dark colours
 q <- ggplot(data = new_df, aes(x=park_size_original_ordered, y=mean, colour=city)) +
   geom_ribbon(aes(
     ymin=lower_50, 
-    ymax=upper_50, fill=city), alpha=0.05) +
+    ymax=upper_50, fill=city), alpha=0.05, colour = NA) +
   #geom_ribbon(aes(
   #ymin=lower_90, 
   #ymax=upper_90, fill=city), alpha=0.2) +
@@ -685,7 +685,7 @@ new_df <- as.data.frame(cbind(new_df$city_names, new_df$site, quants)) %>%
 q2 <- ggplot(data = new_df, aes(x=park_isolation_original_ordered, y=mean, colour=city)) +
   geom_ribbon(aes(
     ymin=lower_50, 
-    ymax=upper_50, fill=city), alpha=0.05) +
+    ymax=upper_50, fill=city), alpha=0.05, colour = NA) +
   geom_line(size=1, lty=1) +
   xlim(c(min(park_isolation_original_ordered), max(park_isolation_original_ordered))) +
   ylim(c(0, 1)) +

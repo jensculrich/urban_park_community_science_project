@@ -31,9 +31,6 @@ n_cities <- length(city_names <- c(
   "Tampa"
 ))
 
-#my_palette <- viridis::viridis(n=n_cities+2, option = "turbo")
-#my_palette <- my_palette[3:(n_cities+2)] # remove the really dark colours
-
 #-------------------------------------------------------------------------------
 # get the city covariate data
 
@@ -74,7 +71,7 @@ city_data <- city_data %>%
 #-------------------------------------------------------------------------------
 # get the city-wide diversity predictions
 
-simmed_diversity <- readRDS("./part3_citywide_drivers_of_diversity/simmed_diversity2.RDS")
+simmed_diversity <- readRDS("./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
 
 # elements of simmed_diversity list are as follows:
 #list(mean_richness, median_richness, median_richness_prop,
@@ -112,14 +109,15 @@ m3.1 <- rstanarm::stan_glm(mean ~ log_park_size_scaled +
                            data = city_data)
 
 summary(m3.1)
-#plot(m3.1)
-#pp_check(m3.1) # ?bayesplot::ppc_hist
-
-# 90% interval of estimated reciprocal_dispersion parameter
-#posterior_interval(m3.1, pars = c("log_park_size_scaled","log_IIC_scaled","percent_tree_scaled", "percent_grassshrub_scaled"),
-#                                  prob = 0.9)
-#posterior_interval(m3.1, pars = c("log_park_size_scaled","log_IIC_scaled","percent_tree_scaled", "percent_grassshrub_scaled"),
-#                  prob = 0.5)
+posterior_interval(m3.1, pars = c("log_park_size_scaled","log_IIC_scaled","percent_tree_scaled", "percent_grassshrub_scaled"),
+                  prob = 0.5)
+# log_IIC_scaled has 50% BCI overlapping with zero
+# i.e., they have little clear effect on the diversity responses
+# in addition removing them does not introduce a confound according to a causal diagram of the system
+# i.e., we do not expect a causal pathway from other predictors through these ones into diversity
+# and so it makes sense to remove them from the causal model.
+plot(m3.1)
+pp_check(m3.1) # ?bayesplot::ppc_hist
 
 #mcmc_areas(as.matrix(m3.1),prob_outer = .95)
 #mcmc_pairs(as.matrix(m3.1),pars = c("log_park_size_scaled","log_IIC_scaled","percent_tree_scaled", "percent_grassshrub_scaled"))
@@ -133,7 +131,7 @@ summary(m3.1)
 mean_richness <- simmed_diversity[[2]] 
 
 # how many samples to take from each model fit to each draw of the response data?
-n_subsamples <- 20
+n_subsamples <- 40
 # how many models to fit? I'll fit one for every simulated set of diversity responses
 n_models <- ncol(mean_richness)
 # empty vectors of param values to fill
@@ -145,13 +143,15 @@ log_IIC_scaled <- vector(length = n_subsamples*n_models)
 latitude <- vector(length = n_subsamples*n_models)
 sigma <- vector(length = n_subsamples*n_models)
 
+set.seed(1) # set seed to get same result each time, but really should very only by decimal places
+
 for(i in 1:n_models){
   city_data$response <- mean_richness[,i]
   
   fit <- rstanarm::stan_glm(response ~ log_park_size_scaled + 
                               percent_tree_scaled +
                               percent_grassshrub_scaled +
-                              log_IIC_scaled +
+                              #log_IIC_scaled +
                               latitude_scaled, 
                             data = city_data)
   
@@ -163,15 +163,22 @@ for(i in 1:n_models){
   log_park_size_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,2]
   percent_tree_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,3]
   percent_grassshrub_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,4]
-  log_IIC_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,5]
-  latitude[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,6]
-  sigma[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,7]
+  #log_IIC_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,5]
+  latitude[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,5]
+  sigma[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,6]
 }
 
 # combine draws into a df
 posterior_draws <- as.data.frame(cbind(
   intercept, log_park_size_scaled, percent_tree_scaled, 
   percent_grassshrub_scaled, log_IIC_scaled, latitude, sigma))
+
+quantile(posterior_draws$intercept, prob = c(0.05, 0.25, 0.5, 0.75, 0.95))
+quantile(posterior_draws$log_park_size_scaled, prob = c(0.05, 0.25, 0.5, 0.75, 0.95))
+quantile(posterior_draws$percent_tree_scaled, prob = c(0.05, 0.25, 0.5, 0.75, 0.95))
+quantile(posterior_draws$percent_grassshrub_scaled, prob = c(0.05, 0.25, 0.5, 0.75, 0.95))
+quantile(posterior_draws$log_IIC_scaled, prob = c(0.05, 0.25, 0.5, 0.75, 0.95))
+quantile(posterior_draws$latitude, prob = c(0.05, 0.25, 0.5, 0.75, 0.95))
 
 ##-----------------------------------------------------------------------------
 # make a classic counterfactual interval band plot
@@ -215,7 +222,7 @@ p <- ggplot(prediction_quantiles_df, aes(x = x, y = mean)) +
   geom_ribbon(aes(ymin=lower90, ymax=upper90), alpha=0.25) +
   geom_ribbon(aes(ymin=lower50, ymax=upper50), alpha = 0.5) +
   geom_line() +
-  ylim(ylim_lower, 45) +
+  ylim(ylim_lower, 40) +
   geom_point(data=temp, aes(V1, ylim_lower), shape = "|", size = 10, colour="#A25050") +
   scale_x_continuous(name=expression(paste("Median log(Park Size (m"^2, "))")), 
                      limits=c(min(x), max(x))) +
@@ -267,7 +274,7 @@ p2 <- ggplot(prediction_quantiles_df, aes(x = x, y = mean)) +
   geom_ribbon(aes(ymin=lower90, ymax=upper90), alpha=0.25) +
   geom_ribbon(aes(ymin=lower50, ymax=upper50), alpha = 0.5) +
   geom_line() +
-  ylim(ylim_lower, 45) +
+  ylim(ylim_lower, 40) +
   geom_point(data=temp, aes(V1, ylim_lower), shape = "|", size = 10, colour="#A25050") +
   theme(legend.position = c(0.025, 0.975), # x=1 (right), y=0 (bottom)
         legend.justification = c(0, 1), # Justify the bottom-right corner of the legend box to these coordinates
@@ -284,63 +291,31 @@ figure5.1
 
 saveRDS(figure5.1, "./part3_citywide_drivers_of_diversity/figures/m3_plots/figure5.1.rds")
 
-
 ##------------------------------------------------------------------------------
-# mcmc areas and regression lines sampled from the posterior
 
-posterior_draws <- as.data.frame(cbind(
-  intercept, log_park_size_scaled, percent_tree_scaled, 
-  percent_grassshrub_scaled, log_IIC_scaled, latitude, sigma))
 # plot the sample densities
 mcmc_areas <- mcmc_areas(posterior_draws, 
-           pars = c("log_park_size_scaled", 
-                    "percent_tree_scaled", "percent_grassshrub_scaled", "log_IIC_scaled", "latitude")) +
+                         pars = c("log_park_size_scaled", "percent_tree_scaled",
+                                  "percent_grassshrub_scaled", 
+                                  #"log_IIC_scaled", 
+                                  "latitude")) +
   #labs(title = "Posterior Densities of Retained Predictors") +
   theme_classic() +
   scale_x_continuous(name = "Posterior Model Estimate") +
-  scale_y_discrete(labels = c("Median log(Park Size)", "% Tree Cover", "% Grass/Shrub Cover", "log(IIC)", "latitude")) +
-    theme(axis.title = element_text(size = 16),
-          axis.text = element_text(size = 14),
-          #axis.text.y = element_text(angle = 45)
-          )
-
-city_names_labels <- c(
-  "Atlanta",
-  "Boston", 
-  "Charlotte",
-  "Chicago",
-  "Dallas",
-  "Washington D.C.",
-  "Denton",
-  "Denver",
-  "Des Moines",
-  "Detroit",
-  "Houston",
-  "Los Angeles",
-  "Minneapolis",
-  "New York City",     
-  "Philadelphia",
-  "Phoenix",
-  "Raleigh",
-  "Riverside",
-  "San Diego",
-  "San Fransisco",
-  "St. Louis",
-  "Tampa"
-)
+  scale_y_discrete(labels = c("Median log(Park Size)", 
+                              "% Tree Cover", "% Grass/Shrub Cover", #"log(IIC)", 
+                              "Latitude")) +
+  theme(axis.title = element_text(size = 16),
+        axis.text = element_text(size = 14))
+mcmc_areas
 
 ##------------------------------------------------------------------------------
-# now plot the first trend
+# compute a contrast
 
-sd_size <- sd(city_data$median_log_park_size)
-mean_size <- mean(city_data$median_log_park_size)
-pred = seq(-2, 2, length.out=100)
-x <- pred * sd_size + mean_size
+pred_data <- c(-1,1)
 
-pred_data <- as.data.frame(cbind(x, pred))
-
-n_draws <- 100 # draw n lines from the post-posterior
-predictions <- matrix(nrow = nrow(pred_data), ncol = n_draws)
+n_draws <- 2000 # draw n lines from the post-posterior
+predictions <- matrix(nrow = length(pred_data), ncol = n_draws)
 sampled_posterior <- sample_n(posterior_draws, n_draws)
 
 # for each value of pred data
@@ -348,110 +323,20 @@ for(i in 1:nrow(predictions)){
   # draw a potential relationship, and predict the outcome given the pred value
   for(j in 1:n_draws){
     
-    predictions[i,j] <- sampled_posterior[j, 1] + sampled_posterior[j,2] * pred_data[i,2]
-    
+    predictions[i,j] <- sampled_posterior[j, 1] + sampled_posterior[j,2] * pred_data[i]
   }
 }
 
-y <- rowMeans(predictions)
+diff <- predictions[2,] - predictions[1,] 
+quantile(diff, prob = c(0.05, 0.25, 0.5, 0.75, 0.95))
 
-new_dat <- as.data.frame(cbind(pred_data, y, predictions))
-
-# plot on a predictive scale
-base <- ggplot(new_dat, aes(x = x, y = y)) +
-  ylab("Median Park Species Richness") +
-  xlab(expression(paste("Median log(Park Size (m"^2, "))"))) +
-  theme_classic() + 
-  ylim(5, 50) +
-  xlim(c(min(x), max(x))) +
-  theme(legend.position = c(0.025, 0.975), # x=1 (right), y=0 (bottom)
-        legend.justification = c(0, 1), # Justify the bottom-right corner of the legend box to these coordinates
-        legend.text = element_text(size=14),
-        legend.title = element_text(size=16),
-        axis.title = element_text(size = 16),
-        axis.text = element_text(size = 16))
-
-line_layers <- list()
-for (i in 4:ncol(new_dat)) {
-  temp_data <- data.frame(x = new_dat$x, y = new_dat[,i])
-  # Create a geom_line layer and add it to the list
-  line_layers[[i-3]] <- geom_line(data = temp_data, colour="grey", alpha = 0.5)
-}
-
-base <- base + line_layers + 
-  geom_line(size = 2, colour = "black")
-
-base <- base + 
-  geom_errorbar(data = city_data, aes(x=median_log_park_size, y=mean, ymin=lower50, ymax=upper50, colour=percent_tree), size=2) +
-  geom_errorbar(data = city_data, aes(x=median_log_park_size, y=mean, ymin = lower90, ymax=upper90, colour=percent_tree), size=1) +
-  geom_point(data = city_data, aes(x=median_log_park_size, y=mean, colour=percent_tree), size = 4) +
-  scale_colour_viridis_c(name="City-Wide Tree Cover", labels = scales::label_percent()) 
-
-##------------------------------------------------------------------------------
-# now plot the second trend
-
-sd_tree <- sd(city_data$percent_tree)
-mean_tree <- mean(city_data$percent_tree)
-pred = seq(-1.5, 2, length.out=100) # tree cover can't be lower than a certain amount
-x <- pred * sd_tree + mean_tree
-
-pred_data <- as.data.frame(cbind(x, pred))
-
-n_draws <- 100 # draw n lines from the post-posterior
-predictions <- matrix(nrow = nrow(pred_data), ncol = n_draws)
-sampled_posterior <- sample_n(posterior_draws, n_draws)
-
-# for each value of pred data
-for(i in 1:nrow(predictions)){
-  # draw a potential relationship, and predict the outcome given the pred value
-  for(j in 1:n_draws){
-    
-    predictions[i,j] <- sampled_posterior[j, 1] + sampled_posterior[j,3] * pred_data[i,2]
-    
-  }
-}
-
-y <- rowMeans(predictions)
-
-new_dat <- as.data.frame(cbind(pred_data, y, predictions))
-
-# plot on a predictive scale
-base2 <- ggplot(new_dat, aes(x = x, y = y)) +
-  ylab("Median Park Species Richness") +
-  xlab("City-Wide Tree Cover") +
-  ylim(5, 50) +
-  scale_x_continuous(labels = scales::label_percent(), limits = c(min(x), max(x))) + 
-  theme_classic() + 
-  theme(legend.position = c(0.025, 0.975), # x=1 (right), y=0 (bottom)
-        legend.justification = c(0, 1), # Justify the bottom-right corner of the legend box to these coordinates
-        legend.text = element_text(size=14),
-        legend.title = element_text(size=16),
-        axis.title = element_text(size = 16),
-        axis.text = element_text(size = 16))
-
-line_layers <- list()
-for (i in 4:ncol(new_dat)) {
-  temp_data <- data.frame(x = new_dat$x, y = new_dat[,i])
-  # Create a geom_line layer and add it to the list
-  line_layers[[i-3]] <- geom_line(data = temp_data, colour="grey", alpha = 0.5)
-}
-
-base2 <- base2 + line_layers + 
-  geom_line(size = 2, colour = "black")
-
-base2 <- base2 + 
-  geom_errorbar(data = city_data, aes(x=percent_tree, y=mean, ymin=lower50, ymax=upper50, colour=median_log_park_size), size=2) +
-  geom_errorbar(data = city_data, aes(x=percent_tree, y=mean, ymin = lower90, ymax=upper90, colour=median_log_park_size), size=1) +
-  geom_point(data = city_data, aes(x=percent_tree, y=mean, colour=median_log_park_size), size = 4) +
-  scale_colour_viridis_c(name=expression(paste("Median log(Park Size (m"^2, "))"))) 
-
-
-##------------------------------------------------------------------------------
-# combine the panels
-
-m3.1_plot <- cowplot::plot_grid(mcmc_areas, base, base2, ncol = 3,
-                                labels = c("a)", "b)", "c)"), 
-                                label_size = 16)
-m3.1_plot
-
-saveRDS(m3.1_plot, "./part3_citywide_drivers_of_diversity/figures/m3_plots/m3.1_plot.rds")
+mcmc_areas_contrast <- mcmc_areas(as.data.frame(diff)) +
+  labs(title = 
+         "Predicted Contrast Between Cities\nwith 1 Std. Dev. Below vs. Above Average Median Park Size") +
+  theme_classic() +
+  scale_x_continuous(name = "Difference in City-wide\nSpecies Richness") +
+  scale_y_discrete(labels = c("")) +
+  theme(axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16),
+        title = element_text(size=16))
+mcmc_areas_contrast

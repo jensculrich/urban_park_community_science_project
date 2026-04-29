@@ -51,7 +51,7 @@ n_regions <- length(region)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_feb23.rds")
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_apr9.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- as.data.frame(stan_out$summary(

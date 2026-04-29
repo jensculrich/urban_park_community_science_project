@@ -39,7 +39,7 @@ c(
 
 ## get param estimates from m2.1
 stan_out_m2.1 <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_feb23.rds")
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_apr9.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- stan_out_m2.1$draws(
@@ -104,7 +104,7 @@ logit <- function(x) log(x/(1-x))
 # First get the data from all sites and place on the same scale fed to the model
 
 ## get all the site data from all cities (for sites that were actually included in the model)
-my_data <- readRDS( paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data_all.rds"))
+my_data <- readRDS( paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data.rds"))
 
 site_data <- my_data$site_data
   
@@ -215,7 +215,11 @@ source("./part2_local_landscape_predictors_of_occupancy/run_model/get_species_ra
 range_data <- get_species_ranges(city_names)
 gc()
 
-
+# get info to make use of real detections for predictions
+year_vector <- my_data$year_id_vector
+site <- my_data$multicity_site_id_vector
+species <- my_data$species_integer_vector
+V <- my_data$V
 
 ## --------------------------------------------------
 # Now grab all the sites from a city, get the expected psi rate
@@ -273,6 +277,25 @@ for(city_number in 1:n_cities){
     # around the city and so we presume they are not available to occupy park sites in that city
     temp <- temp %>% filter(species %in% temp_ranges$species)
     
+    # get year
+    city <- temp$city[1:5]
+    year <- 1:5
+    year_df <- as.data.frame(cbind(city, year))
+    
+    temp <- left_join(temp, year_df)
+      
+    # summarize real occurrence# summarizyeare real occurrence
+    V_new <- rowSums(V)
+    V_new <- as.data.frame(cbind(V_new, site, year_vector, species)) %>%
+      rename("new_id" = "site",
+             "year" = "year_vector",
+             "species_integer_vector" = "species") %>%
+      mutate(year = as.character(year)) 
+    
+    temp <- left_join(temp, V_new) %>%
+      # convert to a binary
+      mutate(V_new = ifelse(V_new > 0, 1, NA))
+    
     # construct expected and realized occurrence arrays that are of length n_sites*n_species
     psi <- array(dim = c(nrow(temp)))
     occurrence <- array(dim = c(nrow(temp)))
@@ -288,21 +311,29 @@ for(city_number in 1:n_cities){
       as.vector(estimates[rand, first_psi_landscape_grassherb - 1 + city_number]) * temp$site_landscape_grassherb_pred +
       as.vector(estimates[rand, first_psi_landscape_woody - 1 + city_number]) * temp$site_landscape_woody_pred 
     
+    # if we know the species was present, assign the occurrence to a value of 1
+    # otherwise occurrence is left to be the outcome of a single binomial trial
+    # with probability defined by the param estimates and the site/species conditions
     occurrence <- rbinom(length(psi), 1, ilogit(psi)) 
-
+    occurrence <- rowSums(cbind(occurrence, temp$V_new), na.rm = TRUE)
+    occurrence[occurrence > 0] <- 1
+    
   # mean richness of dims n_cities, n_draws  
-  mean_richness[city_number, draw] <- cbind(temp, occurrence) %>%
-    group_by(new_id) %>%
+  mean_richness[city_number, draw] <- 
+    test <- cbind(temp, occurrence) %>%
+    # get the richness by site in any given year
+    group_by(new_id, year) %>%
     mutate(site_richness = sum(occurrence)) %>%
     slice(1) %>%
     ungroup() %>%
+    # then get the average across all site averages within the city
     mutate(city_mean_alpha_richness = mean(site_richness)) %>%
     slice(1) %>%
     pull(city_mean_alpha_richness)
   
   # median richness of dims n_cities, n_draws  
   median_richness[city_number, draw] <- cbind(temp, occurrence) %>%
-    group_by(new_id) %>%
+    group_by(new_id, year) %>%
     mutate(site_richness = sum(occurrence)) %>%
     slice(1) %>%
     ungroup() %>%
@@ -337,17 +368,33 @@ for(city_number in 1:n_cities){
   
   # mean dissimilarity among parks
   temp_wide <- cbind(temp, occurrence) %>%
-    select(new_id, species, occurrence) %>%
-    pivot_wider(names_from = species, values_from = occurrence) %>%
+    select(new_id, species, year, occurrence) %>%
+    pivot_wider(names_from = species, values_from = occurrence)%>%
     as.matrix(.)
   temp_wide <- temp_wide[,-1] 
   # higher values indicate low similarity
-  #beta_diversity[city_number, draw] <- mean(vegan::vegdist(temp_wide, method = "jaccard", binary = TRUE))
 
-  betad_temp <- beta.div.comp(temp_wide, coef = "J", quant = FALSE, save.abc = FALSE)
-  beta_diversity[city_number, draw] <- betad_temp$part[1]
-  beta_repl[city_number, draw] <- betad_temp$part[2]
-  beta_richdif[city_number, draw] <- betad_temp$part[3]
+  # get beta div by year and then average
+  beta_diversity_temp <- vector(length=5)
+  beta_repl_temp <- vector(length=5)
+  beta_richdif_temp <- vector(length=5)
+  
+  for(i in 1:5){
+    
+    temp_wide_filtered <- as.data.frame(temp_wide) %>%
+      filter(year == i)
+    temp_wide_filtered <- data.matrix(temp_wide_filtered[,-1]) - 1 
+    
+    betad_temp <- beta.div.comp(temp_wide_filtered, coef = "J", quant = FALSE, save.abc = FALSE)
+    beta_diversity_temp[i] <- betad_temp$part[1]
+    beta_repl_temp[i] <- betad_temp$part[2]
+    beta_richdif_temp[i] <- betad_temp$part[3]
+    
+  }
+
+  beta_diversity[city_number, draw] <- mean(beta_diversity_temp)
+  beta_repl[city_number, draw] <- mean(beta_repl_temp)
+  beta_richdif[city_number, draw] <- mean(beta_richdif_temp)
   
   # overall diversity supported in greenspaces
   gamma_diversity[city_number, draw] <- nrow(cbind(temp, occurrence) %>%
@@ -375,7 +422,7 @@ simmed_diversity <- list(mean_richness, median_richness, median_richness_prop,
                          mean_prop_disturbance_avoidant, mean_prop_edge_avoidant, mean_prop_disturbance_or_edge_avoidant,
                          beta_diversity, beta_repl, beta_richdif,
                          gamma_diversity, gamma_diversity_prop)
-saveRDS(simmed_diversity, "./part3_citywide_drivers_of_diversity/simmed_diversity2.RDS")
+saveRDS(simmed_diversity, "./part3_citywide_drivers_of_diversity/simmed_diversity_w_detections.RDS")
 # if you don't want to have to run this again just reload the simmed data from a previous session
 #simmed_diversity <- readRDS("./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
 

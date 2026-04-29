@@ -39,7 +39,7 @@ c(
 
 ## get param estimates from m2.1
 stan_out_m2.1 <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_feb23.rds")
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_apr9.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- stan_out_m2.1$draws(
@@ -234,7 +234,7 @@ first_psi_landscape_grassherb <- which( colnames(estimates)=="psi_landscape_gras
 first_psi_landscape_woody <- which( colnames(estimates)=="psi_landscape_woody[1]" )
 
 # some random samples from the posterior
-n_draws = 100 # small number for testing bc it does take a few minutes to simulate results
+n_draws = 200 # use a small number for testing bc it does take a few minutes to simulate results
 #n_draws = nrow(list_of_draws) # number of samples from the posteriors
 random_draws_from_posterior = sample.int(nrow(estimates), n_draws) # use if not using the full posterior
 
@@ -373,7 +373,7 @@ simmed_diversity <- list(mean_richness, median_richness, median_richness_prop,
                          mean_prop_disturbance_avoidant, mean_prop_edge_avoidant, mean_prop_disturbance_or_edge_avoidant,
                          beta_diversity, beta_repl, beta_richdif,
                          gamma_diversity, gamma_diversity_prop)
-saveRDS(simmed_diversity, "./part3_citywide_drivers_of_diversity/simmed_diversity2.RDS")
+saveRDS(simmed_diversity, "./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
 # if you don't want to have to run this again just reload the simmed data from a previous session
 #simmed_diversity <- readRDS("./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
 
@@ -389,7 +389,7 @@ my_palette <- viridis::viridis(n=n_cities+2, option = "turbo")
 my_palette <- my_palette[3:(n_cities+2)] # remove the really dark colours
 
 #-------------------------------------------------------------------------------
-# mean species richness
+# visualize the prediction data for mean species richness
 
 
 #  calculate Means and CI's for the diversity metrics for each city
@@ -411,163 +411,6 @@ a <- ggplot(mean_richness_quantiles_df, aes(median_log_park_size , mean)) +
   theme_classic() + 
   theme(axis.title = element_text(size = 16),
         axis.text = element_text(size = 14))
-
-#-------------------------------------------------------------------------------
-# mean proportion disturbance or edge avoidant
-# are there more ruderal species in cities with smaller parks?
-
-#  calculate Means and CI's for the diversity metrics for each city
-mean_prop_disturbance_avoidant_quantiles <- apply(mean_prop_disturbance_avoidant, MARGIN = 1, FUN = quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
-mean_prop_disturbance_avoidant_quantiles_df <- as.data.frame(t(mean_prop_disturbance_avoidant_quantiles))
-colnames(mean_prop_disturbance_avoidant_quantiles_df) <- c("lower90", "lower50",
-                                                                   "mean", "upper50", "upper90")
-
-mean_prop_disturbance_avoidant_quantiles_df <- cbind(city_data, mean_prop_disturbance_avoidant_quantiles_df)
-
-a2 <- ggplot(mean_prop_disturbance_avoidant_quantiles_df, aes(log_avg_park_size , mean)) +
-  geom_smooth(method = lm) +
-  geom_errorbar(aes(ymin = lower50, ymax=upper50, colour=city), size=2) +
-  geom_errorbar(aes(ymin = lower90, ymax=upper90, colour=city), size=1) +
-  geom_point(aes(colour=city), size = 4) +
-  ylab("Mean Prop. Disturbance Avoidant") +
-  xlab("Mean log(Park Size)") +
-  scale_y_continuous(limits = c(0, 0.1)) +
-  scale_color_manual(values=my_palette) + 
-  theme_classic() + 
-  theme(axis.title = element_text(size = 16),
-        axis.text = element_text(size = 14))
-
-#-------------------------------------------------------------------------------
-# beta diversity (mean jaccard dissimilarity)
-
-#  calculate Means and CI's for the diversity metrics for each city
-mean_beta_quantiles <- apply(beta_diversity, MARGIN = 1, FUN = quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95),
-                             na.rm=TRUE)
-mean_beta_quantiles_df <- as.data.frame(t(mean_beta_quantiles))
-colnames(mean_beta_quantiles_df) <- c("lower90", "lower50",
-                                          "mean", "upper50", "upper90")
-
-mean_beta_quantiles_df <- cbind(city_data, mean_beta_quantiles_df)
-
-b <- ggplot(mean_beta_quantiles_df, aes(median_log_park_size , mean)) +
-  geom_smooth(method = lm) +
-  geom_errorbar(aes(ymin = lower50, ymax=upper50, colour=city), size=2) +
-  geom_errorbar(aes(ymin = lower90, ymax=upper90, colour=city), size=1)  +
-  geom_point(aes(colour=city), size = 4) +
-  ylab("Mean Species Dissimilarity\n(Jaccard Index)") +
-  xlab("Mean log(Park Size)") +
-  scale_color_manual(values=my_palette) + 
-  theme_classic() + 
-  theme(axis.title = element_text(size = 16),
-        axis.text = element_text(size = 14))
-
-#-------------------------------------------------------------------------------
-# gamma (city-wide) species richness
-
-#  calculate Means and CI's for the diversity metrics for each city
-gamma_richness_quantiles <- apply(gamma_diversity_prop, MARGIN = 1, FUN = quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
-gamma_richness_quantiles_df <- as.data.frame(t(gamma_richness_quantiles))
-colnames(gamma_richness_quantiles_df) <- c("lower90", "lower50",
-                                          "mean", "upper50", "upper90")
-
-gamma_richness_quantiles_df <- cbind(city_data, gamma_richness_quantiles_df)
-
-c <- ggplot(gamma_richness_quantiles_df, aes(median_log_park_size , mean)) +
-  geom_smooth(method = lm) +
-  geom_errorbar(aes(ymin = lower50, ymax=upper50, colour=city), size=2) +
-  geom_errorbar(aes(ymin = lower90, ymax=upper90, colour=city), size=1)  +
-  geom_point(aes(colour=city), size = 4) +
-  ylab("Total Number of Species\nOccurring in City Parks") +
-  xlab("Mean log(Park Size)") +
-  scale_color_manual(values=my_palette) + 
-  theme_classic() + 
-  theme(axis.title = element_text(size = 16),
-        axis.text = element_text(size = 14))
-
-cowplot::plot_grid(a, a2, b, c, ncol = 3)
-
-#-------------------------------------------------------------------------------
-# do it again with relative species richness
-
-# alpha and gamma diversity could be relative to the regional species pools
-#size_of_regional_species_pools <- read.csv("./data/size_of_regional_species_pools_BAMONA.csv")
-size_of_regional_species_pools <- read.csv("./data/size_of_regional_species_pools.csv")
-
-# get number of species actually modelled in each city
-for(city_number in 1:n_cities){
-  # get the correct range data
-  temp_ranges <- filter(range_data, city == city_names[city_number])
-  # only consider species that were modelled
-  temp_ranges <- temp_ranges %>%
-    filter(species %in% species_info$species)
-  size_of_regional_species_pools[city_number,1] <- nrow(temp_ranges)
-}
-
-
-#-------------------------------------------------------------------------------
-
-#-------------------------------------------------------------------------------
-# mean species richness
-
-# standardize mean richness
-mean_richness_relative <- mean_richness
-for(i in 1:n_cities){
-  mean_richness_relative[i,] = mean_richness_relative[i,] / size_of_regional_species_pools[i,1]
-}
-
-#  calculate Means and CI's for the diversity metrics for each city
-mean_richness_quantiles <- apply(mean_richness_relative, MARGIN = 1, FUN = quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
-mean_richness_quantiles_df <- as.data.frame(t(mean_richness_quantiles))
-colnames(mean_richness_quantiles_df) <- c("lower90", "lower50",
-                                          "mean", "upper50", "upper90")
-
-mean_richness_quantiles_df <- cbind(city_data, mean_richness_quantiles_df)
-
-
-d <- ggplot(mean_richness_quantiles_df, aes(log_avg_park_size , mean)) +
-  geom_smooth(method = lm) +
-  geom_errorbar(aes(ymin = lower50, ymax=upper50, colour=city), size=2) +
-  geom_errorbar(aes(ymin = lower90, ymax=upper90, colour=city), size=1) +
-  geom_point(aes(colour=city), size = 4) +
-  ylab("Mean Species Richness (Relative)") +
-  xlab("Mean log(Park Size)") +
-  scale_color_manual(values=my_palette) + 
-  theme_classic() + 
-  theme(axis.title = element_text(size = 16),
-        axis.text = element_text(size = 14))
-
-#-------------------------------------------------------------------------------
-# gamma (city-wide) species richness
-
-# standardize gamma richness
-gamma_diversity_relative <- gamma_diversity
-for(i in 1:n_cities){
-  gamma_diversity_relative[i,] = gamma_diversity_relative[i,] / size_of_regional_species_pools[i,1]
-}
-
-#  calculate Means and CI's for the diversity metrics for each city
-gamma_richness_quantiles <- apply(gamma_diversity_relative, MARGIN = 1, FUN = quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
-gamma_richness_quantiles_df <- as.data.frame(t(gamma_richness_quantiles))
-colnames(gamma_richness_quantiles_df) <- c("lower90", "lower50",
-                                           "mean", "upper50", "upper90")
-
-gamma_richness_quantiles_df <- cbind(city_data, gamma_richness_quantiles_df)
-
-f <- ggplot(gamma_richness_quantiles_df, aes(log_avg_park_size , mean)) +
-  geom_smooth(method = lm) +
-  geom_errorbar(aes(ymin = lower50, ymax=upper50, colour=city), size=2) +
-  geom_errorbar(aes(ymin = lower90, ymax=upper90, colour=city), size=1)  +
-  geom_point(aes(colour=city), size = 4) +
-  ylab("Total Number of Species\nOccurring in City Parks (Relative)") +
-  xlab("Mean log(Park Size)") +
-  scale_color_manual(values=my_palette) + 
-  theme_classic() + 
-  theme(axis.title = element_text(size = 16),
-        axis.text = element_text(size = 14))
-
-cowplot::plot_grid(d, b, f, ncol = 3)
-
-
 
 
 

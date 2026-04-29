@@ -5,7 +5,7 @@ library(cmdstanr)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_feb23.rds")
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_apr9.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- as.data.frame(stan_out$summary(
@@ -175,7 +175,7 @@ p2 <- ggplot(df_estimates2) +
                              bquote(psi["wingspan"]),
                              bquote(psi["migratory"])
                     )) +
-   scale_y_continuous(str_wrap("", width = 30),
+   scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
                       limits = c(-0.5, 1.75), 
                       breaks = scales::pretty_breaks()) +
                       #breaks = c(-0.5, 0, 1, 2, 4, 6, 8)) +
@@ -188,7 +188,7 @@ p2 <- ggplot(df_estimates2) +
          plot.title = element_text(size = 18, face = "bold"),
          axis.text.x = element_text(size = 18),
          axis.text.y = element_text(size = 20, angle=45, vjust=-0.5),
-         axis.title.x = element_text(size = 0),
+         axis.title.x = element_text(size = 18),
          axis.title.y = element_text(size = 18),
          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
          panel.background = element_blank(), axis.line = element_line(colour = "black")) +
@@ -243,5 +243,5 @@ p1 <- p1 +
 p1
 
 panelled_plot <- cowplot::plot_grid(p2, p1, ncol=1, rel_heights = c(3, 1), align = "v", axis = "lr")
-saveRDS(panelled_plot, "./part2_local_landscape_predictors_of_occupancy/plot_results/figure3_param_estimates.rds")
+#saveRDS(panelled_plot, "./part2_local_landscape_predictors_of_occupancy/plot_results/figure3_param_estimates.rds")
 

@@ -70,7 +70,7 @@ city_data <- city_data %>%
 
 simmed_diversity <- readRDS("./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
 
-mean_prop_disturbance_avoidant <- simmed_diversity[[3]] 
+mean_prop_disturbance_avoidant <- simmed_diversity[[4]] 
 
 #  calculate Means and CI's for the diversity metrics for each city
 mean_prop_disturbance_avoidant_quantiles <- apply(mean_prop_disturbance_avoidant, MARGIN = 1, FUN = quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
@@ -97,23 +97,28 @@ m3.2 <- rstanarm::stan_betareg(mean_adj ~ log_park_size_scaled +
                            data = city_data, link = "logit", link.phi = "log" )
 
 summary(m3.2)
+posterior_interval(m3.2, pars = c("log_park_size_scaled","log_IIC_scaled","percent_tree_scaled", "percent_grassshrub_scaled"),
+                   prob = 0.5)
+# percent_tree_scaled, and percent_grassshrub_scaled, log_IIC_scaled,  has 50% BCI overlapping with zero
+# i.e., has little clear effect on the diversity responses
+# in addition removing them does not introduce a confound according to a causal diagram of the system
+# i.e., we do not expect a causal pathway from other predictors through these ones into diversity
+# and so it makes sense to remove them from the causal model.
 plot(m3.2)
-pp_check(m3.2) # ?bayesplot::ppc_hist
-
+pp_check(m3.2) #+ xlim(c(0, 0.01)) # ?bayesplot::ppc_hist
 #mcmc_areas(as.matrix(m3.2),prob_outer = .95)
 #mcmc_pairs(as.matrix(m3.2),pars = c("log_park_size_scaled","log_IIC_scaled","percent_semi_natural_scaled"))
 
 #---------------------------------------------------------
 # Finally, incorporate uncertainty - 
-# I used the mean response estimates to conduct the variable selection
-# But we actually have uncertainty in those diversity estimates
-# Let's propagate the uncretainty into the submodel chosen by varsel()
+# There was some uncertainty in those diversity estimates
+# Let's propagate the uncertainty into the posthoc regression model
 
 # get the full matrix of estimates of diversity values (not just the quantile summaries)
-mean_prop_disturbance_avoidant <- simmed_diversity[[3]] 
+mean_prop_disturbance_avoidant <- simmed_diversity[[4]] 
 
 # how many samples to take from each model fit to each draw of the response data?
-n_subsamples <- 20
+n_subsamples <- 40
 # how many models to fit? I'll fit one for every simulated set of diversity responses
 n_models <- ncol(mean_prop_disturbance_avoidant)
 # empty vectors of param values to fill
@@ -124,15 +129,16 @@ percent_grassshrub_scaled <- vector(length = n_subsamples*n_models)
 log_IIC_scaled <- vector(length = n_subsamples*n_models)
 sigma <- vector(length = n_subsamples*n_models)
 
+set.seed(1)
 for(i in 1:n_models){
   city_data$response <- mean_prop_disturbance_avoidant[,i]
   city_data$response_adj <- city_data$response + 0.0001 # beta reg doesn't link boundary cases at absolute 0
   
   
-  fit <- rstanarm::stan_betareg(response_adj ~ log_park_size_scaled + 
-                                  log_IIC_scaled + 
-                                  percent_tree_scaled + 
-                                  percent_grassshrub_scaled, 
+  fit <- rstanarm::stan_betareg(response_adj ~ log_park_size_scaled, #+ 
+                                  #log_IIC_scaled + 
+                                  #percent_tree_scaled + 
+                                  #percent_grassshrub_scaled, 
                                 data = city_data, link = "logit", link.phi = "log" )
   
   draws <- as.data.frame(fit)
@@ -141,155 +147,42 @@ for(i in 1:n_models){
   
   intercept[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,1]
   log_park_size_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,2]
-  log_IIC_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,3]
-  percent_tree_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,4]
-  percent_grassshrub_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,5]
-  sigma[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,6]
+  #log_IIC_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,3]
+  #percent_tree_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,4]
+  #percent_grassshrub_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,5]
+  #sigma[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,5]
 }
 
 posterior_draws <- as.data.frame(cbind(
   intercept, log_park_size_scaled, percent_tree_scaled, 
   percent_grassshrub_scaled, log_IIC_scaled, sigma))
+
+quantile(posterior_draws$intercept, prob = c(0.05, 0.25, 0.5, 0.75, 0.95))
+quantile(posterior_draws$log_park_size_scaled, prob = c(0.05, 0.25, 0.5, 0.75, 0.95))
+quantile(posterior_draws$percent_tree_scaled, prob = c(0.05, 0.25, 0.5, 0.75, 0.95))
+quantile(posterior_draws$percent_grassshrub_scaled, prob = c(0.05, 0.25, 0.5, 0.75, 0.95))
+quantile(posterior_draws$log_IIC_scaled, prob = c(0.05, 0.25, 0.5, 0.75, 0.95))
+
+
 # plot the sample densities
 mcmc_areas <- mcmc_areas(posterior_draws, 
-                         pars = c("log_park_size_scaled", 
-                                  "percent_tree_scaled", "percent_grassshrub_scaled", "log_IIC_scaled")) +
+                         pars = c("intercept",
+                                  "log_park_size_scaled"
+                                  #"percent_tree_scaled", 
+                                  #"percent_grassshrub_scaled",
+                                  #"log_IIC_scaled"
+                                  )) +
   #labs(title = "Posterior Densities of Retained Predictors") +
   theme_classic() +
   scale_x_continuous(name = "Posterior Model Estimate (logit-scaled)") +
-  scale_y_discrete(labels = c("Median log(Park Size)", "% Tree Cover", "% Grass/Shrub Cover", "log(IIC)")) +
+  scale_y_discrete(labels = c("Intercept",
+                              "Median log(Park Size)"#, 
+                              #"% Tree Cover", 
+                              #"% Grass/Shrub Cover", 
+                              #"log(IIC)"
+                              )) +
   theme(axis.title = element_text(size = 16),
         axis.text = element_text(size = 14),
         axis.text.y = element_text(angle = 45))
 
-ilogit <- function(x){exp(x)/(1+exp(x))}
-
-##------------------------------------------------------------------------------
-# now plot the first trend
-
-sd_size <- sd(city_data$median_log_park_size)
-mean_size <- mean(city_data$median_log_park_size)
-pred = seq(-2, 2, length.out=100)
-x <- pred * sd_size + mean_size
-
-pred_data <- as.data.frame(cbind(x, pred))
-
-n_draws <- 100 # draw n lines from the post-posterior
-predictions <- matrix(nrow = nrow(pred_data), ncol = n_draws)
-sampled_posterior <- sample_n(posterior_draws, n_draws)
-
-# for each value of pred data
-for(i in 1:nrow(predictions)){
-  # draw a potential relationship, and predict the outcome given the pred value
-  for(j in 1:n_draws){
-    
-    predictions[i,j] <- ilogit(
-      sampled_posterior[j, 1] + sampled_posterior[j,2] * pred_data[i,2])
-    
-  }
-}
-
-y <- rowMeans(predictions)
-
-new_dat <- as.data.frame(cbind(pred_data, y, predictions))
-
-# plot on a predictive scale
-base <- ggplot(new_dat, aes(x = x, y = y)) +
-  ylab("Disturbance Avoidant Species\nin Park Communities") +
-  xlab(expression(paste("Median log(Park Size (m"^2, "))"))) +
-  theme_classic() + 
-  scale_y_continuous(labels = scales::label_percent(), limits = c(0,0.1)) +
-  xlim(c(min(x), max(x))) +
-  theme(legend.position = c(0.025, 0.975), # x=1 (right), y=0 (bottom)
-        legend.justification = c(0, 1), # Justify the bottom-right corner of the legend box to these coordinates
-        legend.text = element_text(size=14),
-        legend.title = element_text(size=16),
-        axis.title = element_text(size = 16),
-        axis.text = element_text(size = 16))
-
-line_layers <- list()
-for (i in 4:ncol(new_dat)) {
-  temp_data <- data.frame(x = new_dat$x, y = new_dat[,i])
-  # Create a geom_line layer and add it to the list
-  line_layers[[i-3]] <- geom_line(data = temp_data, colour="grey", alpha = 0.5)
-}
-
-base <- base + line_layers + 
-  geom_line(size = 2, colour = "black")
-
-base <- base + 
-  geom_errorbar(data = city_data, aes(x=median_log_park_size, y=mean, ymin=lower50, ymax=upper50, colour=log_IIC), size=2) +
-  geom_errorbar(data = city_data, aes(x=median_log_park_size, y=mean, ymin = lower90, ymax=upper90, colour=log_IIC), size=1) +
-  geom_point(data = city_data, aes(x=median_log_park_size, y=mean, colour=log_IIC), size = 4) +
-  scale_colour_viridis_c(name="log(IIC - Connectivity)") 
-
-
-##------------------------------------------------------------------------------
-# now plot the second trend
-
-sd_IIC <- sd(city_data$log_IIC)
-mean_IIC <- mean(city_data$log_IIC)
-pred = seq(-3.25, 2, length.out=100)
-x <- pred * sd_IIC + mean_IIC
-
-pred_data <- as.data.frame(cbind(x, pred))
-
-n_draws <- 100 # draw n lines from the post-posterior
-predictions <- matrix(nrow = nrow(pred_data), ncol = n_draws)
-sampled_posterior <- sample_n(posterior_draws, n_draws)
-
-# for each value of pred data
-for(i in 1:nrow(predictions)){
-  # draw a potential relationship, and predict the outcome given the pred value
-  for(j in 1:n_draws){
-    
-    predictions[i,j] <- ilogit(
-      sampled_posterior[j, 1] + sampled_posterior[j,5] * pred_data[i,2])
-    
-  }
-}
-
-y <- rowMeans(predictions)
-
-new_dat <- as.data.frame(cbind(pred_data, y, predictions))
-
-# plot on a predictive scale
-base2 <- ggplot(new_dat, aes(x = x, y = y)) +
-  ylab("Disturbance Avoidant Species\nin Park Communities") +
-  xlab("log(IIC - Connectivity)") +
-  theme_classic() + 
-  scale_y_continuous(labels = scales::label_percent(), limits = c(0,0.1)) +
-  xlim(c(min(x), max(x))) +
-  theme(legend.position = c(0.025, 0.975), # x=1 (right), y=0 (bottom)
-        legend.justification = c(0, 1), # Justify the bottom-right corner of the legend box to these coordinates
-        legend.text = element_text(size=14),
-        legend.title = element_text(size=16),
-        legend.background = element_rect(fill = "transparent"), # Transparent legend background
-        #legend.box.background = element_rect(fill = "transparent"), # Transparent legend panel background
-        axis.title = element_text(size = 16),
-        axis.text = element_text(size = 16))
-
-line_layers <- list()
-for (i in 4:ncol(new_dat)) {
-  temp_data <- data.frame(x = new_dat$x, y = new_dat[,i])
-  # Create a geom_line layer and add it to the list
-  line_layers[[i-3]] <- geom_line(data = temp_data, colour="grey", alpha = 0.5)
-}
-
-base2 <- base2 + line_layers + 
-  geom_line(size = 2, colour = "black")
-
-base2 <- base2 + 
-  geom_errorbar(data = city_data, aes(x=log_IIC, y=mean, ymin=lower50, ymax=upper50, colour=median_log_park_size), size=2) +
-  geom_errorbar(data = city_data, aes(x=log_IIC, y=mean, ymin = lower90, ymax=upper90, colour=median_log_park_size), size=1) +
-  geom_point(data = city_data, aes(x=log_IIC, y=mean, colour=median_log_park_size), size = 4) +
-  scale_colour_viridis_c(name=expression(paste("Median log(\nPark Size (m"^2, "))"))) 
-
-##-----------------------------------------------------------------------------
-# combine the plots
-
-m3.2_plot <- cowplot::plot_grid(mcmc_areas, base, base2, ncol = 3,
-                                labels = c("a)", "b)", "c)"), 
-                                label_size = 16)
-m3.2_plot
-saveRDS(m3.2_plot, "./part3_citywide_drivers_of_diversity/figures/m3_plots/m3.2_plot.rds")
+mcmc_areas

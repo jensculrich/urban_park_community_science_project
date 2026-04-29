@@ -1,19 +1,6 @@
 
-# select a region
-regions <- c(
-  "northeast",
-  "southeast",
-  "texas",
-  "california",
-  "all"
-)
-
-region <- regions[5]
 
 # list of city names
-
-# all
-if(region == regions[5]){
   city_names <- c(
     "Atlanta",
     "Boston", 
@@ -38,7 +25,6 @@ if(region == regions[5]){
     "St_louis",
     "Tampa"
   )
-}
 
 
 # or choose one city
@@ -67,8 +53,8 @@ my_data <- prep_data(city_names,
 )
 
 
-saveRDS(my_data, paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data_", region, ".rds"))
-my_data <- readRDS( paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data_", region, ".rds"))
+saveRDS(my_data, paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data.rds"))
+my_data <- readRDS( paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data.rds"))
 
 
 # data to feed to the model
@@ -154,57 +140,55 @@ stan_data <- c("R", "n_surveys", "surveys",
 ## Parameters monitored 
 params <- c(
   
-  "psi1_0", 
-  "sigma_psi1_species",
-  "sigma_psi1_city",
-  "mu_psi1_wingspan",
-  "sigma_psi1_wingspan",
-  "mu_psi1_park_size",
-  "sigma_psi1_park_size",
-  "mu_psi1_isolation",
-  "sigma_psi1_isolation",
+  "psi_0", 
+  "sigma_psi_species",
+  "sigma_psi_city",
+  "psi_wingspan",
+  "psi_migratory",
+  "mu_psi_park_size",
+  "sigma_psi_park_size",
+  "mu_psi_tree_cover",
+  "sigma_psi_tree_cover",
+  "mu_psi_plant_diversity",
+  "sigma_psi_plant_diversity",
+  "mu_psi_landscape_isolation",
+  "sigma_psi_landscape_isolation",
+  "mu_psi_landscape_grassherb",
+  "sigma_psi_landscape_grassherb",
+  "mu_psi_landscape_woody",
+  "sigma_psi_landscape_woody",
   
   "p0", 
   "sigma_p_species",
   "sigma_p_city",
+  "p_city_detections",
   "p_wingspan",
+  "p_migratory",
   "p_feature_diversity",
   "p_ease_of_id",
-  #"mu_p_species_date",
   "delta0",
   "delta_regional_cluster",
   "sigma_p_species_date",
-  #"mu_p_species_date_sq",
   "epsilon0",
   "epsilon_regional_cluster",
   "sigma_p_species_date_sq",
-
-  # city effects
-  "psi1_city",
-  "psi1_wingspan",
-  "psi1_park_size",
-  "psi1_isolation",
-  "gamma_city",
-  "gamma_wingspan",
-  "gamma_park_size",
-  "gamma_isolation",
-  "phi_city",
-  "phi_wingspan",
-  "phi_park_size",
-  "phi_isolation",
-  "p_city",
   
-  # species effects and PPC
-  #"W_species_rep",
-  "psi1_species",
-  "gamma_species", "phi_species",
-  "p_species"
+  # city effects
+  "psi_city",
+  "psi_wingspan",
+  "psi_park_size",
+  "psi_tree_cover",
+  "psi_plant_diversity",
+  "psi_landscape_isolation",
+  "psi_landscape_grassherb",
+  "psi_landscape_woody",
+  "p_city"
 )
 
 # MCMC settings
-n_iterations <- 300
+n_iterations <- 1000
 n_thin <- 1
-n_burnin <- 150
+n_warmup <- 500
 n_chains <- 4
 n_cores <- n_chains
 delta = 0.97
@@ -265,140 +249,88 @@ stan_out <- stan(stan_model,
                  init = inits, 
                  pars = params,
                  chains = n_chains, iter = n_iterations, 
-                 warmup = n_burnin, thin = n_thin,
+                 warmup = n_warmup, thin = n_thin,
                  seed = 1,
                  control=list(adapt_delta=delta),
                  open_progress = FALSE,
                  cores = n_cores)
 
 
-saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "3.rds"))
+#saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "3.rds"))
 
 # read old data
-#stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, "_dec5.rds"))
+stan_out <- readRDS( paste0("./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_apr9.rds"))
 
-# print outputs
-print(stan_out, digits = 3, 
-      pars = c(
-        "psi1_0", 
-        "sigma_psi1_species",
-        "sigma_psi1_city",
-        "mu_psi1_wingspan",
-        "sigma_psi1_wingspan",
-        "mu_psi1_park_size",
-        "sigma_psi1_park_size",
-        "mu_psi1_isolation",
-        "sigma_psi1_isolation",
-        
-        "gamma0", 
-        "sigma_gamma_species",
-        "sigma_gamma_city",
-        "mu_gamma_wingspan",
-        "sigma_gamma_wingspan",
-        "mu_gamma_park_size",
-        "sigma_gamma_park_size",
-        "mu_gamma_isolation",
-        "sigma_gamma_isolation",
-        
-        "phi0", 
-        "sigma_phi_species",
-        "sigma_phi_city",
-        "mu_phi_wingspan",
-        "sigma_phi_wingspan",
-        "mu_phi_park_size",
-        "sigma_phi_park_size",
-        "mu_phi_isolation",
-        "sigma_phi_isolation",
-        
-        "p0", 
-        "sigma_p_species",
-        "sigma_p_city",
-        "p_wingspan",
-        "p_feature_diversity",
-        "p_ease_of_id",
-        "mu_p_species_date",
-        "sigma_p_species_date",
-        "mu_p_species_date_sq",
-        "sigma_p_species_date_sq",
-        
-        # city effects
-        "psi1_city",
-        "psi1_wingspan",
-        "psi1_park_size",
-        "psi1_isolation",
-        "gamma_city",
-        "gamma_wingspan",
-        "gamma_park_size",
-        "gamma_isolation",
-        "phi_city",
-        "phi_wingspan",
-        "phi_park_size",
-        "phi_isolation",
-        "p_city"
-      ))
+stan_out$diagnostic_summary()
 
-print(stan_out, digits = 3, 
-      pars = c("psi1_species"
-      ))
+rhats <- stan_out$summary(c("psi_0", 
+                            "sigma_psi_species",
+                            "sigma_psi_city",
+                            "psi_wingspan",
+                            "psi_migratory",
+                            "mu_psi_park_size",
+                            "sigma_psi_park_size",
+                            "mu_psi_tree_cover",
+                            "sigma_psi_tree_cover",
+                            "mu_psi_plant_diversity",
+                            "sigma_psi_plant_diversity",
+                            "mu_psi_landscape_isolation",
+                            "sigma_psi_landscape_isolation",
+                            "mu_psi_landscape_grassherb",
+                            "sigma_psi_landscape_grassherb",
+                            "mu_psi_landscape_woody",
+                            "sigma_psi_landscape_woody",
+                            
+                            "p0", 
+                            "sigma_p_species",
+                            "sigma_p_city",
+                            "p_city_detections",
+                            "p_wingspan",
+                            "p_migratory",
+                            "p_feature_diversity",
+                            "p_ease_of_id",
+                            "delta0",
+                            "delta_regional_cluster",
+                            "sigma_p_species_date",
+                            "epsilon0",
+                            "epsilon_regional_cluster",
+                            "sigma_p_species_date_sq",
+                            
+                            # city effects
+                            "psi_city",
+                            "psi_wingspan",
+                            "psi_park_size",
+                            "psi_tree_cover",
+                            "psi_plant_diversity",
+                            "psi_landscape_isolation",
+                            "psi_landscape_grassherb",
+                            "psi_landscape_woody",
+                            "p_city"), 
+                          "rhat")
 
-# traceplots
-traceplot(stan_out, pars = c(
-  "psi1_0", 
-  "psi1_city",
-  "sigma_psi1_city",
-  "sigma_psi1_species",
-  "mu_psi1_wingspan",
-  "sigma_psi1_wingspan",
-  "mu_psi1_park_size",
-  "sigma_psi1_park_size",
-  "mu_psi1_isolation",
-  "sigma_psi1_isolation",
-  "psi1_park_size",
-  "psi1_isolation"
-  
+library(bayesplot)
+
+mcmc_rhat_hist(rhats$rhat) +
+  ggplot2::ggtitle("Rhats for all m2.1 parameters")
+
+mcmc_trace(stan_out$draws(), pars = c(
+  "psi_0", 
+  "sigma_psi_species",
+  "sigma_psi_city",
+  "mu_psi_park_size",
+  "sigma_psi_park_size",
+  "mu_psi_tree_cover",
+  "sigma_psi_tree_cover",
+  "mu_psi_plant_diversity",
+  "sigma_psi_plant_diversity",
+  "mu_psi_landscape_isolation",
+  "sigma_psi_landscape_isolation",
+  "mu_psi_landscape_grassherb",
+  "sigma_psi_landscape_grassherb",
+  "mu_psi_landscape_woody",
+  "sigma_psi_landscape_woody"
 ))
 
-traceplot(stan_out, pars = c(
-  "gamma0", 
-  "gamma_city",
-  "sigma_gamma_city",
-  "sigma_gamma_species",
-  "mu_gamma_wingspan",
-  "sigma_gamma_wingspan",
-  "mu_gamma_park_size",
-  "sigma_gamma_park_size",
-  "mu_gamma_isolation",
-  "sigma_gamma_isolation",
-  "gamma_park_size",
-  "gamma_isolation"
-))  
-
-traceplot(stan_out, pars = c(
-  "phi0", 
-  "phi_city",
-  "sigma_phi_city",
-  "sigma_phi_species",
-  "mu_phi_wingspan",
-  "sigma_phi_wingspan",
-  "mu_phi_park_size",
-  "sigma_phi_park_size",
-  "mu_phi_isolation",
-  "sigma_phi_isolation",
-  "phi_park_size",
-  "phi_isolation"
+mcmc_trace(stan_out$draws(), pars = c(
+  "sigma_psi_species"
 ))
-
-traceplot(stan_out, pars = c(
-  "p0", 
-  "sigma_p_species",
-  "p_city",
-  "sigma_p_city",
-  "p_wingspan",
-  "p_feature_diversity",
-  "p_ease_of_id",
-  #"mu_p_species_date",
-  "sigma_p_species_date",
-  #"mu_p_species_date_sq",
-  "sigma_p_species_date_sq"
-))
-
