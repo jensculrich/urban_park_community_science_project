@@ -71,7 +71,7 @@ city_data <- city_data %>%
 #-------------------------------------------------------------------------------
 # get the city-wide diversity predictions
 
-simmed_diversity <- readRDS("./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
+simmed_diversity <- readRDS("./part3_citywide_drivers_of_diversity/simmed_diversity_may25.RDS")
 
 # elements of simmed_diversity list are as follows:
 #list(mean_richness, median_richness, median_richness_prop,

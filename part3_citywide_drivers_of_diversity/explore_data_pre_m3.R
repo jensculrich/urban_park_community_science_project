@@ -46,21 +46,14 @@ landcover_data <- read.csv("./data/city_wide_data/02_urbanwatch_city_wide_land_c
          percent_semi_natural = semi_natural / total_area_sqm) %>%
   ungroup() %>%
   select(city, percent_grass_shrub, percent_tree, percent_semi_natural, total_area_sqm)
-regional_landcover_data <-  read.csv("./data/city_wide_data/03_20km_buffer_city_wide_land_cover_area_diversity.csv")  %>%
-  rowwise() %>%
-  mutate(semi_natural = sum(deciduous_forest_sqm, evergreen_forest_sqm, mixed_forest_sqm,
-                            grasslandherbaceous_sqm, woody_wetlands_sqm, emergent_herbaceous_wetlands_sqm,
-                            shrubscrub_sqm)) %>%
-  mutate(percent_semi_natural_20km = semi_natural / total_area_sqm) %>%
-  ungroup() %>%
-  select(city, percent_semi_natural_20km)
+latitude <- read.csv("./data/city_latitude.csv")
 
 # join the data
 city_data <- park_size_data %>%
   left_join(., connectivity_data, by ="city") %>%
   left_join(., IIC_connectivity_data, by ="city") %>%
-  left_join(., landcover_data, by = "city") 
-  #left_join(., regional_landcover_data, by = "city") 
+  left_join(., landcover_data, by = "city") %>%
+  left_join(., latitude, by = "city")
 
 city_data <- city_data[order(city_data$city), ]
 
@@ -68,14 +61,63 @@ city_data <- city_data %>%
   cbind(., city_factor = seq(1:n_cities)) %>% 
   mutate(log_IIC = log(IIC), 
          log_park_size_scaled = center_scale(median_log_park_size),
+         percent_tree_scaled = center_scale(percent_tree),
+         percent_grassshrub_scaled = center_scale(percent_grass_shrub),
          log_IIC_scaled = center_scale(log_IIC),
+         log_isolation = log(mean_isolation),
+         log_total_area = log(total_area_sqm),
          isolation_scaled = center_scale(mean_isolation),
-         percent_semi_natural_scaled = center_scale(percent_semi_natural)
-         #,
-         #percent_semi_natural_20km_scaled = center_scale(percent_semi_natural_20km)
+         percent_semi_natural_scaled = center_scale(percent_semi_natural),
+         latitude_scaled = center_scale(latitude)
   ) 
 
-# View the citywide data
+#-------------------------------------------------------------------------------
+# get city-wide park area and add this to the corr plots
+
+log_total_park_area <- vector(length=n_cities)
+
+for(i in 1:length(city_names)){
+  
+  city <- city_names[i]
+  
+  # first read the data 
+  temp <- cbind(city, read.csv(paste0(
+    "./data/detections_by_city/", city, "/04_0m_", city,
+    "_isolation_non_water_only.csv"
+  ))) 
+  
+  log_total_park_area[i] <- log(sum(temp$total_green_space_area))
+  
+}
+
+city_data <- cbind(city_data, log_total_park_area)
+
+#-------------------------------------------------------------------------------
+# corrplot
+
+city_data <- city_data %>% 
+  mutate(prop_park_area = log_total_park_area / log_total_area)
+
+city_data_plot <- city_data %>%
+  rename(#"mean log(park size)" = "mean_log_park_size",
+         "median log(park size)" = "median_log_park_size",
+         "% herbaceous" = "percent_grass_shrub",
+         "% tree" = "percent_tree",
+         "% park" = "prop_park_area",
+         "mean log(isolation)" = "log_isolation",
+         "log(city spatial area)" = "log_total_area"
+         )
+M = cor(select(city_data_plot, -city, -isolation_scaled, -log_park_size_scaled,
+               -median_park_size_sqm, -mean_park_size_sqm, -percent_semi_natural,
+               -percent_semi_natural_scaled, -percent_grassshrub_scaled, -percent_tree_scaled,
+               -log_IIC_scaled, -log_IIC, -city_factor, -mean_isolation, -mean_log_park_size,
+               -total_area_sqm, -log_total_park_area,
+               -latitude_scaled))
+corrplot::corrplot(M, method = 'square', order = 'FPC', type = 'lower', diag = FALSE)
+
+
+#-------------------------------------------------------------------------------
+# View the citywide data as scatterplots
 ggplot(city_data) +
   geom_point(aes(
     x=log_IIC_scaled, y=percent_semi_natural_scaled, 
@@ -125,9 +167,12 @@ city_data <- select(city_data, city, city_factor,
                     #log_IIC_scaled,
                     percent_semi_natural_scaled, percent_semi_natural_20km_scaled)
 
-# corrplot
-M = cor(select(city_data, -city, -isolation_scaled, -log_park_size_scaled, -percent_semi_natural_scaled, -log_IIC_scaled, -log_IIC, -city_factor))
-corrplot::corrplot(M, method = 'square', order = 'FPC', type = 'lower', diag = FALSE)
+
+
+
+
+
+
 
 #-------------------------------------------------------------------------------
 # get the city-wide diversity predictions

@@ -660,7 +660,7 @@ cowplot::plot_grid(p, q, ncol = 2, rel_widths = c(1, 1.5),
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_feb23.rds")
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_may25.rds")
 
 # summarise all variables with default and additional summary measures
 estimates1 <- as.data.frame(stan_out$summary(

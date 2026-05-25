@@ -1,0 +1,101 @@
+---
+title: ''
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r sample, echo=FALSE, warning=FALSE}
+
+Parameter <- c(
+  "psi1_0", 
+  "sigma_psi_species",
+  "sigma_psi_city",
+  "mu_psi_park_size",
+  "sigma_psi_park_size",
+  "mu_psi_tree_cover",
+  "sigma_psi_tree_cover",
+  "mu_psi_plant_diversity",
+  "sigma_psi_plant_diversity",
+  "mu_psi_isolation",
+  "sigma_psi_isolation",
+  "mu_psi_landscape_herbaceous",
+  "sigma_psi_landscape_herbaceous",
+  "mu_psi_landscape_woody",
+  "sigma_psi_landscape_woody",
+  "psi_wingspan", 
+  "psi_migratory", 
+  
+  "p0", 
+  "sigma_p_species",
+  "sigma_p_city",
+  "p_total_detections",
+  "p_wingspan",
+  "p_feature_diversity",
+  "p_ease_of_id",
+  "delta0",
+  "delta_regional_cluster",
+  "sigma_p_species_date",
+  "epsilon0",
+  "epsilon_regional_cluster",
+  "sigma_p_species_date_sq"
+)
+
+Prior <- c(
+  "Normal(0, 1)", 
+  "Half-Normal(0, 1)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 2)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 2)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 2)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 2)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 2)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 2)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 0.5)",
+  "Normal(0, 0.5)",
+  
+  "Normal(0, 1)", 
+  "Half-Normal(0, 1)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 1)", 
+  "Normal(0, 1)",
+  "Normal(0, 1)",
+  "Normal(0, 1)",
+  "Normal(0, 2)",
+  "Normal(0, 1)",
+  "Normal(0, 2)",
+  "Normal(0, 1)",
+  "Normal(0, 0.5)",
+  "Normal(0, 1)"
+)
+
+df <- as.data.frame(cbind(Parameter, Prior))
+
+t1 <- df[1:15,]
+rownames(t1) <- NULL
+t2 <- df[16:30,]
+rownames(t2) <- NULL
+#knitr::kable(list(t1, t2))
+
+library(tinytex)
+library(knitr)
+library(kableExtra)
+
+#t1 <- kable( df[1:20,], format = "latex", booktabs = TRUE)
+#t2 <- kable( df[21:40,], format = "latex", booktabs = TRUE)
+	
+t1 %>%
+  kable("html", align = 'clc') %>%
+    kable_styling(full_width = F, position = "float_left")
+ 
+t2 %>%
+  kable("html", align = 'clc') %>%
+    kable_styling(full_width = F, position = "right")
+
+```

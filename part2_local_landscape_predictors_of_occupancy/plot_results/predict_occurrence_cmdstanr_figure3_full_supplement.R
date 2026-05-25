@@ -132,7 +132,7 @@ gc()
 n_samp <- length(tmp[,1]) # how many samples do we have from the HMC run?
 
 ## get data from region
-df <- readRDS( paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data_all.rds"))$site_data
+df <- readRDS( paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data.rds"))$site_data
 
 # length of number of parks in the cities
 pred_length <- nrow(df)

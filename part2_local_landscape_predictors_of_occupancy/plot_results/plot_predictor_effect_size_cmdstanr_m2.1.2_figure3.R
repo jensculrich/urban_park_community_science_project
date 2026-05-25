@@ -3,9 +3,11 @@
 library(tidyverse)
 library(cmdstanr)
 
+ilogit <- function(x){exp(x)/(1+exp(x))}
+
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_apr9.rds")
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_may25.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- as.data.frame(stan_out$summary(
@@ -158,6 +160,8 @@ rownames(estimates) <- estimates[, 1]
   
   df_estimates2$category <- fct_relevel(df_estimates2$category, "Species Trait", "Landscape", "Local")
   
+  # for the plot for the main manuscript we don't need the species traits
+  df_estimates2 <- filter(df_estimates2, category != "Species Trait")
   
 ## --------------------------------------------------
 ## Draw caterpillar plot
@@ -169,25 +173,25 @@ p2 <- ggplot(df_estimates2) +
                     labels=c(bquote(psi["park size"]),
                              bquote(psi["tree cover"]),
                              bquote(psi["plant diversity"]),
-                             bquote(psi["isolation"]),
+                             bquote(psi["connectivity"]),
                              bquote(psi["landsc. herb."]),
                              bquote(psi["landsc. woody"]),
                              bquote(psi["wingspan"]),
                              bquote(psi["migratory"])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-0.5, 1.75), 
+                      limits = c(-0.25, 0.75), 
                       breaks = scales::pretty_breaks()) +
                       #breaks = c(-0.5, 0, 1, 2, 4, 6, 8)) +
    scale_color_manual(name = "", values=c("goldenrod2", "orchid3", "dodgerblue3")) + 
    geom_hline(yintercept = 0, lty = "dashed") +
    ggtitle("") +
-   theme(legend.position = c(0.975, 0.025), # x=1 (right), y=0 (bottom)
+   theme(legend.position = c(0.96, 0.8), # x=1 (right), y=0 (bottom)
          legend.justification = c(1, 0), # Justify the bottom-right corner of the legend box to these coordinates
-         legend.text = element_text(size=16),
+         legend.text = element_text(size=18),
          plot.title = element_text(size = 18, face = "bold"),
          axis.text.x = element_text(size = 18),
-         axis.text.y = element_text(size = 20, angle=45, vjust=-0.5),
+         axis.text.y = element_text(size = 22, angle=45, vjust=-0.5),
          axis.title.x = element_text(size = 18),
          axis.title.y = element_text(size = 18),
          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
@@ -244,4 +248,96 @@ p1
 
 panelled_plot <- cowplot::plot_grid(p2, p1, ncol=1, rel_heights = c(3, 1), align = "v", axis = "lr")
 #saveRDS(panelled_plot, "./part2_local_landscape_predictors_of_occupancy/plot_results/figure3_param_estimates.rds")
+
+# make table of param estimates
+
+# summarise all variables with default and additional summary measures
+estimates2 <- as.data.frame(stan_out$summary(
+  variables = c(
+    "psi_park_size"
+  ),
+  posterior::default_summary_measures(),
+  extra_quantiles = ~posterior::quantile2(., probs = c(0.25, .75))
+))
+
+estimates3 <- as.data.frame(stan_out$summary(
+  variables = c(
+    "psi_landscape_isolation"
+  ),
+  posterior::default_summary_measures(),
+  extra_quantiles = ~posterior::quantile2(., probs = c(0.25, .75))
+))
+
+City <- c(
+  "Atlanta",
+  "Boston", 
+  "Charlotte",
+  "Chicago",
+  "Dallas",
+  "Washington D.C.",
+  "Denton",
+  "Denver",
+  "Des Moines",
+  "Detroit",
+  "Houston",
+  "Los Angeles",
+  "Minneapolis",
+  "New York City",     
+  "Philadelphia",
+  "Phoenix",
+  "Raleigh",
+  "Riverside",
+  "San Diego",
+  "San Fransisco",
+  "St. Louis",
+  "Tampa"
+)
+
+library(formattable)
+low_colour <- "#DEF2FA"
+high_colour <- "#87B9D4"
+
+estimates2 <- cbind(estimates2, City) %>%
+  select(City, mean, q5, q95) %>%
+  mutate(mean = signif(mean, 3), 
+         q5 = signif(q5, 3),
+         q95 = signif(q95, 3)) %>%
+  arrange(desc(mean)) %>%
+  rename("Mean Estimate" = "mean",
+         "Lower 90" = "q5",
+         "Upper 90" = "q95")
+
+formattable(estimates2, list(
+  "Mean Estimate" = color_tile(low_colour, high_colour)
+))
+
+estimates3 <- cbind(estimates3, City) %>%
+  select(City, mean, q5, q95) %>%
+  mutate(mean = signif(mean, 3), 
+         q5 = signif(q5, 3),
+         q95 = signif(q95, 3)) %>%
+  arrange(desc(mean)) %>%
+  rename("Mean Estimate" = "mean",
+         "Lower 90" = "q5",
+         "Upper 90" = "q95")
+
+formattable(estimates3, list(
+  "Mean Estimate" = color_tile(low_colour, high_colour)
+))
+
+# predict occurrence at average and above average park size
+ilogit(estimates[1,2] - 1*estimates[6,2]) # 1 std dev below average
+ilogit(estimates[1,2] - 1*estimates[6,6]) # 1 std dev below average lower
+ilogit(estimates[1,2] - 1*estimates[6,7]) # 1 std dev below average upper
+ilogit(estimates[1,2] + 1*estimates[6,2]) # 1 std dev above average
+ilogit(estimates[1,2] + 1*estimates[6,6]) # 1 std dev above average lower
+ilogit(estimates[1,2] + 1*estimates[6,7]) # 1 std dev above average upper
+
+# predict occurrence at average and above average isolation
+ilogit(estimates[1,2] - 1*estimates[12,2]) # 1 std dev below average
+ilogit(estimates[1,2] - 1*estimates[12,6]) # 1 std dev below average lower
+ilogit(estimates[1,2] - 1*estimates[12,7]) # 1 std dev below average upper
+ilogit(estimates[1,2] + 1*estimates[12,2]) # 1 std dev above average
+ilogit(estimates[1,2] + 1*estimates[12,6]) # 1 std dev above average lower
+ilogit(estimates[1,2] + 1*estimates[12,7]) # 1 std dev above average upper
 

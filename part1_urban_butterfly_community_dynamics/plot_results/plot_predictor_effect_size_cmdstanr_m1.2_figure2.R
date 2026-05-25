@@ -3,10 +3,7 @@
 library(tidyverse)
 library(cmdstanr)
 
-# enter the region/regions you want to plot
-# currently I think this will only work if you enter one single region,
-# but I think eventually we want to plot multiple regionss simultaneously
-
+ilogit <- function(x) exp(x)/(1+exp(x))
 
 ## get param estimates from the region
 stan_out <- readRDS(

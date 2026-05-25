@@ -39,7 +39,7 @@ c(
 
 ## get param estimates from m2.1
 stan_out_m2.1 <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_apr9.rds")
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_may25.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- stan_out_m2.1$draws(
@@ -104,7 +104,7 @@ logit <- function(x) log(x/(1-x))
 # First get the data from all sites and place on the same scale fed to the model
 
 ## get all the site data from all cities (for sites that were actually included in the model)
-my_data <- readRDS( paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data_all.rds"))
+my_data <- readRDS( paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data.rds"))
 
 site_data <- my_data$site_data
   
@@ -241,6 +241,9 @@ random_draws_from_posterior = sample.int(nrow(estimates), n_draws) # use if not 
 mean_richness <- array(dim = c(n_cities, n_draws))
 median_richness <- array(dim = c(n_cities, n_draws))
 median_richness_prop <- array(dim = c(n_cities, n_draws))
+mean_disturbance_avoidant <- array(dim = c(n_cities, n_draws))
+mean_edge_avoidant <- array(dim = c(n_cities, n_draws))
+mean_disturbance_or_edge_avoidant <- array(dim = c(n_cities, n_draws))
 mean_prop_disturbance_avoidant <- array(dim = c(n_cities, n_draws))
 mean_prop_edge_avoidant <- array(dim = c(n_cities, n_draws))
 mean_prop_disturbance_or_edge_avoidant <- array(dim = c(n_cities, n_draws))
@@ -249,6 +252,8 @@ beta_repl <- array(dim = c(n_cities, n_draws))
 beta_richdif <- array(dim = c(n_cities, n_draws))
 gamma_diversity <- array(dim = c(n_cities, n_draws))
 gamma_diversity_prop <- array(dim = c(n_cities, n_draws))
+
+set.seed(1)
 
 for(city_number in 1:n_cities){
   for(draw in 1:n_draws){
@@ -333,6 +338,28 @@ for(city_number in 1:n_cities){
   mean_prop_edge_avoidant[city_number, draw] <- percentage_disturbance_edge_avoidant$mean_percentage_edge_avoidant[1]
   mean_prop_disturbance_or_edge_avoidant[city_number, draw] <- percentage_disturbance_edge_avoidant$mean_percentage_disturbance_edge_avoidant[1]
   
+  number_disturbance_edge_avoidant  <- cbind(temp, occurrence) %>%
+    left_join(., species_info, by ="species") %>%
+    filter(occurrence == 1) %>%
+    mutate(disturbance_avoidant = ifelse(DisturbanceAffinity %in% 
+                                           c("Disturbance-avoidant (weak)", "Disturbance-avoidant (strong)"), 1, 0),
+           edge_avoidant = ifelse(EdgeAffinity %in% 
+                                    c("Edge-avoidant (weak)", "Edge-avoidant (strong)"), 1, 0),
+           disturbance_or_edge_avoidant = ifelse(disturbance_avoidant > 0 | edge_avoidant > 0, 1, 0)) %>%
+    select(new_id, species, disturbance_avoidant, edge_avoidant, disturbance_or_edge_avoidant) %>%
+    group_by(new_id) %>%
+    mutate(number_disturbance_avoidant = sum(disturbance_avoidant),
+           number_edge_avoidant = sum(edge_avoidant),
+           number_disturbance_or_edge_avoidant = sum(disturbance_or_edge_avoidant)) %>%
+    slice(1) %>% ungroup() %>%
+    mutate(mean_disturbance_avoidant = mean(number_disturbance_avoidant),
+           mean_edge_avoidant = mean(number_edge_avoidant),
+           mean_disturbance_edge_avoidant = mean(number_disturbance_or_edge_avoidant))
+  
+  mean_disturbance_avoidant[city_number, draw] <- number_disturbance_edge_avoidant$mean_disturbance_avoidant[1]
+  mean_edge_avoidant[city_number, draw] <- number_disturbance_edge_avoidant$mean_edge_avoidant[1]
+  mean_disturbance_or_edge_avoidant[city_number, draw] <- number_disturbance_edge_avoidant$mean_disturbance_edge_avoidant[1]
+  
   # mean dissimilarity among parks
   temp_wide <- cbind(temp, occurrence) %>%
     select(new_id, species, occurrence) %>%
@@ -369,48 +396,15 @@ hist(beta_richdif[,1])
 hist(gamma_diversity[,1])
 hist(gamma_diversity_prop[,1])
 
+hist(mean_disturbance_avoidant[,1])
+hist(mean_disturbance_or_edge_avoidant[,1])
+
 simmed_diversity <- list(mean_richness, median_richness, median_richness_prop,
                          mean_prop_disturbance_avoidant, mean_prop_edge_avoidant, mean_prop_disturbance_or_edge_avoidant,
                          beta_diversity, beta_repl, beta_richdif,
-                         gamma_diversity, gamma_diversity_prop)
-saveRDS(simmed_diversity, "./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
-# if you don't want to have to run this again just reload the simmed data from a previous session
-#simmed_diversity <- readRDS("./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
-
-#-------------------------------------------------------------------------------
-# get the city covariate data
-city_data <- read.csv("./data/city_wide_data/all_cities_average_park_size_classified_parks_only.csv")
-city_data <- city_data[order(city_data$city), ]
-
-#-------------------------------------------------------------------------------
-# summarize uncertainty and plot relationships
-
-my_palette <- viridis::viridis(n=n_cities+2, option = "turbo")
-my_palette <- my_palette[3:(n_cities+2)] # remove the really dark colours
-
-#-------------------------------------------------------------------------------
-# visualize the prediction data for mean species richness
-
-
-#  calculate Means and CI's for the diversity metrics for each city
-mean_richness_quantiles <- apply(median_richness, MARGIN = 1, FUN = quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
-mean_richness_quantiles_df <- as.data.frame(t(mean_richness_quantiles))
-colnames(mean_richness_quantiles_df) <- c("lower90", "lower50",
-                                          "mean", "upper50", "upper90")
-
-mean_richness_quantiles_df <- cbind(city_data, mean_richness_quantiles_df)
-
-a <- ggplot(mean_richness_quantiles_df, aes(median_log_park_size , mean)) +
-  geom_smooth(method = lm) +
-  geom_errorbar(aes(ymin = lower50, ymax=upper50, colour=city), size=2) +
-  geom_errorbar(aes(ymin = lower90, ymax=upper90, colour=city), size=1) +
-  geom_point(aes(colour=city), size = 4) +
-  ylab("Mean Species Richness") +
-  xlab("Mean log(Park Size)") +
-  scale_color_manual(values=my_palette) + 
-  theme_classic() + 
-  theme(axis.title = element_text(size = 16),
-        axis.text = element_text(size = 14))
+                         gamma_diversity, gamma_diversity_prop, 
+                         mean_disturbance_avoidant, mean_edge_avoidant, mean_disturbance_or_edge_avoidant)
+saveRDS(simmed_diversity, "./part3_citywide_drivers_of_diversity/simmed_diversity_may25.RDS")
 
 
 
