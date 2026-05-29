@@ -6,7 +6,7 @@ library(cmdstanr)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_apr9.rds")
+  "./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.1_may25.rds")
 
 estimates <- as.data.frame(stan_out$draws(variables = c("psi_0", 
                                                   "sigma_psi_species",
@@ -61,7 +61,7 @@ gc()
 n_samp <- length(estimates[,1]) # how many samples do we have from the HMC run?
 
 ## get data from region
-df <- readRDS( paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data_all.rds"))$site_data
+df <- readRDS( paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data.rds"))$site_data
 
 # length of number of parks in the cities
 pred_length <- nrow(df)
@@ -215,7 +215,7 @@ df4 <- as.data.frame(cbind(scaled_pred, criMean_isolation[3,],
          "upper95" = "V4",
          "lower50" = "V5",
          "upper50" = "V6") %>%
-  mutate(Predictor = "Landscape Isolation")
+  mutate(Predictor = "Landscape Connectivity")
 
 df5 <- as.data.frame(cbind(scaled_pred, criMean_landscapeherb[3,], 
                            criMean_landscapeherb[1,], criMean_landscapeherb[5,],
@@ -250,7 +250,7 @@ df_combined1$Predictor <- fct_relevel(df_combined1$Predictor,
       "Local Tree Cover", "Local Plant Diversity", "Park Size")
 
 df_combined2$Predictor <- fct_relevel(df_combined2$Predictor, 
-      "Landscape Woody Cover", "Landscape Herbaceous Cover", "Landscape Isolation")
+      "Landscape Woody Cover", "Landscape Herbaceous Cover", "Landscape Connectivity")
 
 # choose palette
 my_palette <- viridis::viridis(n=7, option = "viridis")
@@ -271,7 +271,7 @@ p1 <- ggplot(data = df_combined1, aes(scaled_pred, mean, colour=Predictor, fill=
   xlim(c(min(scaled_pred), max(scaled_pred))) +
   ylim(c(0, 1)) +
   theme_bw() +
-  ylab("Occupancy Rate\n(Mean Across All Cities)") +
+  ylab("Occupancy Rate\n(Mean Across Cities)") +
   xlab("Park-Site Predictor Value\n(Std. Deviations from Mean)") +
   scale_y_continuous(limits = c(0,1),
                      breaks = c(0, 0.5, 1),
@@ -302,7 +302,7 @@ p2 <- ggplot(data = df_combined2, aes(scaled_pred, mean, colour=Predictor, fill=
   xlim(c(min(scaled_pred), max(scaled_pred))) +
   ylim(c(0, 1)) +
   theme_bw() +
-  ylab("Occupancy Rate\n(Mean Across All Cities)") +
+  ylab("Occupancy Rate\n(Mean Across Cities)") +
   xlab("Park-Site Predictor Value\n(Std. Deviations from Mean)") +
   scale_y_continuous(limits = c(0,1),
                      breaks = c(0, 0.5, 1),
@@ -369,7 +369,7 @@ city_names_labels <- c(
   "Raleigh",
   "Riverside",
   "San Diego",
-  "San Fransisco",
+  "San Francisco",
   "St. Louis",
   "Tampa"
 )
@@ -563,7 +563,7 @@ q
 
 
 #-------------------------------------------------------------------------------
-# occupancy - landscape isolation
+# occupancy - landscape connectivity
 
 #-------------------------------------------------------------------------------
 # for real park sizes in each city
@@ -586,8 +586,8 @@ for(city_number in 1:n_cities){
   park_isolation_pred_data <- temp$log_isolation_scaled_across_all_cities
   original_scale_park_isolation_data <- log(temp$isolation)
   
-  park_isolation_pred_data_list[[city_number]] <- park_isolation_pred_data
-  park_isolation_original_data_list[[city_number]] <- original_scale_park_isolation_data
+  park_isolation_pred_data_list[[city_number]] <- park_isolation_pred_data * (-1)
+  park_isolation_original_data_list[[city_number]] <- original_scale_park_isolation_data * (-1)
   
   # and figure out how many sites in the city
   pred_length[city_number] <- length(park_isolation_pred_data)
@@ -691,7 +691,7 @@ q2 <- ggplot(data = new_df, aes(x=park_isolation_original_ordered, y=mean, colou
   ylim(c(0, 1)) +
   theme_bw() +
   ylab("Occupancy Rate\n(City-Specific)") +
-  xlab("log(Park Isolation)") +
+  xlab("log(Park Connectivity)") +
   scale_y_continuous(limits = c(0,1),
                      breaks = c(0, 0.5, 1),
                      labels = scales::percent 

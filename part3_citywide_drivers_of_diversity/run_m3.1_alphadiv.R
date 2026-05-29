@@ -58,7 +58,9 @@ city_data <- city_data[order(city_data$city), ]
 
 city_data <- city_data %>%
   cbind(., city_factor = seq(1:n_cities)) %>% 
-  mutate(log_IIC = log(IIC), 
+  mutate(connectivity = mean_isolation*(-1),
+         connectivity_scaled = center_scale(connectivity),
+         log_IIC = log(IIC), 
          log_park_size_scaled = center_scale(median_log_park_size),
          percent_tree_scaled = center_scale(percent_tree),
          percent_grassshrub_scaled = center_scale(percent_grass_shrub),
@@ -150,7 +152,7 @@ for(i in 1:n_models){
   
   fit <- rstanarm::stan_glm(response ~ log_park_size_scaled + 
                               percent_tree_scaled +
-                              percent_grassshrub_scaled +
+                              #percent_grassshrub_scaled +
                               #log_IIC_scaled +
                               latitude_scaled, 
                             data = city_data)
@@ -162,10 +164,10 @@ for(i in 1:n_models){
   intercept[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,1]
   log_park_size_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,2]
   percent_tree_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,3]
-  percent_grassshrub_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,4]
+  #percent_grassshrub_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,4]
   #log_IIC_scaled[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,5]
-  latitude[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,5]
-  sigma[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,6]
+  latitude[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,4]
+  sigma[(n_subsamples*(i-1)+1):((n_subsamples*(i-1))+n_subsamples)] <- draws[sample_rows,5]
 }
 
 # combine draws into a df
@@ -296,14 +298,15 @@ saveRDS(figure5.1, "./part3_citywide_drivers_of_diversity/figures/m3_plots/figur
 # plot the sample densities
 mcmc_areas <- mcmc_areas(posterior_draws, 
                          pars = c("log_park_size_scaled", "percent_tree_scaled",
-                                  "percent_grassshrub_scaled", 
+                                  #"percent_grassshrub_scaled", 
                                   #"log_IIC_scaled", 
                                   "latitude")) +
   #labs(title = "Posterior Densities of Retained Predictors") +
   theme_classic() +
   scale_x_continuous(name = "Posterior Model Estimate") +
   scale_y_discrete(labels = c("Median log(Park Size)", 
-                              "% Tree Cover", "% Grass/Shrub Cover", #"log(IIC)", 
+                              "% Tree Cover", 
+                              #"% Grass/Shrub Cover", #"log(IIC)", 
                               "Latitude")) +
   theme(axis.title = element_text(size = 16),
         axis.text = element_text(size = 14))
@@ -311,6 +314,8 @@ mcmc_areas
 
 ##------------------------------------------------------------------------------
 # compute a contrast
+
+set.seed(1)
 
 pred_data <- c(-1,1)
 

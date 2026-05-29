@@ -101,8 +101,6 @@ colnames(total_richness_quantiles_df) <- c("lower90", "lower50",
 
 city_data <- cbind(city_data, total_richness_quantiles_df) 
 
-#test <- city_data %>%
-  #mutate(texas = ifelse(city %in% c("denton", "dallas", "houston"), 1, 0))
 
 #-------------------------------------------------------------------------------
 # model relationship between city-wide predictors and mean richness
@@ -123,6 +121,8 @@ m3.4 <- rstanarm::stan_glm(mean ~ log_park_size_scaled +
                            data = city_data)
 
 summary(m3.4)
+posterior_interval(m3.4, pars = c("log_park_size_scaled","log_IIC_scaled","percent_tree_scaled", "percent_grassshrub_scaled"),
+                   prob = 0.5)
 plot(m3.4)
 # log_IIC_scaled and percent_grassshrub_scaled have 50% BCI overlapping with zero
 # i.e., they have little clear effect on the diversity responses
@@ -338,6 +338,8 @@ mcmc_areas
 # compute a contrast
 
 pred_data <- c(-1,1)
+
+set.seed(1)
 
 n_draws <- 2000 # draw n lines from the post-posterior
 predictions <- matrix(nrow = length(pred_data), ncol = n_draws)

@@ -68,7 +68,7 @@ city_data <- city_data %>%
 #-------------------------------------------------------------------------------
 # get the city-wide diversity predictions
 
-simmed_diversity <- readRDS("./part3_citywide_drivers_of_diversity/simmed_diversity.RDS")
+simmed_diversity <- readRDS("./part3_citywide_drivers_of_diversity/simmed_diversity_may25.RDS")
 
 mean_disturbance_or_edge_avoidant <- simmed_diversity[[14]] 
 
@@ -117,7 +117,7 @@ mean_disturbance_or_edge_avoidant <- simmed_diversity[[14]]
 # how many samples to take from each model fit to each draw of the response data?
 n_subsamples <- 40
 # how many models to fit? I'll fit one for every simulated set of diversity responses
-n_models <- ncol(mean_disturbance_avoidant)
+n_models <- ncol(mean_disturbance_or_edge_avoidant)
 # empty vectors of param values to fill
 intercept <- vector(length = n_subsamples*n_models)
 log_park_size_scaled <- vector(length = n_subsamples*n_models)
@@ -127,12 +127,13 @@ log_IIC_scaled <- vector(length = n_subsamples*n_models)
 sigma <- vector(length = n_subsamples*n_models)
 
 set.seed(1)
+
 for(i in 1:n_models){
   city_data$response <- mean_disturbance_or_edge_avoidant[,i]
-  city_data$response_adj <- city_data$response + 0.0001 # beta reg doesn't link boundary cases at absolute 0
+  #city_data$response_adj <- city_data$response + 0.0001 # beta reg doesn't link boundary cases at absolute 0
   
   
-  fit <- rstanarm::stan_glm(mean_adj ~ log_park_size_scaled + 
+  fit <- rstanarm::stan_glm(response ~ log_park_size_scaled + 
                               percent_tree_scaled, 
                             data = city_data, 
                             family = Gamma(link="log"))
@@ -170,7 +171,7 @@ mcmc_areas <- mcmc_areas(posterior_draws,
                                   )) +
   #labs(title = "Posterior Densities of Retained Predictors") +
   theme_classic() +
-  scale_x_continuous(name = "Posterior Model Estimate (logit-scaled)") +
+  scale_x_continuous(name = "Posterior Model Estimate (log-scaled)") +
   scale_y_discrete(labels = c("Intercept",
                               "Median log(Park Size)", 
                               "% Tree Cover"

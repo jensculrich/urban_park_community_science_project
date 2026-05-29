@@ -5,30 +5,28 @@ library(tidyverse)
 # now recreate for how local and landscape urban park factors may impact butterfly occurrence
 
 # create a dag outline causal hypotheses about how local and landscape park characteristics impact butterflies
-local <- c("parkSize", "plantDensity", "habitatDiversity", "percTree")
-landscape <- c("landscapeIsolation", "landscapeHerbaceous", "landscapeWoody")
+local <- c("parkSize", "plantDiversity", "percTree")
+landscape <- c("landscapeConnectivity", "landscapeHerbaceous", "landscapeWoody")
 
-occurrence_dag <- dagify(occurrence ~ plantDensity,
+occurrence_dag <- dagify(occurrence ~ plantDiversity,
                                occurrence ~ parkSize,
                                occurrence ~ percTree,
-                               occurrence ~ habitatDiversity,
-                               habitatDiversity ~ parkSize,
-                               plantDensity ~ habitatDiversity,
-                               plantDensity ~ percTree,
-                               occurrence ~ landscapeIsolation,
+                               plantDiversity ~ parkSize,
+                               plantDiversity ~ percTree,
+                               occurrence ~ landscapeConnectivity,
+                               landscapeWoody ~ landscapeConnectivity,
+                               landscapeHerbaceous ~ landscapeConnectivity,
                                occurrence ~ landscapeHerbaceous,
                                occurrence ~ landscapeWoody,
                                labels = c(
                                  "occurrence" = "Butterfly\n Occupancy",
-                                 "plantDensity" = "Plant Species\n Density",
-                                 "habitatDiversity" = "Habitat\n Diversity\n (latent)",
+                                 "plantDiversity" = "Plant\n Diversity",
                                  "parkSize" = "Park Size",
                                  "percTree" = "% Tree\n Cover",
-                                 "landscapeIsolation" = "Landscape\n Isolation",
-                                 "landscapeHerbaceous" = "Landscape\n Herb. Vegetation",
-                                 "landscapeWoody" = "Landscape\n Woody Vegetation"
+                                 "landscapeConnectivity" = "Landscape\n Connectivity",
+                                 "landscapeHerbaceous" = "Landscape\n Herb. Vegetation\n Area",
+                                 "landscapeWoody" = "Landscape\n Woody Vegetation\n Area"
                                ),
-                               latent = "habitatDiversity",
                                exposure = "parkSize",
                                outcome = "occurrence"
 ) %>%
@@ -38,11 +36,12 @@ occurrence_dag <- dagify(occurrence ~ plantDensity,
 
 occurrence_dag %>%
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-  geom_dag_point(aes(colour = colour)) +
+  geom_dag_point(aes(colour = colour), size = 30) +
   geom_dag_edges(edge_alpha = 1, edge_colour = 'grey') +
-  geom_dag_text(aes(label = label), colour = "black", size = 5) +
+  geom_dag_text(aes(label = label), colour = "black", size = 6) +
   theme_dag() +
-  theme(legend.title = element_blank())
+  theme(legend.title = element_blank(),
+        legend.text = element_text(size=18))
 
 #ggdag(local_occurrence_dag, text = FALSE, use_labels = "label")
 

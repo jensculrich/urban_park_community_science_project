@@ -249,6 +249,7 @@ p1
 panelled_plot <- cowplot::plot_grid(p2, p1, ncol=1, rel_heights = c(3, 1), align = "v", axis = "lr")
 #saveRDS(panelled_plot, "./part2_local_landscape_predictors_of_occupancy/plot_results/figure3_param_estimates.rds")
 
+#-------------------------------------------------------------------------------
 # make table of param estimates
 
 # summarise all variables with default and additional summary measures
@@ -288,7 +289,7 @@ City <- c(
   "Raleigh",
   "Riverside",
   "San Diego",
-  "San Fransisco",
+  "San Francisco",
   "St. Louis",
   "Tampa"
 )
