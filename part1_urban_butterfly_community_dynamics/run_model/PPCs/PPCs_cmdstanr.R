@@ -1,12 +1,10 @@
-# how many detections would you expect per species (W)?
+# how many detections did we observe per species in each city (W)?
 # we will compare this to how many detections per species simulated in the 
 # generated quantities block of our model (W_rep) for a visual PPC
 
 library(cmdstanr)
 library(tidyverse)
 
-#city_name <- "los_angeles"
-#my_data <- readRDS(paste0("./run_model/prepped_data/prepped_data_", city_name, ".RDS"))
 
 ## --------------------------------------------------
 ### Prepare data for model

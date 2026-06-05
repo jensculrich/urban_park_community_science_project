@@ -27,6 +27,7 @@ prep_data <- function(city_names,
   #-----------------------------------------------------
   # load the detection data
   
+  # create an empty df, append the detection data from each city to this df 
   df <- as.data.frame(matrix(nrow = 0, ncol = 70))
   
   for(i in 1:length(city_names)){
@@ -43,7 +44,7 @@ prep_data <- function(city_names,
     
   }
   
-  rm(temp)
+  rm(temp) # clear workspace
   
   # define butterfly families to include
   butterfly_families <- c("Hesperiidae", "Lycaenidae", "Nymphalidae", 
@@ -55,7 +56,8 @@ prep_data <- function(city_names,
     mutate(species = ifelse(verbatimScientificName=="Apodemia virgulti", 
                             "Apodemia virgulti", species)) %>%
   
-  # use Riodinidae as Lycaenidae for comm survey purposes (to be discussed with group)
+  # use Riodinidae as Lycaenidae for comm survey purposes 
+    # (Riodinidae is a small family sometimes included with Lycaenidae)
   mutate(family = ifelse(family == "Riodinidae", 
                          "Lycaenidae", 
                          family)) %>%
@@ -63,9 +65,11 @@ prep_data <- function(city_names,
   # remove records with no species name
   filter(species != "") %>%
   
-  # filter down to the butterfly families
+  # filter down to the butterfly families (i.e. we won't look at moths)
   filter(family %in% butterfly_families) %>%
   
+  # remove any detections with > 100 uncertainty 
+    # (not confident they are actually in the park we want to assign them to)
   filter(coordinateUncertaintyInMeters < 100) 
   
   # write a file with list of genera that we need to gather data for (only need to do this once)
@@ -73,16 +77,14 @@ prep_data <- function(city_names,
   
   #-----------------------------------------------------
   # now we are going to filter out all of the points from unclassified parks 
-  # (parks outside city boundaries)
-  # you'd need to do this later if you want to model responses of species occurring in
-  # classified parks but never in unclassified parks
+  # (parks outside city boundaries), we are only looking at butterflies in parks within the city
   
   df <- df %>%
     filter(type == "classified")
   
   #-----------------------------------------------------
   # sort out sites with low temporal coverage of detections
-  # for example, we could only model sites that have detections in at least two
+  # i.e., we will only model sites that have detections in at least two
   # years, so that we are more confident in estimating a temporal trend across those sites
   
   df <- df %>%
@@ -96,7 +98,8 @@ prep_data <- function(city_names,
     filter(years_w_detection_by_site >= min_site_years_w_detection)
     
   #-----------------------------------------------------
-  # get raw number of detections by city
+  # get raw number of detections by city, used as a detection rate covariate
+  
   total_detections_by_city <- df %>%
     group_by(city) %>%
     add_tally() %>%
@@ -107,7 +110,9 @@ prep_data <- function(city_names,
     mutate(total_detections = center_scale(total_detections))
   
   #-----------------------------------------------------
-  # get median number of detections per recorder by city
+  # get median number of detections per recorder by city, 
+  # just another way to view sampling intensity in each city
+  
   recorder_detections_by_city <- df %>%
     group_by(city, recordedBy) %>%
     add_tally() %>%
@@ -177,7 +182,7 @@ prep_data <- function(city_names,
   survey_vector <- seq(1:12) # monthly organization of survey events
   n_surveys <- length(survey_vector)
   
-  year_vector <- as.vector(levels(as.factor(df$year)))
+  year_vector <- as.vector(levels(as.factor(df$year))) # should be 5 years of data
   n_years <- length(year_vector)
   
   # start a "species_info" table

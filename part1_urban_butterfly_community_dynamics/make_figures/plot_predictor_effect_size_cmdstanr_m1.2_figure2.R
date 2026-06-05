@@ -7,7 +7,7 @@ ilogit <- function(x) exp(x)/(1+exp(x))
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_apr2.rds")
+  "./analyses/part1_urban_butterfly_community_dynamics/model_outputs/stan_out_jun4.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- as.data.frame(stan_out$summary(
@@ -147,7 +147,7 @@ p <- ggplot(df_estimates) +
    scale_x_discrete(name="", breaks = seq(1:params),
                     labels=c(bquote(psi[1]["intercept"]),
                              bquote(psi[1]["park size"]),
-                             bquote(psi[1]["isolation"])#,
+                             bquote(psi[1]["connectivity"])#,
                              #bquote(psi["wingspan"]),
                              #bquote(psi["migratory"])
                     )) +
@@ -277,7 +277,7 @@ q <- ggplot(df_estimates) +
   scale_x_discrete(name="", breaks = seq(1:params),
                    labels=c(bquote(gamma["intercept"]),
                             bquote(gamma["park size"]),
-                            bquote(gamma["isolation"])#,
+                            bquote(gamma["connectivity"])#,
                             #bquote(gamma["wingspan"]),
                             #bquote(gamma["migratory"])
                    )) +
@@ -404,7 +404,7 @@ r <- ggplot(df_estimates) +
   scale_x_discrete(name="", breaks = seq(1:params),
                    labels=c(bquote(phi["intercept"]),
                             bquote(phi["park size"]),
-                            bquote(phi["isolation"])#,
+                            bquote(phi["connectivity"])#,
                             #bquote(phi["wingspan"]),
                             #bquote(phi["migratory"])
                    )) +

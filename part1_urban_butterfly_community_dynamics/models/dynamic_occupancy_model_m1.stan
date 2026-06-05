@@ -22,7 +22,7 @@ data {
   int<lower=0> n_species; // number of species
   array[R] int<lower=1, upper=n_species> species_integer_vector; // vector indicating which species is being observed
   int<lower=0> n_sites; // number of sites
-  array[R] int<lower=1, upper=n_sites> multicity_site_id_vector; // vector indicating which site is being observed
+  array[R] int<lower=1, upper=n_sites> multicity_site_integer_vector; // vector indicating which site is being observed
   int<lower=0> n_cities; // number of cities
   array[R] int<lower=1, upper=n_cities> city_id_vector; // vector indicating which city is being observed 
   int<lower=0> n_species_clusters; // number of speciesXregions clusters
@@ -176,22 +176,22 @@ transformed parameters {
     psi1[r] = inv_logit( // probability (0-1) of occurrence in year 1 is equal to..
       psi1_city[city_id_vector[r]] +
       psi1_species[species_city_id_vector[r]] + // a species specific intercept
-      psi1_park_size[city_id_vector[r]] * park_size[multicity_site_id_vector[r]] + // a site effect of park size
-      psi1_isolation[city_id_vector[r]] * isolation[multicity_site_id_vector[r]] // a site effect of park isolation
+      psi1_park_size[city_id_vector[r]] * park_size[multicity_site_integer_vector[r]] + // a site effect of park size
+      psi1_isolation[city_id_vector[r]] * isolation[multicity_site_integer_vector[r]] // a site effect of park isolation
       ); // end psi1[r]
     
     gamma[r] = inv_logit( // probability (0-1) of colonization is equal to..
       gamma_city[city_id_vector[r]] +
       gamma_species[species_cluster_id_vector[r]] + // a species specific intercept
-      gamma_park_size[city_id_vector[r]] * park_size[multicity_site_id_vector[r]] + // a site effect of park size
-      gamma_isolation[city_id_vector[r]] * isolation[multicity_site_id_vector[r]] // a site effect of park isolation
+      gamma_park_size[city_id_vector[r]] * park_size[multicity_site_integer_vector[r]] + // a site effect of park size
+      gamma_isolation[city_id_vector[r]] * isolation[multicity_site_integer_vector[r]] // a site effect of park isolation
       ); // end gamma[i,j,k]
             
     phi[r] = inv_logit( // probability (0-1) of persistence is equal to..
       phi_city[city_id_vector[r]] +
       phi_species[species_cluster_id_vector[r]] + // a species specific intercept
-      phi_park_size[city_id_vector[r]] * park_size[multicity_site_id_vector[r]] + // a site effect of park size
-      phi_isolation[city_id_vector[r]] * isolation[multicity_site_id_vector[r]] // a site effect of park isolation
+      phi_park_size[city_id_vector[r]] * park_size[multicity_site_integer_vector[r]] + // a site effect of park size
+      phi_isolation[city_id_vector[r]] * isolation[multicity_site_integer_vector[r]] // a site effect of park isolation
       ); // end phi[i,j,k]
           
   } // end loop across all data
@@ -203,7 +203,7 @@ transformed parameters {
           p[r,l] = inv_logit( // probability (0-1) of detection is equal to..
             p_city[city_id_vector[r]] + 
             p_species[species_cluster_id_vector[r]] + // a species specific intercept
-            p_city_detections * total_detections_by_city[multicity_site_id_vector[r]] +
+            p_city_detections * total_detections_by_city[multicity_site_integer_vector[r]] +
             p_date[species_cluster_id_vector[r]] * surveys[l] + // a species-specific phenological detection effect (peak)
             p_date_sq[species_cluster_id_vector[r]] * (surveys[l])^2 // a species-specific phenological detection effect (decay)
             ); // end p[j,k,l]
