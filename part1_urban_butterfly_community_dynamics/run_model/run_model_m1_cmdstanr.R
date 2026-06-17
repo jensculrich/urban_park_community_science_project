@@ -41,7 +41,7 @@ remove_outlier_parks <- TRUE # remove very small parks from the model fitting pr
 write_city_data_csv <- FALSE # save some info about the cities and the detections/parks in them
 
 # source this file which contains the prep data function:
-source("./analyses/part1_urban_butterfly_community_dynamics/run_model/prep_data.R")
+source("./part1_urban_butterfly_community_dynamics/run_model/prep_data.R")
 # and get some data (takes a minute or two to process)
 my_data <- prep_data(city_names,
                      min_species_detections,
@@ -53,9 +53,9 @@ my_data <- prep_data(city_names,
 )
 
 # save the data
-saveRDS(my_data, paste0("./analyses/part1_urban_butterfly_community_dynamics/run_model/prepped_data/prepped_data_m1.rds"))
+saveRDS(my_data, paste0("./part1_urban_butterfly_community_dynamics/run_model/prepped_data/prepped_data_m1.rds"))
 # alternatively load in some data that you've already prepared
-my_data <- readRDS( paste0("./analyses/part1_urban_butterfly_community_dynamics/run_model/prepped_data/prepped_data_", region, ".rds"))
+my_data <- readRDS( paste0("./part1_urban_butterfly_community_dynamics/run_model/prepped_data/prepped_data_", region, ".rds"))
 
 ## -----------------------------------------------------------------------------
 ### unpack the data and bundle into a list for stan
@@ -181,7 +181,7 @@ init_generate <- function(chain_id)
 
 # choose a model
 stan_model <- cmdstan_model(
-  "./analyses/part1_urban_butterfly_community_dynamics/models/dynamic_occupancy_model_all_cities.stan")
+  "./part1_urban_butterfly_community_dynamics/models/dynamic_occupancy_model_all_cities.stan")
 
 ## Call Stan from R
 stan_out <- stan_model$sample(
@@ -197,7 +197,7 @@ stan_out <- stan_model$sample(
   adapt_delta=delta)
 
 # save the object
-stan_out$save_object(file = "./analyses/part1_urban_butterfly_community_dynamics/model_outputs/stan_out.rds")
+stan_out$save_object(file = "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out.rds")
 # or read the object back into the environment
 #stan_out <- readRDS("./model_outputs/stan_out_dec7.rds")
 
@@ -207,7 +207,7 @@ stan_out$save_object(file = "./analyses/part1_urban_butterfly_community_dynamics
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./analyses/part1_urban_butterfly_community_dynamics/model_outputs/stan_out_apr2.rds")
+  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_apr2.rds")
 gc()
 
 stan_out$diagnostic_summary()
