@@ -3,43 +3,33 @@
 library(tidyverse)
 library(cmdstanr)
 
-# enter the region/regions you want to plot
-# currently I think this will only work if you enter one single region,
-# but I think eventually we want to plot multiple regionss simultaneously
-
-
-# select a region
-regions <- c(
-  "Mean"
-)
-
-region <- regions[1]
-
-# list of city names
-
-# all
-if(region == regions[1]){
-  city_names <- c(
-    "Atlanta",
-    "Boston", 
-    "Charlotte",
-    "Chicago",
-    "Dallas",
-    "DC",
-    "Denton",
-    "Houston",
-    "LA",
-    "Minneapolis",
-    "NYC",     
-    "Philadelphia",
-    "Raleigh",
-    "SD",
-    "SF"
-  )
-}
+n_cities <- length(city_names <- c(
+  "Atlanta",
+  "Boston", 
+  "Charlotte",
+  "Chicago",
+  "Dallas",
+  "DC",
+  "Denton",
+  "Denver",
+  "Des_moines",
+  "Detroit",
+  "Houston",
+  "LA",
+  "Minneapolis",
+  "NYC",     
+  "Philadelphia",
+  "Phoenix",
+  "Raleigh",
+  "Riverside",
+  "SD",
+  "SF",
+  "St_louis",
+  "Tampa"
+))
 
 city_labels <- c(
-  "Mean City",
+  "Mean",
   "Atlanta",
   "Boston", 
   "Charlotte",
@@ -47,32 +37,29 @@ city_labels <- c(
   "Dallas",
   "Washington D.C.",
   "Denton",
+  "Denver",
+  "Des Moines",
+  "Detroit",
   "Houston",
   "Los Angeles",
   "Minneapolis",
   "New York City",     
   "Philadelphia",
+  "Phoenix",
   "Raleigh",
+  "Riverside",
   "San Diego",
-  "San Fransisco"
+  "San Francisco",
+  "St. Louis",
+  "Tampa"
 )
 
+
 n_cities <- length(city_names)
-n_regions <- length(region)
 
 ## get param estimates from the region
 stan_out <- readRDS(
-  "./part1_urban_butterfly_community_dynamics/model_outputs/stan_out_feb3.rds")
-
-stan_out$diagnostic_summary()
-bayesplot::rhat(stan_out,pars="psi1_city")
-bayesplot::rhat(stan_out,pars="gamma_city")
-bayesplot::rhat(stan_out,pars="phi_city")
-bayesplot::rhat(stan_out,pars="p_city")
-bayesplot::rhat(stan_out,pars="psi1_species")
-x <- stan_out$draws()
-bayesplot::mcmc_trace(x , regex_pars = "phi_city")
-bayesplot::mcmc_trace(x , regex_pars = "gamma_city")
+  "./analyses/part1_urban_butterfly_community_dynamics/model_outputs/stan_out_jun4.rds")
 
 # summarise all variables with default and additional summary measures
 estimates <- as.data.frame(stan_out$summary(
@@ -149,10 +136,12 @@ my_palette <- viridis::viridis(n=n_cities+2, option = "turbo")
 my_palette <- my_palette[3:(n_cities+2)] # remove the really dark colours
 my_palette <- c("black", my_palette) # add black for the all cities mean
 
+region <- "Mean"
+
 #-------------------------------------------------------------------------------
 # initial occurrence (psi1)
 
-for(i in 1:n_regions){
+for(i in 1){
   
   # get region
   #region_name <- region_names[i]
@@ -346,7 +335,7 @@ p <- ggplot(df_estimates) +
    scale_x_discrete(name="", breaks = seq(1:params),
                     labels=c(bquote(psi["intercept"]),
                              bquote(psi["park size"]),
-                             bquote(psi["isolation"]),
+                             bquote(psi["connectivity"]),
                              bquote(psi["wingspan"]),
                              bquote(psi["migratory"])
                     )) +
@@ -387,7 +376,7 @@ p
 #-------------------------------------------------------------------------------
 # colonization (gamma)
 
-for(i in 1:n_regions){
+for(i in 1){
   
   # get region
   #region_name <- region_names[i]
@@ -581,12 +570,12 @@ q <- ggplot(df_estimates) +
   scale_x_discrete(name="", breaks = seq(1:params),
                    labels=c(bquote(gamma["intercept"]),
                             bquote(gamma["park size"]),
-                            bquote(gamma["isolation"]),
+                            bquote(gamma["connectivity"]),
                             bquote(gamma["wingspan"]),
                             bquote(gamma["migratory"])
                    )) +
   scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                     limits = c(-7, 4), breaks = c(-10, -8, -6, -4, -2, 0, 2, 4, 6, 8)) +
+                     limits = c(-8, 4), breaks = c(-10, -8, -6, -4, -2, 0, 2, 4, 6, 8)) +
   scale_color_manual(name="City", labels=city_labels, values=my_palette) + 
   geom_hline(yintercept = 0, lty = "dashed") +
   ggtitle("Colonization") +
@@ -617,7 +606,7 @@ q
 #-------------------------------------------------------------------------------
 # persistence (phi)
 
-for(i in 1:n_regions){
+for(i in 1){
   
   # get region
   #region_name <- region_names[i]
@@ -811,7 +800,7 @@ r <- ggplot(df_estimates) +
   scale_x_discrete(name="", breaks = seq(1:params),
                    labels=c(bquote(phi["intercept"]),
                             bquote(phi["park size"]),
-                            bquote(phi["isolation"]),
+                            bquote(phi["connectivity"]),
                             bquote(phi["wingspan"]),
                             bquote(phi["migratory"])
                    )) +
@@ -848,7 +837,7 @@ r
 
 
 # try a way that pulls out the region means simultaneously
-for(i in 1:n_regions){
+for(i in 1){
   
   # get region
   #region_name <- region_names[i]
@@ -888,30 +877,31 @@ for(i in 1:n_regions){
   first_epsilon_regional_cluster <- which( rownames(estimates)=="epsilon_regional_cluster[1]" )
   first_p_city <- which( rownames(estimates)=="p_city[1]" )
   
-  # regions
-  # california = 1
-  # midwest = 2
-  # northeast = 3
-  # san fransisco = 4
-  # southeast = 5
-  # texas = 6
-  
-  #"Atlanta", 5
-  #"Boston", 3
-  #"Charlotte", 5
-  #"Chicago", 2
-  #"Dallas", 6
-  #"DC", 3
-  #"Denton", 6
-  #"Houston", 6
-  #"LA", 1
-  #"Minneapolis", 2
-  #"NYC", 3    
-  #"Philadelphia", 3
-  #"Raleigh", 5
-  #"SD", 1
-  #"SF" 4
-  regional_cluster <- c(5,3,5,2,6,3,6,6,1,2,3,3,5,1,4)
+  # get this from the prep data function
+  cluster <-c( "southeast", # atlanta
+               "northeast", # boston
+               "southeast", # charlotte
+               "midwest", # chicago
+               "texas", # dallas
+               "northeast", # dc
+               "texas", # denton
+               "central", # denver
+               "central", # des moines
+               "midwest", # detroit
+               "texas", # houston
+               "california", # LA
+               "midwest", # minneapolis
+               "northeast", # nyc
+               "northeast", # philadelphia
+               "interior_southwest", # phoenix
+               "southeast", # raleigh
+               "california", # riverside
+               "california", # sd
+               "san_francisco", # sf
+               "midwest", # st louis
+               "southeast" # tampa
+  )
+  regional_cluster <- as.integer(as.factor(cluster))
   
   for(j in 1:(n_cities-1)){
     

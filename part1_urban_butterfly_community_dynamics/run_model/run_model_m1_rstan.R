@@ -1,3 +1,6 @@
+# I HAVEN'T UPDATED THIS FILE TO RUN THE MODEL FOR THE FINAL ANALYSIS;
+# PLEASE USE THE CMDSTANR VERSION FILE INSTEAD
+
 # I was originally using this file as I prefer to use the rstan library on my personal computer
 # However, our cluster is currently only compatible with cmdstanr library. So I rewrote 
 # the code slightly in the run_model_m1_cmdstanr.R file, which is what was used to 

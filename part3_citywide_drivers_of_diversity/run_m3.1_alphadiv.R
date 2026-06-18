@@ -37,7 +37,7 @@ n_cities <- length(city_names <- c(
 park_size_data <- read.csv("./data/city_wide_data/all_cities_average_park_size_classified_parks_only.csv") 
 connectivity_data <- read.csv("./data/city_wide_data/04_city_wide_isolation_metrics.csv") 
 IIC_connectivity_data <- read.csv("./data/city_wide_data/02_urbanwatch_city_wide_connectivity_metrics_classified_parks_only.csv") 
-landcover_data <- read.csv("./data/city_wide_data/02_urbanwatch_city_wide_land_cover_area_diversity.csv") %>%
+landcover_data <- read.csv("./data/city_wide_data/01_urbanwatch_city_wide_land_cover_area_diversity.csv") %>%
   rowwise() %>%
   mutate(semi_natural = sum(grass_shrub, tree)) %>%
   mutate(percent_grass_shrub = grass_shrub / total_area_sqm,
