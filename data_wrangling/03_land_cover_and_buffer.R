@@ -277,6 +277,7 @@ exact_areas <- exact_extract(
 
 classified_unclassified_parks$total_area_sqm <- sapply(exact_areas, function(df) {
   sum(df$coverage_fraction * 100, na.rm = TRUE)})
+
 classified_unclassified_parks$unclassified_area <- sapply(exact_areas, function(df) {
   # Filter for only the cells with value 0 (unclassified)
   unclassified_df <- df[df$value == 0, ]

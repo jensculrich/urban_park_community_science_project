@@ -513,3 +513,6 @@ rg2_connectivity_df <- do.call(rbind, rg2_connectivity_list)
 
 write.csv(rg2_connectivity_df, paste0("final_merged_data/add_on_parameters/03_20km_buffer_city_wide_connectivity_metrics_classified_parks_only.csv"), row.names = FALSE)
 
+dark_mask <- (park[[1]] == 0) & (park[[2]] == 0) & (park[[3]] == 0)
+park_mask <- mask(park, dark_mask, maskvalue = 1)
+plotRGB(park_mask, na.color = "white")

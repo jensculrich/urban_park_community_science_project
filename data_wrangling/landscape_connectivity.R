@@ -20,14 +20,16 @@ n_cities <- length(city_names <- c(
   "Houston",
   "LA",
   "Minneapolis",
-  "NYC",     
+  "NY",     
   "Philadelphia",
   "Raleigh",
   "SD",
-  "SF"
+  "SF",
+  "tampa",
+  "denver"
 ))
 
-IIC <- list()
+summary<-data.frame()
 
 for(i in 1:n_cities){
   # now choose a city (enter the number of the city)
@@ -74,18 +76,16 @@ sf <- st_read(paste0(
   # IIC is fast to calculate
   # other metrics of interest might include AWF
   # https://www.r-bloggers.com/2019/03/lconnect-connectivity-metrics/
-  result <- con_metric(land, metric = c("IIC", "CPL", "AWF"))
-  IIC[[i]]<-as.data.frame(t(test))
-  
-  print(paste(city, ", DONE!"))
+  result <- con_metric(land, metric = c("IIC"))
+
+  summary<-rbind(summary, data.frame(city = city, IIC = result))
   
 }
 
-df <- bind_rows(IIC)
 
-ggplot(df) +
-  geom_point(aes(x = as.factor(city_names), y = log(IIC)))
+ggplot(summary) +
+  geom_point(aes(x = as.factor(city, y = log(IIC)))
 
 # Save these outputs as a csv
-write.csv(df, paste0(
+write.csv(summary, paste0(
   "/Volumes/sea_angel/iNat_urbanwatch/data/final_merged_data/add_on_parameters/02_urbanwatch_city_wide_connectivity_metrics_classified_parks_only.csv"), row.names=FALSE)

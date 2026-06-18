@@ -5,7 +5,7 @@ library(data.table)
 
 # Set up query parameters
 leps_taxon_key <- name_backbone(name = "Lepidoptera")$usageKey
-plant_kingdom_key <- name_backbone(name = "Plantae")$usageKey  # Plantae kingdom key
+#plant_kingdom_key <- name_backbone(name = "Plantae")$usageKey  # Plantae kingdom key
 flower_class_key<-name_backbone_checklist(c("Magnoliopsida", "Liliopsida"))$usageKey
 
 #common keys
@@ -90,11 +90,6 @@ leps_data_FL <- leps_us_data%>%
 
 write.csv(leps_data_FL, "data/inat_data/02_filtered_data/Leps/leps_data_FL.csv")
 
-
-leps_data_FL <- leps_us_data%>%
-  filter(stateProvince=="Florida")
-
-write.csv(leps_data_FL, "data/inat_data/02_filtered_data/Leps/leps_data_FL.csv")
 
 leps_data_GA <- leps_us_data%>%
   filter(stateProvince=="Georgia")
