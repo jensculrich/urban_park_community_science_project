@@ -1,0 +1,124 @@
+---
+title: ""
+output:
+  html_document: default
+---
+
+```{r sample, echo=FALSE, warning=FALSE}
+
+Parameter <- c(
+  "psi1_0", 
+  "sigma_psi1_species",
+  "sigma_psi1_city",
+  "mu_psi1_park_size",
+  "sigma_psi1_park_size",
+  "mu_psi1_isolation",
+  "sigma_psi1_isolation",
+  "psi1_wingspan", 
+  "psi1_migratory", 
+  
+  "gamma0", 
+  "sigma_gamma_species",
+  "sigma_gamma_city",
+  "mu_gamma_park_size",
+  "sigma_gamma_park_size",
+  "mu_gamma_isolation",
+  "sigma_gamma_isolation",
+  "gamma_wingspan", 
+  "gamma_migratory", 
+  
+  "phi0", 
+  "sigma_phi_species",
+  "sigma_phi_city",
+  "mu_phi_park_size",
+  "sigma_phi_park_size",
+  "mu_phi_isolation",
+  "sigma_phi_isolation",
+  "phi_wingspan", 
+  "phi_migratory", 
+  
+  "p0", 
+  "sigma_p_species",
+  "sigma_p_city",
+  "p_total_detections",
+  "p_wingspan",
+  "p_feature_diversity",
+  "p_ease_of_id",
+  "delta0",
+  "delta_regional_cluster",
+  "sigma_p_species_date",
+  "epsilon0",
+  "epsilon_regional_cluster",
+  "sigma_p_species_date_sq"
+)
+
+Prior <- c(
+  "Normal(0, 1)", 
+  "Half-Normal(0, 1)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 2)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 2)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 0.5)",
+  "Normal(0, 0.5)",
+  
+  "Normal(0, 1)", 
+  "Half-Normal(0, 1)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 2)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 2)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 0.5)",
+  "Normal(0, 0.5)",
+  
+  "Normal(0, 1)", 
+  "Half-Normal(0, 1)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 2)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 2)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 0.5)",
+  "Normal(0, 0.5)",
+  
+  "Normal(0, 1)", 
+  "Half-Normal(0, 1)",
+  "Half-Normal(0, 0.5)",
+  "Normal(0, 1)", 
+  "Normal(0, 1)",
+  "Normal(0, 1)",
+  "Normal(0, 1)",
+  "Normal(0, 2)",
+  "Normal(0, 1)",
+  "Normal(0, 2)",
+  "Normal(0, 1)",
+  "Normal(0, 0.5)",
+  "Normal(0, 1)"
+)
+
+df <- as.data.frame(cbind(Parameter, Prior))
+
+t1 <- df[1:20,]
+rownames(t1) <- NULL
+t2 <- df[21:40,]
+rownames(t2) <- NULL
+#knitr::kable(list(t1, t2))
+
+library(tinytex)
+library(knitr)
+library(kableExtra)
+
+#t1 <- kable( df[1:20,], format = "latex", booktabs = TRUE)
+#t2 <- kable( df[21:40,], format = "latex", booktabs = TRUE)
+	
+t1 %>%
+  kable("html", align = 'clc') %>%
+    kable_styling(full_width = F, position = "float_left")
+ 
+t2 %>%
+  kable("html", align = 'clc') %>%
+    kable_styling(full_width = F, position = "right")
+
+```

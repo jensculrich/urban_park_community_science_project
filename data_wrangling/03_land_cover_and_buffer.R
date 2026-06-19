@@ -9,7 +9,7 @@ library(units)
 library(igraph)
 library(purrr)
 ## Load the park shapefile
-parks <- st_read("E:/phd_study/urban_park_community_science_project/data/Parkserve_Shapefiles_05212024/ParkServe_Parks.shp")
+parks <- st_read("/Volumes/sea_angel/iNat_urbanwatch/data/Parkserve_Shapefiles_05212024/ParkServe_Parks.shp")
 
 #park shapefile of the Essex County in Ontario, Canada (needed for Detroit)
 #essex_parks <- st_read("E:/phd_study/urban_park_community_science_project/data/essex_county_Recreational_Areas/Recreational_Areas.shp")
