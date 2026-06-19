@@ -16,8 +16,8 @@ parks <- st_read("/Volumes/sea_angel/iNat_urbanwatch/data/Parkserve_Shapefiles_0
 #plot(st_geometry(essex_parks))
 
 ##Define the city (dallas, houston, sf, riverside, sd)
-city <- "tamper"
-state <- "Florida"
+city <- "denver"
+state <- "Colorado"
 
 #filter the park shapefile by state, check to see if the city is close to the state line. If so, may need to include the state next to it.
 #parks_filtered <- parks %>% filter(Park_State == state | Park_State == "Maryland"  | Park_State == "Virginia" )

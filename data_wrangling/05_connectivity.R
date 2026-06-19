@@ -4,7 +4,7 @@ library(terra)
 library(tidyverse)
 library(lconnect)
 
-city<-"st_louis"
+city<-"denver"
 buffer_size<-0
 # Load the park shape file
 parks_data <- readRDS(paste0("data/parks/", buffer_size, "m_merged_classified_parks_with_unclassified_parks_sqm_area_", city, ".rds"))
