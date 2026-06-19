@@ -8,8 +8,8 @@ library(cowplot)
 
 
 # Load the LA park shape file (LA, NY, Seattle, dalla, houston, sf, riverside, sd)
-city <-"st_louis"
-state <- "MO"
+city <-"denver"
+state <- "CO"
 buffer_size<-0
 parks_data <- readRDS(paste0("E:/phd_study/urban_park_community_science_project/data/parks/", buffer_size , "m_merged_classified_parks_with_unclassified_parks_sqm_area_", city, ".rds"))
 
@@ -32,12 +32,13 @@ st_area(parks_data[1,])
 
 # Load the biodiversity data
 leps_data <- read.csv(paste0("data/inat_data/02_filtered_data/Leps/leps_", state, "_data_coordUncertainty_cleaned.csv"))
+
 #For Detroit we also need data from Canada
 #leps_data_essex <-read.csv("data/inat_data/02_filtered_data/Leps/leps_Essex_data_coordUncertainty_cleaned.csv")
 
 #leps_data<- rbind(leps_data, leps_data_essex)
-
 table(leps_data$stateProvince)
+
 # Convert the biodiversity data to spatial points 
 observation_coords <-st_as_sf(leps_data, 
                               coords = c("decimalLongitude", "decimalLatitude"), crs = 4326) %>%
@@ -258,4 +259,7 @@ write.csv(as.data.frame(st_drop_geometry(flowers_with_parks_clipped)), paste0("E
 #   arrange(gbif_name)
 
 # write.csv(species_not_match_inat,"E:/phd_study/urban_park_community_science_project/data/final_merged_data/flagged_species_taxonomy.csv")
+
+
+
 

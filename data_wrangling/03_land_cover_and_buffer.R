@@ -16,12 +16,12 @@ parks <- st_read("E:/phd_study/urban_park_community_science_project/data/Parkser
 #plot(st_geometry(essex_parks))
 
 ##Define the city (dallas, houston, sf, riverside, sd)
-city <- "st_louis"
-state <- "Missouri"
+city <- "denver"
+state <- "Colorado"
 
 #filter the park shapefile by state, check to see if the city is close to the state line. If so, may need to include the state next to it.
 #parks_filtered <- parks %>% filter(Park_State == state | Park_State == "Maryland"  | Park_State == "Virginia" )
-parks_filtered <- parks %>% filter(Park_State == state | Park_State == "Illinois")
+parks_filtered <- parks %>% filter(Park_State == state)
 
 table(parks_filtered$Park_State)
 
