@@ -75,3 +75,24 @@ and the key diversity metrics that we monitored:
 - m3.3: jaccard index of community dissimilarity among communities in a city
 - m3.3 submodels: contributions of species nestedness and turnover to the jaccard index
 - m3.4: total number of species occurring across all parks in a city.
+
+## Data Preparation
+
+We use pre-existing datasets from [iNaturalist Research-grade Observations](https://doi.org/10.15468/ab3s5x) 
+(accessed via GBIF) for occurrence data, [Urbanwatch](https://urbanwatch.charlotte.edu/) for land cover 
+data, and [ParkServe](https://www.tpl.org/parkserve) for park shapefiles. Scripts to download and wrangle 
+these into intermediate products for downstream analysis can be found [here](https://github.com/jensculrich/urban_park_community_science_project/tree/main/script/01_data_wrangling).
+
+The major intermediate products generated per city are:
+
+1. A dataframe of iNaturalist Lepidoptera occurrence records joined to park boundaries, with park-level attributes (park size and land cover type areas) appended per record.
+2. A dataframe of iNaturalist Lepidoptera occurrence records within a defined regional boundary.
+3. A dataframe of iNaturalist flowering plant occurrence records joined to park boundaries, with park-level attributes (park size and land cover type areas) appended per record.
+4. A dataframe of park-level isolation values.
+
+Across all cities, we also generate:
+
+5. A dataframe of city-level IIC connectivity values.
+6. A dataframe of city-level mean isolation values.
+7. A dataframe of city-level land cover composition, including total area per cover type and land cover diversity (number of distinct cover types).
+8. A dataframe of city-level mean and median park sizes.

@@ -17,9 +17,9 @@ country_code <- "US"  # United States
 #Leps
 # Define the download request using date predicates
 download_key <- occ_download(
-  user = "name",
-  pwd = "pw",
-  email = "email",
+  user = name, #need to define it first before running
+  pwd = pw, #need to define it first before running
+  email = email, #need to define it first before running
   pred("taxonKey", leps_taxon_key),
   pred("datasetKey", dataset_key),  # iNaturalist Research-grade dataset
   #pred("country", country_code),  # United States
@@ -36,9 +36,9 @@ download_key <- occ_download(
 ##Flowers
 # Define the download request using date predicates
 download_key <- occ_download(
-  user = "cralibe",
-  pwd = "A9aafbbd4a*",
-  email = "yanyinje@usc.edu",
+  user = name,
+  pwd = pw,
+  email = email,
   pred_or(
     pred("taxonKey", flower_class_key[1]),
     pred("taxonKey", flower_class_key[2])),
@@ -67,7 +67,7 @@ file_lines <- readLines("data/inat_data/01_raw_data/iNat_leps_US.csv", n = 10)
 leps_us_data <- fread("data/inat_data/01_raw_data/iNat_leps_US.csv",header = TRUE, sep = "\t", fill = TRUE, quote = "")
 head(leps_us_data)
 
-
+#subset by state and save
 leps_data_CA <- leps_us_data%>%
   filter(stateProvince=="California")
 
@@ -169,85 +169,84 @@ file_lines <- readLines("E:/phd_study/urban_park_community_science_project/data/
 #Read in the downloaded data ----
 flowers_us_data<- fread("E:/phd_study/urban_park_community_science_project/data/inat_data/01_raw_data/iNat_flowering_plants_US.csv", header = TRUE, sep = "\t", fill = TRUE,  quote = "")
 
-
+#subset by state and save
 flowers_CA_data<-flowers_us_data%>%
   filter(stateProvince=="California"
-         write.csv(flowers_CA_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_CA.csv")
+write.csv(flowers_CA_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_CA.csv")
+         
+flowers_NY_data<-flowers_us_data%>%
+  filter(stateProvince=="New York")
+write.csv(flowers_NY_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_NY.csv")
          
          
-         flowers_NY_data<-flowers_us_data%>%
-           filter(stateProvince=="New York")
-         write.csv(flowers_NY_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_NY.csv")
+flowers_WA_data<-flowers_us_data%>%
+  filter(stateProvince=="Washington")
+write.csv(flowers_WA_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_WA.csv")
+         
+flowers_FL_data<-flowers_us_data%>%
+  filter(stateProvince=="Florida")
+write.csv(flowers_FL_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants  /inat_flowers_FL.csv")
+         
+flowers_GA_data<-flowers_us_data%>%
+  filter(stateProvince=="Georgia")
+write.csv(flowers_GA_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_GA.csv")
+         
+flowers_TX_data<-flowers_us_data%>%
+  filter(stateProvince=="Texas")
+write.csv(flowers_TX_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_TX.csv")
+         
+flowers_CO_data<-flowers_us_data%>%
+  filter(stateProvince=="Colorado")
+write.csv(flowers_CO_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_CO.csv")
+         
+flowers_MA_data<-flowers_us_data%>%
+  filter(stateProvince=="Massachusetts")
+write.csv(flowers_MA_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_MA.csv")
+         
+flowers_PA_data <- flowers_us_data%>%
+  filter(stateProvince=="Pennsylvania" | stateProvince=="New Jersey")
+write.csv(flowers_PA_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_PA.csv")
+         
+flowers_baja_data <-fread("data/inat_data/01_raw_data/iNat_flowering_plants_Baja_California.csv")
+         
+flowers_SD_data <-  flowers_us_data%>%
+  filter(stateProvince=="California")%>%
+  rbind(flowers_baja_data)
+write.csv(flowers_SD_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_SD.csv")
+         
+
+flowers_DC_data <- flowers_us_data%>%
+  filter(stateProvince=="District of Columbia" | stateProvince=="Maryland" | stateProvince=="Virginia")
+write.csv(flowers_DC_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_DC.csv")
+
+flowers_NC_data <- flowers_us_data%>%
+  filter(stateProvince=="North Carolina"| stateProvince=="South Carolina")
+write.csv(flowers_NC_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_NC.csv")
+         
+flowers_MN_data <- flowers_us_data%>%
+ filter(stateProvince=="Minnesota")
+write.csv(flowers_MN_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_MN.csv")
+         
+flowers_MI_data <- flowers_us_data%>%
+ filter(stateProvince=="Michigan")
+write.csv(flowers_MI_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_MI.csv")
+         
+flowers_AZ_data <- flowers_us_data%>%
+ filter(stateProvince=="Arizona")
+write.csv(flowers_AZ_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_AZ.csv")
          
          
-         flowers_WA_data<-flowers_us_data%>%
-           filter(stateProvince=="Washington")
-         write.csv(flowers_WA_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_WA.csv")
+flowers_IL_data <- flowers_us_data%>%
+ filter(stateProvince=="Illinois" | stateProvince=="Indiana")
+write.csv(flowers_IL_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_AZ.csv")
          
-         flowers_FL_data<-flowers_us_data%>%
-           filter(stateProvince=="Florida")
-         write.csv(flowers_FL_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_FL.csv")
+flowers_IA_data <- flowers_us_data%>%
+ filter(stateProvince=="Iowa")
+write.csv(flowers_IA_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_IA.csv")
          
-         flowers_GA_data<-flowers_us_data%>%
-           filter(stateProvince=="Georgia")
-         write.csv(flowers_GA_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_GA.csv")
-         
-         flowers_TX_data<-flowers_us_data%>%
-           filter(stateProvince=="Texas")
-         write.csv(flowers_TX_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_TX.csv")
-         
-         flowers_CO_data<-flowers_us_data%>%
-           filter(stateProvince=="Colorado")
-         write.csv(flowers_CO_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_CO.csv")
-         
-         flowers_MA_data<-flowers_us_data%>%
-           filter(stateProvince=="Massachusetts")
-         write.csv(flowers_MA_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_MA.csv")
-         
-         flowers_PA_data <- flowers_us_data%>%
-           filter(stateProvince=="Pennsylvania" | stateProvince=="New Jersey")
-         write.csv(flowers_PA_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_PA.csv")
-         
-         flowers_baja_data <-fread("data/inat_data/01_raw_data/iNat_flowering_plants_Baja_California.csv")
-         
-         flowers_SD_data <-  flowers_us_data%>%
-           filter(stateProvince=="California")%>%
-           rbind(flowers_baja_data)
-         write.csv(flowers_SD_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_SD.csv")
-         
-         #
-         flowers_DC_data <- flowers_us_data%>%
-           filter(stateProvince=="District of Columbia" | stateProvince=="Maryland" | stateProvince=="Virginia")
-         write.csv(flowers_DC_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_DC.csv")
-         
-         flowers_NC_data <- flowers_us_data%>%
-           filter(stateProvince=="North Carolina"| stateProvince=="South Carolina")
-         write.csv(flowers_NC_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_NC.csv")
-         
-         flowers_MN_data <- flowers_us_data%>%
-           filter(stateProvince=="Minnesota")
-         write.csv(flowers_MN_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_MN.csv")
-         
-         flowers_MI_data <- flowers_us_data%>%
-           filter(stateProvince=="Michigan")
-         write.csv(flowers_MI_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_MI.csv")
-         
-         flowers_AZ_data <- flowers_us_data%>%
-           filter(stateProvince=="Arizona")
-         write.csv(flowers_AZ_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_AZ.csv")
-         
-         
-         flowers_IL_data <- flowers_us_data%>%
-           filter(stateProvince=="Illinois" | stateProvince=="Indiana")
-         write.csv(flowers_IL_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_AZ.csv")
-         
-         flowers_IA_data <- flowers_us_data%>%
-           filter(stateProvince=="Iowa")
-         write.csv(flowers_IA_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_IA.csv")
-         
-         flowers_MO_data <- flowers_us_data%>%
-           filter(stateProvince=="Illinois" | stateProvince=="Missouri")
-         write.csv(flowers_MO_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_MO.csv")
+flowers_MO_data <- flowers_us_data%>%
+ filter(stateProvince=="Illinois" | stateProvince=="Missouri")
+write.csv(flowers_MO_data, "E:/phd_study/urban_park_community_science_project/data/inat_data/02_filtered_data/Plants/inat_flowers_MO.csv")
          
          
          

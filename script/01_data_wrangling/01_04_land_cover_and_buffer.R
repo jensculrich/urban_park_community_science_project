@@ -100,12 +100,9 @@ calculate_mode <- function(x) {
 }
 
 #I use a factor of 10 to merge 10x10 cells and `modal` function to keep the most frequent category in each block
-#aggregated_land_cover <- aggregate(land_cover, fact = 10, fun = calculate_mode)
-
-
+aggregated_land_cover <- aggregate(land_cover, fact = 10, fun = calculate_mode)
 # Save the aggregated raster as a GeoTIFF file
-#writeRaster(aggregated_land_cover, paste0("data/processing_data/10_meters_aggregated_urbanwatch_data/", city, "_aggregated_land_cover.tif"), overwrite = TRUE)
-
+writeRaster(aggregated_land_cover, paste0("data/processing_data/10_meters_aggregated_urbanwatch_data/", city, "_aggregated_land_cover.tif"), overwrite = TRUE)
 aggregated_land_cover <- rast(paste0("E:/phd_study/urban_park_community_science_project/data/processing_data/10_meters_aggregated_urbanwatch_data/", city, "_aggregated_land_cover.tif"))
 
 plot(aggregated_land_cover, main=paste0(city, ", Land Cover Raster"), col=c("black", "grey",  "lightgreen", "darkgreen", "red", "magenta",  "blue",  "brown", "yellow", "white")) # Grass/Shrub=2; Tree Canopy=3
@@ -363,6 +360,7 @@ plot(st_geometry(classified_unclassified_parks[classified_unclassified_parks$typ
      main = "Classified Parks",
      border = "white")
 
+#double check to see the data looks correct
 ggplot() +
   #annotation_map_tile(type = "osm")+
   geom_sf(data = classified_unclassified_parks, aes(fill = type), inherit.aes = FALSE)
@@ -370,9 +368,7 @@ ggplot() +
 length(unique(classified_unclassified_parks[classified_unclassified_parks$type=="classified",]$ParkID))
 nrow(classified_unclassified_parks[classified_unclassified_parks$type=="classified",])
 
+#save the final output
 saveRDS(classified_unclassified_parks, paste0("E:/phd_study/urban_park_community_science_project/data/parks/", buffer_size, "m_merged_classified_parks_with_unclassified_parks_sqm_area_", city, ".rds"))
 
-ggplot() +
-  #annotation_map_tile(type = "osm")+
-  geom_sf(data = classified_unclassified_parks%>%filter(type=="classified")%>%slice_max(order_by = total_area_sqm, n =1), inherit.aes = FALSE)
 

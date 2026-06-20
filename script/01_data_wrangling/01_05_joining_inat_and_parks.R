@@ -227,35 +227,9 @@ ggplot(result_parks) +
   labs(title = "Parks by Type with iNat flowering plant observations") +
   theme(legend.position = "right")
 
-
-# total_no_genus_flowers<-flowers_with_parks_clipped%>%
-#   group_by(new_id)%>%
-#   summarize(no_of_genus=length(unique(genus)))%>%
-#   ungroup() 
-
-# ggplot(result_parks) +
-#   geom_sf(aes(fill = type)) +
-#   geom_sf_text(data = total_no_genus_flowers, aes(label = no_of_genus), color="purple", size = 3) +scale_fill_viridis_d() +  # Use viridis color palette
-#   theme_minimal() +
-#   labs(title = "Parks by Type with Flowering Plant Genus Counts (Whole studying periods)") +
-#   theme(legend.position = "right")
-
 as.data.frame(st_drop_geometry(flowers_with_parks_clipped))%>%filter(type=="classified")%>%dplyr::select(new_id)%>%unique()%>%pull%>%length()
 
 
 write.csv(as.data.frame(st_drop_geometry(flowers_with_parks_clipped)), paste0("E:/phd_study/urban_park_community_science_project/data/final_merged_data/03_", buffer_size , "m_flowers_", city, "_classified_park.csv"), row.names = FALSE)  
 
-
-# species_not_match_inat<-observations_with_parks%>%
-#   as.data.frame()%>%
-#   filter(!is.na(new_id))%>%
-#   filter(species %in% as.matrix(observations_per_species_final$species))%>%
-#   mutate(species_match=(species==verbatimScientificName))%>%
-#   filter(species_match==FALSE)%>%
-#   select(species, verbatimScientificName)%>%
-#   unique()%>%
-#   rename("gbif_name"=species, "inat_name"=verbatimScientificName)%>%
-#   arrange(gbif_name)
-
-# write.csv(species_not_match_inat,"E:/phd_study/urban_park_community_science_project/data/final_merged_data/flagged_species_taxonomy.csv")
 
