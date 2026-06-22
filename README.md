@@ -11,7 +11,9 @@ The community science data used in the analyses are available directly from GBIF
 Land cover data were obtained from previously published publicly available sources cited in the text:
 UrbanWatch data (fine scale land cover data within city boundaries only), 
 NLCD data (coarse scale land cover data within and outside of city boundaries), and
-ParkServe data (shapefile that outlines delineated park spaces across the U.S.).
+ParkServe data (shapefile that outlines delineated park spaces across the U.S.).  
+We used some previously published data on butterfly traits to support our analyses, 
+however, we also collected some new trait data to supplement the existing sources (see below). 
 
 The analyses were broken into 3 main parts:
 
@@ -96,3 +98,17 @@ Across all cities, we also generate:
 6. A dataframe of city-level mean isolation values.
 7. A dataframe of city-level land cover composition, including total area per cover type and land cover diversity (number of distinct cover types).
 8. A dataframe of city-level mean and median park sizes.
+
+## Lepidoptera Trait Data
+Our analyses incorporated some butterfly species traits as predictors of occupancy and detection.
+The data are contained in the "./data/lepidoptera_trait_data/" folder.
+
+Ease of ID ("./ease_of_id/identifiability_by_genus.csv") was the only data collected from scratch for this project.
+For these data we searched the number of research grade versus total detections (within the U.S.)
+for each butterfly genus included in the study.
+
+The Species list for traits file ("./lepidoptera_trait_data/SpeciesListForTraits.csv") was obtained from
+Goldstein et al., 2024. We added any species missing for the trait data using the same methods provided.
+
+The migratory status file ("./migratory_status/migratory.csv") contains info on whether species
+are migratory or not. This was obtained directly from Chowhury et al., 2021.
