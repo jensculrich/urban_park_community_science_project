@@ -1,48 +1,41 @@
-
-# select a region
-regions <- c(
-  "northeast",
-  "southeast",
-  "texas",
-  "california",
-  "all"
-)
-
-region <- regions[5]
+# run model 2.1
 
 # list of city names
-
-# all
-if(region == regions[5]){
-  city_names <- c(
-    "Atlanta",
-    "Boston", 
-    "Charlotte",
-    "Chicago",
-    "Dallas",
-    "DC",
-    "Denton",
-    "Houston",
-    "LA",
-    "Minneapolis",
-    "NYC",     
-    "Philadelphia",
-    "Raleigh",
-    "SD",
-    "SF"
-  )
-}
+city_names <- c(
+  "Atlanta",
+  "Boston", 
+  "Charlotte",
+  "Chicago",
+  "Dallas",
+  "DC",
+  "Denton",
+  "Denver",
+  "Des_moines",
+  "Detroit",
+  "Houston",
+  "LA",
+  "Minneapolis",
+  "NYC",     
+  "Philadelphia",
+  "Phoenix",
+  "Raleigh",
+  "Riverside",
+  "SD",
+  "SF",
+  "St_louis",
+  "Tampa"
+)
 
 
 # or choose one city
 # city_names <- "Philadelphia"
 
-min_species_detections <- 2 # binary park/year/species detections
+min_species_detections <- 1 # binary park/year/species detections
 min_site_years_w_detection <- 1 # remove parks never surveyed across repeat years
 min_species_for_community_sampling_event <- 1 # if 1 species detected, any other species in same fam could have been 
 family_sampling <- TRUE # Should enter either TRUE or FALSE 
 remove_outlier_parks <- TRUE # remove very small parks
-write_city_data_csv <- FALSE
+write_city_data_csv <- TRUE
 # family_sampling:
 # if false infer sampling event for all butterflies if any butterflies detected
 # if true only infer sampling event for butterflies in same family as any butterflies detected
@@ -59,9 +52,10 @@ my_data <- prep_data(city_names,
                      write_city_data_csv
 )
 
-
-saveRDS(my_data, paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data_", region, ".rds"))
-my_data <- readRDS( paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data_", region, ".rds"))
+# save prepped data
+#saveRDS(my_data, paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data.rds"))
+# OR just read in previously prepared data and fit the model
+my_data <- readRDS( paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data.rds"))
 
 
 # data to feed to the model
@@ -89,12 +83,12 @@ feature_diversity <- species_info$featureDiversity_scaled
 ease_of_id <- species_info$research_grade_proportion_scaled
 wingspan <- species_info$aveWingspan_scaled
 # site
-park_size <- site_data$log_total_green_space_area_scaled_across_all_cities # scaled_2 is scaled to only parks being modeled
-tree_cover <- site_data$tree_cover_scaled_across_all_cities
-plant_diversity <- site_data$plant_genera_density_scaled_across_all_cities
-landscape_isolation <- site_data$log_isolation_scaled_across_all_cities # scaled_2 is scaled to only parks being modeled
-landscape_grassherb <- site_data$proportion_landscape_grassherb_scaled_across_all_cities
-landscape_woody <- site_data$proportion_landscape_woody_scaled_across_all_cities
+park_size <- site_data$log_total_green_space_area_scaled 
+tree_cover <- site_data$tree_cover_scaled
+plant_diversity <- site_data$plant_genera_density_scaled
+landscape_connectivity <- site_data$log_connectivity_scaled
+landscape_grassherb <- site_data$proportion_landscape_grassherb_scaled
+landscape_woody <- site_data$proportion_landscape_woody_scaled
 city <- as.integer(as.factor(unique(site_data$city)))
 n_cities <- length(unique(city))
 
@@ -114,132 +108,66 @@ species_cluster_id_vector <- my_data$species_cluster_integer_vector
 n_species_clusters <- length(unique(species_cluster_id_vector))
 regional_cluster_id_vector <- my_data$region_cluster_integer_vector
 n_regional_clusters <- length(unique(regional_cluster_id_vector))
+species_city_cluster <- my_data$species_city_cluster
+n_species_city_clusters <- length(unique(species_city_cluster))
 
-# plot
-library(tidyverse)
-ggplot(site_data, aes(
-  x = log_total_green_space_area, y = log(isolation), colour = city)) +
-  geom_point()
 
-ggplot(site_data, aes(
-  x = log_total_green_space_area, y = total_detections_by_city, colour = city)) +
-  geom_point()
+# prepare to fit occupancy model
+library(cmdstanr)
 
-# prepare to fit occupncy model
-library(rstan)
-
-stan_data <- c("R", "n_surveys", "surveys", 
-               "V", "V_NA", "site_survey_year_vector",
-               "n_species", "species", "species_integer_vector",
-               "n_sites", "sites", "multicity_site_id_vector",
-               "n_cities","city", "city_id_vector",
-               "feature_diversity", "ease_of_id", "wingspan",
-               "park_size", "isolation", 
-               "confirmed_occurrence", "prev_index_vector", 
-               "species_cluster_id_vector", "n_species_clusters",
-               "regional_cluster_id_vector", "n_regional_clusters"
-               
+stan_data <- list(R = R, n_surveys = n_surveys, surveys = surveys,
+                  V = V, V_NA = V_NA, site_survey_year_vector = site_survey_year_vector,
+                  n_species = n_species, species = species, species_integer_vector = species_integer_vector,
+                  n_sites = n_sites, sites = sites, multicity_site_id_vector = multicity_site_id_vector,
+                  n_cities = n_cities, city = city, city_id_vector = city_id_vector,
+                  feature_diversity = feature_diversity, ease_of_id = ease_of_id, wingspan = wingspan, migratory = migratory,
+                  tree_cover = tree_cover, plant_diversity = plant_diversity,
+                  landscape_grassherb = landscape_grassherb, landscape_woody = landscape_woody,
+                  park_size = park_size, landscape_connectivity = landscape_connectivity, total_detections_by_city = total_detections_by_city,
+                  confirmed_occurrence = confirmed_occurrence, prev_index_vector = prev_index_vector, 
+                  species_cluster_id_vector = species_cluster_id_vector, n_species_clusters = n_species_clusters,
+                  regional_cluster_id_vector = regional_cluster_id_vector, n_regional_clusters = n_regional_clusters,
+                  species_city_id_vector = species_city_id_vector,   n_species_city_clusters = n_species_city_clusters 
 ) 
 
-## Parameters monitored 
-params <- c(
-  
-  "psi1_0", 
-  "sigma_psi1_species",
-  "sigma_psi1_city",
-  "mu_psi1_wingspan",
-  "sigma_psi1_wingspan",
-  "mu_psi1_park_size",
-  "sigma_psi1_park_size",
-  "mu_psi1_isolation",
-  "sigma_psi1_isolation",
-  
-  "p0", 
-  "sigma_p_species",
-  "sigma_p_city",
-  "p_wingspan",
-  "p_feature_diversity",
-  "p_ease_of_id",
-  #"mu_p_species_date",
-  "delta0",
-  "delta_regional_cluster",
-  "sigma_p_species_date",
-  #"mu_p_species_date_sq",
-  "epsilon0",
-  "epsilon_regional_cluster",
-  "sigma_p_species_date_sq",
-
-  # city effects
-  "psi1_city",
-  "psi1_wingspan",
-  "psi1_park_size",
-  "psi1_isolation",
-  "gamma_city",
-  "gamma_wingspan",
-  "gamma_park_size",
-  "gamma_isolation",
-  "phi_city",
-  "phi_wingspan",
-  "phi_park_size",
-  "phi_isolation",
-  "p_city",
-  
-  # species effects and PPC
-  #"W_species_rep",
-  "psi1_species",
-  "gamma_species", "phi_species",
-  "p_species"
-)
-
 # MCMC settings
-n_iterations <- 300
-n_thin <- 1
-n_burnin <- 150
+n_iterations <- 1000
+n_thin <- 2
+n_burnin <- 500
 n_chains <- 4
-n_cores <- n_chains
+n_cores <- parallel::detectCores()
 delta = 0.97
 
 ## Initial values
 # given the number of parameters, the chains need some decent initial values
 # otherwise sometimes they have a hard time starting to sample
-inits <- lapply(1:n_chains, function(i)
+init_generate <- function(chain_id)
   
-  list(psi1_0 = runif(1, -1, 1),
-       sigma_psi1_species = runif(1, 1, 2),
-       sigma_psi1_city = runif(1, 0, 1),
-       sigma_psi1_wingspan = runif(1, 0, 1),
-       sigma_psi1_park_size  = runif(1, 0, 1),
-       sigma_psi1_isolation  = runif(1, 0, 1),
-       psi1_wingspan = runif(1, -1, 1),
-       mu_psi1_park_size = runif(1, 0, 1),
-       gamma0 = runif(1, -3, -2),
-       sigma_gamma_species = runif(1, 0, 1),
-       sigma_gamma_city = runif(1, 0, 1),
-       sigma_gamma_wingspan = runif(1, 0, 1),
-       sigma_gamma_park_size = runif(1, 0, 1),
-       sigma_gamma_isolation = runif(1, 0, 1),
-       gamma_wingspan = runif(1, 1, 2),
-       mu_gamma_park_size = runif(1, 0, 1),
-       phi0 = runif(1, 2, 3),
-       sigma_phi_species= runif(1, 0, 1),
-       sigma_phi_city= runif(1, 0, 1),
-       sigma_phi_wingspan= runif(1, 0, 1),
-       sigma_phi_park_size= runif(1, 0, 1),
-       sigma_phi_isolation= runif(1, 0, 1),
-       phi_wingspan = runif(1, -1, 0),
-       mu_phi_park_size = runif(1, 0, 1),
+  list(psi_0 = runif(1, -1, 1),
+       sigma_psi_species = runif(1, 0.5, 1),
+       sigma_psi_city = runif(1, 0.5, 1),
+       sigma_psi_wingspan = runif(1, 0.5, 1),
+       sigma_psi_park_size  = runif(1, 0.5, 1),
+       sigma_psi_tree_cover  = runif(1, 0.5, 1),
+       sigma_psi_landscape_connectivity  = runif(1, 0.5, 1),
+       sigma_psi_landscape_grassherb  = runif(1, 0.5, 1),
+       sigma_psi_landscape_woody  = runif(1, 0.5, 1),
+       mu_psi_wingspan = runif(1, -1, 1),
+       mu_psi_park_size = runif(1, 0, 1),
+       mu_psi_tree_cover= runif(1, 0, 1),
+       mu_psi_landscape_connectivity = runif(1, 0, 1),
+       mu_psi_landscape_grassherb = runif(1, 0, 1),
+       mu_psi_landscape_woody = runif(1, 0, 1),
        p0 = runif(1, -1, 1),
-       sigma_p_species = runif(1, 1, 2),
-       sigma_p_city = runif(1, 0, 1),
+       sigma_p_species = runif(1, 0.5, 1),
+       sigma_p_city = runif(1, 0.5, 1),
        p_wingspan = runif(1, -1, 1),
        p_feature_diversity = runif(1, -1, 1),
        p_ease_of_id = runif(1, -1, 1),
-       #mu_p_species_date = runif(1, -1, 1),
-       sigma_p_species_date = runif(1, 0, 1),
-       #mu_p_species_date_sq = runif(1, -1, 0),
-       sigma_p_species_date_sq = runif(1, 0, 1)
+       sigma_p_species_date = runif(1,0.5, 1),
+       sigma_p_species_date_sq = runif(1, 0.5, 1)
+       
   )
-)
 
 
 ## --------------------------------------------------
@@ -247,148 +175,79 @@ inits <- lapply(1:n_chains, function(i)
 
 # choose a model
 #stan_model <- "./models/dynamic_occupancy_model.stan"
-stan_model <- "./models/dynamic_occupancy_model_all_cities.stan"
+stan_model <- cmdstan_model("./models/occupancy_model_m2.2.stan")
 
 ## Call Stan from R
-stan_out <- stan(stan_model,
-                 data = stan_data, 
-                 init = inits, 
-                 pars = params,
-                 chains = n_chains, iter = n_iterations, 
-                 warmup = n_burnin, thin = n_thin,
-                 seed = 1,
-                 control=list(adapt_delta=delta),
-                 open_progress = FALSE,
-                 cores = n_cores)
+stan_out <- stan_model$sample(
+  data = stan_data, 
+  refresh = 50,
+  init = init_generate, 
+  chains = n_chains, 
+  parallel_chains = n_cores,
+  iter_sampling = n_iterations, 
+  iter_warmup = n_burnin, 
+  thin = n_thin,
+  seed = 1,
+  adapt_delta=delta)
 
-
-saveRDS(stan_out, paste0("./model_outputs/stan_out_", region, "3.rds"))
+# save the object
+stan_out$save_object(file = "stan_out_m2.2.rds")
 
 # read old data
-#stan_out <- readRDS( paste0("./model_outputs/stan_out_", region, "_dec5.rds"))
+#stan_out <- readRDS( paste0("./part2_local_landscape_predictors_of_occupancy/model_outputs/stan_out_m2.2.rds"))
 
-# print outputs
-print(stan_out, digits = 3, 
-      pars = c(
-        "psi1_0", 
-        "sigma_psi1_species",
-        "sigma_psi1_city",
-        "mu_psi1_wingspan",
-        "sigma_psi1_wingspan",
-        "mu_psi1_park_size",
-        "sigma_psi1_park_size",
-        "mu_psi1_isolation",
-        "sigma_psi1_isolation",
-        
-        "gamma0", 
-        "sigma_gamma_species",
-        "sigma_gamma_city",
-        "mu_gamma_wingspan",
-        "sigma_gamma_wingspan",
-        "mu_gamma_park_size",
-        "sigma_gamma_park_size",
-        "mu_gamma_isolation",
-        "sigma_gamma_isolation",
-        
-        "phi0", 
-        "sigma_phi_species",
-        "sigma_phi_city",
-        "mu_phi_wingspan",
-        "sigma_phi_wingspan",
-        "mu_phi_park_size",
-        "sigma_phi_park_size",
-        "mu_phi_isolation",
-        "sigma_phi_isolation",
-        
-        "p0", 
-        "sigma_p_species",
-        "sigma_p_city",
-        "p_wingspan",
-        "p_feature_diversity",
-        "p_ease_of_id",
-        "mu_p_species_date",
-        "sigma_p_species_date",
-        "mu_p_species_date_sq",
-        "sigma_p_species_date_sq",
-        
-        # city effects
-        "psi1_city",
-        "psi1_wingspan",
-        "psi1_park_size",
-        "psi1_isolation",
-        "gamma_city",
-        "gamma_wingspan",
-        "gamma_park_size",
-        "gamma_isolation",
-        "phi_city",
-        "phi_wingspan",
-        "phi_park_size",
-        "phi_isolation",
-        "p_city"
-      ))
+stan_out$diagnostic_summary()
 
-print(stan_out, digits = 3, 
-      pars = c("psi1_species"
-      ))
+rhats <- stan_out$summary(c("psi_0", 
+                            "sigma_psi_species",
+                            "sigma_psi_city",
+                            "psi_wingspan",
+                            "psi_migratory",
+                            "mu_psi_park_size",
+                            "sigma_psi_park_size",
+                            "mu_psi_tree_cover",
+                            "sigma_psi_tree_cover",
+                            "mu_psi_landscape_connectivity",
+                            "sigma_psi_landscape_connectivity",
+                            
+                            "p0", 
+                            "sigma_p_species",
+                            "sigma_p_city",
+                            "p_city_detections",
+                            "p_wingspan",
+                            "p_migratory",
+                            "p_feature_diversity",
+                            "p_ease_of_id",
+                            "delta0",
+                            "delta_regional_cluster",
+                            "sigma_p_species_date",
+                            "epsilon0",
+                            "epsilon_regional_cluster",
+                            "sigma_p_species_date_sq",
+                            
+                            # city effects
+                            "psi_city",
+                            "psi_wingspan",
+                            "psi_park_size",
+                            "psi_tree_cover",
+                            "psi_landscape_connectivity",
+                            "p_city"), 
+                          "rhat")
 
-# traceplots
-traceplot(stan_out, pars = c(
-  "psi1_0", 
-  "psi1_city",
-  "sigma_psi1_city",
-  "sigma_psi1_species",
-  "mu_psi1_wingspan",
-  "sigma_psi1_wingspan",
-  "mu_psi1_park_size",
-  "sigma_psi1_park_size",
-  "mu_psi1_isolation",
-  "sigma_psi1_isolation",
-  "psi1_park_size",
-  "psi1_isolation"
-  
-))
+library(bayesplot)
 
-traceplot(stan_out, pars = c(
-  "gamma0", 
-  "gamma_city",
-  "sigma_gamma_city",
-  "sigma_gamma_species",
-  "mu_gamma_wingspan",
-  "sigma_gamma_wingspan",
-  "mu_gamma_park_size",
-  "sigma_gamma_park_size",
-  "mu_gamma_isolation",
-  "sigma_gamma_isolation",
-  "gamma_park_size",
-  "gamma_isolation"
-))  
+mcmc_rhat_hist(rhats$rhat) +
+  ggplot2::ggtitle("Rhats for all m2.2 parameters")
 
-traceplot(stan_out, pars = c(
-  "phi0", 
-  "phi_city",
-  "sigma_phi_city",
-  "sigma_phi_species",
-  "mu_phi_wingspan",
-  "sigma_phi_wingspan",
-  "mu_phi_park_size",
-  "sigma_phi_park_size",
-  "mu_phi_isolation",
-  "sigma_phi_isolation",
-  "phi_park_size",
-  "phi_isolation"
-))
-
-traceplot(stan_out, pars = c(
-  "p0", 
-  "sigma_p_species",
-  "p_city",
-  "sigma_p_city",
-  "p_wingspan",
-  "p_feature_diversity",
-  "p_ease_of_id",
-  #"mu_p_species_date",
-  "sigma_p_species_date",
-  #"mu_p_species_date_sq",
-  "sigma_p_species_date_sq"
+mcmc_trace(stan_out$draws(), pars = c(
+  "psi_0", 
+  "sigma_psi_species",
+  "sigma_psi_city",
+  "mu_psi_park_size",
+  "sigma_psi_park_size",
+  "mu_psi_tree_cover",
+  "sigma_psi_tree_cover",
+  "mu_psi_landscape_connectivity",
+  "sigma_psi_landscape_connectivity"
 ))
 

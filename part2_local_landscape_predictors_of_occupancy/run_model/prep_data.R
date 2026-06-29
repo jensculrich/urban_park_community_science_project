@@ -211,30 +211,22 @@ prep_data <- function(city_names,
   # and join the covariate data to these sites
   site_data <- left_join(site_data, site_data_temp, by = c("city", "new_id"))
   
-  # the original scaled values are scaled within city ,considering all parks in those cities
-  # scaled_2 are scaled within a city, ONLY CONSIDERING sites that will be modeled
-  # scaled_across_all_cities are scaled across all cities, ONLY CONSIDERING sites that will be modeled
+  # get values of park site covariates, center-scaled across all sites being modelled
   site_data <- site_data %>%
-    group_by(city) %>%
-    mutate(isolation_scaled_2 = center_scale(isolation),
-           log_total_green_space_area_scaled_2 = center_scale(log_total_green_space_area),
-           log_isolation_scaled_2 = center_scale(log(isolation))) %>%
-    ungroup() %>%
     # these are the ones we actually use for the model
-    mutate(log_total_green_space_area_scaled_across_all_cities = center_scale(log_total_green_space_area),
-           plant_genera_density_scaled_across_all_cities = center_scale(plant_genera_density),
-           tree_cover_scaled_across_all_cities = center_scale(tree_percent_cover),
-           isolation_scaled_across_all_cities = center_scale(isolation),
-           log_isolation_scaled_across_all_cities = center_scale(log(isolation)),
-           landcover_type_diversity_scaled_across_all_cities = center_scale(shannon_diversity),
-           proportion_landscape_vegetation_scaled_across_all_cities = center_scale(log(proportion_landscape_vegetation+0.01)),
-           proportion_landscape_open_developed_scaled_across_all_cities = center_scale(log(proportion_landscape_open_developed+0.01)),
-           proportion_landscape_medhigh_developed_scaled_across_all_cities = center_scale(log(proportion_landscape_medhigh_developed+0.01)),
-           proportion_landscape_woody_scaled_across_all_cities = center_scale(log(proportion_landscape_woody+0.01)),
-           proportion_landscape_grassherb_scaled_across_all_cities = center_scale(log(proportion_landscape_grassherb+0.01))
+    mutate(log_total_green_space_area_scaled = center_scale(log_total_green_space_area),
+           log_connectivity_scaled = center_scale(log_connectivity), # flip onto positive scale and then back to negative
+           log_n_plant_genera_scaled = center_scale(log_n_plant_genera),
+           tree_cover_scaled = center_scale(tree_percent_cover),
+           proportion_landscape_vegetation_scaled = center_scale(log(proportion_landscape_vegetation+0.01)),
+           proportion_landscape_open_developed_scaled = center_scale(log(proportion_landscape_open_developed+0.01)),
+           proportion_landscape_medhigh_developed_scaled = center_scale(log(proportion_landscape_medhigh_developed+0.01)),
+           proportion_landscape_woody_scaled = center_scale(log(proportion_landscape_woody+0.01)),
+           proportion_landscape_grassherb_scaled = center_scale(log(proportion_landscape_grassherb+0.01))
     ) 
     
   
+  # remove parks smaller than 0.1 sq m (unusually small park features)
   if(remove_outlier_parks == TRUE){
     site_data <- site_data %>%
       filter(total_green_space_area > 0.11) 
@@ -247,72 +239,7 @@ prep_data <- function(city_names,
   site_vector <- site_data %>%
     pull(multicity_site_id)
   
-  # plot the spread of the site covariate data
-  par(mfrow=c(1,4))  
-  hist(site_data$proportion_landscape_woody_scaled_across_all_cities)
-  hist(site_data$proportion_landscape_grassherb_scaled_across_all_cities)  
-  hist(site_data$plant_genera_density_scaled_across_all_cities)
-  hist(site_data$tree_cover_scaled_across_all_cities)
-  #hist(site_data$perarea_idx_scaled)
-  #hist(site_data$proximity_scaled)
-  hist(site_data$log_total_green_space_area_scaled_across_all_cities)
-  hist(site_data$log_isolation_scaled_across_all_cities)
-  hist(site_data$landcover_type_diversity_scaled_across_all_cities)
-  
-  par(mfrow=c(1,1)) 
-  
-  # how correlated are the site covariate data
-  cor(site_data$log_total_green_space_area_scaled, site_data$log_isolation_scaled)
-  cor(site_data$proportion_landscape_woody_scaled_across_all_cities, site_data$landcover_type_diversity_scaled_across_all_cities)
-  cor(site_data$plant_genera_density_scaled, site_data$log_total_green_space_area_scaled_2)
-  cor(site_data$log_isolation_scaled_across_all_cities, site_data$log_total_green_space_area_scaled_across_all_cities)
-  
-  #plot(site_data$log_total_green_space_area_scaled_2, site_data$log_isolation_scaled_2)
-
-  
-  # plot
-  a <- ggplot(site_data, aes(
-    x = log_total_green_space_area, y = log(isolation), colour = city)) +
-    geom_point() + theme_classic() +
-    xlab("log park size(m^2)") + 
-    ylab("log isolation") +
-    theme(legend.position = "none") + 
-    theme(axis.title = element_text(size=18),
-          axis.text = element_text(size=18))
-  
-  # plot
-  b <- ggplot(site_data, aes(
-    x = log_total_green_space_area, y = plant_genera_density, colour = city)) +
-    geom_point() + theme_classic() +
-    xlab("log park size(m^2)") + 
-    ylab("log plant genera / park area") +
-    theme(legend.position = "none") + 
-    theme(axis.title = element_text(size=18),
-          axis.text = element_text(size=18))
-  
-  # plot
-  c <- ggplot(site_data, aes(
-    x = log_total_green_space_area, y = proportion_landscape_woody, colour = city)) +
-    geom_point() + theme_classic() +
-    xlab("log park size(m^2)") + 
-    ylab("proportion landscape woody veg.") +
-    theme(legend.position = "none") + 
-    theme(axis.title = element_text(size=18),
-          axis.text = element_text(size=18))
-  
-  # plot
-  d <- ggplot(site_data, aes(
-    x = log_total_green_space_area, y = proportion_landscape_grassherb, colour = city)) +
-    geom_point() + theme_classic() +
-    xlab("log park size(m^2)") + 
-    ylab("proportion landscape herbaceous veg.") +
-    theme(legend.position = "none") + 
-    theme(axis.title = element_text(size=18),
-          axis.text = element_text(size=18))
-  
-  #cowplot::plot_grid(a,b,c,d)
-  
-  # add detections by city
+  # add number of detections by city (used as a detection covariate)
   site_data <- site_data %>%
     left_join(., total_detections_by_city) %>%
     left_join(., recorder_detections_by_city)
@@ -909,6 +836,8 @@ prep_data <- function(city_names,
   
   mean_species_per_comm_sampling_event <- mean(as.numeric(mean_species_per_event[,2]))
   
+  print(paste0("mean_species_per_comm_sampling_event = ", mean_species_per_comm_sampling_event))
+  
   ## --------------------------------------------------
   ## get species by cluster integer to allow a species - cluster random effect on detection and initial occurrence
   
@@ -1104,64 +1033,22 @@ prep_data <- function(city_names,
            CanopyAffinity, EdgeAffinity, MoistureAffinity, DisturbanceAffinity,
            NumberOfHostplantFamilies)
   
-  species_info_plot <- species_info %>%
-    mutate(cond1 = ifelse(aveWingspan_scaled > 0, 0, 1),
-           cond2 = ifelse(featureDiversity_scaled > 0, 0, 1),
-           cond3 = ifelse(research_grade_proportion_scaled > 0, 0, 1))
+  #species_info_plot <- species_info %>%
+  #  mutate(cond1 = ifelse(aveWingspan_scaled > 0, 0, 1),
+  #         cond2 = ifelse(featureDiversity_scaled > 0, 0, 1),
+  #         cond3 = ifelse(research_grade_proportion_scaled > 0, 0, 1))
   
   # plot the species trait data
-  a <- ggplot(species_info_plot[1:(nrow(species_info)/3),], aes(x=as.factor(species), y=aveWingspan_scaled, 
-                                fill = as.factor(cond1))) +
-    geom_col() +
-    theme_classic() +
-    ylab("Wingspan (scaled)") +
-    theme(legend.position = "none",
-          axis.text.x = element_text(angle = 90, vjust = 0, hjust=1, size=16),
-          axis.title.x=element_blank(),
-          axis.text.y = element_text(size=16),
-          axis.title.y = element_text(size=18)) 
-  
-  b <- ggplot(species_info_plot[(nrow(species_info)/3):(2*(nrow(species_info)/3)),], aes(x=as.factor(species), y=aveWingspan_scaled, 
-                                                           fill = as.factor(cond1))) +
-    geom_col() +
-    theme_classic() +
-    ylab("Wingspan (scaled)") +
-    theme(legend.position = "none",
-          axis.text.x = element_text(angle = 90, vjust = 0, hjust=1, size=16),
-          axis.title.x=element_blank(),
-          axis.text.y = element_text(size=16),
-          axis.title.y = element_text(size=18)) 
-  
-  c <- ggplot(species_info_plot[(2*(nrow(species_info)/3)):nrow(species_info),], aes(x=as.factor(species), y=aveWingspan_scaled, 
-                                                                                    fill = as.factor(cond1))) +
-    geom_col() +
-    theme_classic() +
-    ylab("Wingspan (scaled)") +
-    theme(legend.position = "none",
-          axis.text.x = element_text(angle = 90, vjust = 0, hjust=1, size=16),
-          axis.title.x=element_blank(),
-          axis.text.y = element_text(size=16),
-          axis.title.y = element_text(size=18))
-  
-  cowplot::plot_grid(a,b,c, ncol=1)
-  
-  ggplot(species_info_plot, aes(x=as.factor(species), y=featureDiversity_scaled, 
-                                fill = as.factor(cond2))) +
-    geom_col() +
-    theme_classic() +
-    ylab("Feature diversity (scaled)") +
-    theme(legend.position = "none",
-          axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
-          axis.title.x=element_blank()) 
-  
-  ggplot(species_info_plot, aes(x=as.factor(species), y=research_grade_proportion_scaled, 
-                                fill = as.factor(cond3))) +
-    geom_col() +
-    theme_classic() +
-    ylab("Ease of ID (scaled)") +
-    theme(legend.position = "none",
-          axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
-          axis.title.x=element_blank()) 
+  #a <- ggplot(species_info_plot[1:(nrow(species_info)/3),], aes(x=as.factor(species), y=aveWingspan_scaled, 
+  #                              fill = as.factor(cond1))) +
+  #  geom_col() +
+  #  theme_classic() +
+  #  ylab("Wingspan (scaled)") +
+  #  theme(legend.position = "none",
+  #        axis.text.x = element_text(angle = 90, vjust = 0, hjust=1, size=16),
+  #        axis.title.x=element_blank(),
+  #        axis.text.y = element_text(size=16),
+  #        axis.title.y = element_text(size=18)) 
   
   # how many species were detected?
   # and how many binary detections occurred? species/site/year/visit
@@ -1285,24 +1172,24 @@ prep_data <- function(city_names,
   city_data <- left_join(city_data, city_species)
   
   # get n sites per city
-  # and park size/isolation of city
+  # and park size/connectivity of city
   city_site_data <- site_data %>%
     group_by(city) %>%
     mutate(n_sites = length(unique(multicity_site_id)),
            mean_log_park_size = mean(log_total_green_space_area),
            sd_park_size = sd(log_total_green_space_area),
-           mean_log_isolation = mean(log(isolation)),
-           sd_isolation = sd(log(isolation)),
+           mean_log_connectivity = mean(log_connectivity),
+           sd_connectivity = sd(log(log_connectivity)),
            mean_tree_cover = mean(tree_percent_cover),
            sd_tree_cover = sd(tree_percent_cover),
-           mean_plant_genera_density = mean(plant_genera_density),
-           sd_plant_genera_density = sd(plant_genera_density)) %>%
+           mean_log_n_plant_genera = mean(log_n_plant_genera),
+           sd_log_n_plant_genera = sd(log_n_plant_genera)) %>%
     group_by(city) %>%
     slice(1) %>%
     ungroup() %>%
     select(city, n_sites, mean_log_park_size, sd_park_size,
-           mean_log_isolation, sd_isolation, mean_tree_cover, sd_tree_cover,
-           mean_plant_genera_density, sd_plant_genera_density)
+           mean_log_connectivity, sd_connectivity, mean_tree_cover, sd_tree_cover,
+           mean_log_n_plant_genera, sd_log_n_plant_genera)
   
   city_data <- left_join(city_data, city_site_data)
   

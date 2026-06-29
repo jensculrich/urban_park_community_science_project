@@ -40,7 +40,7 @@ data {
   vector[n_sites] park_size;
   vector[n_sites] tree_cover;
   vector[n_sites] plant_diversity;
-  vector[n_sites] landscape_isolation;
+  vector[n_sites] landscape_connectivity;
   vector[n_sites] landscape_grassherb;
   vector[n_sites] landscape_woody;
   vector[n_sites] total_detections_by_city;
@@ -68,9 +68,9 @@ parameters {
   real mu_psi_plant_diversity;
   vector[n_cities] psi_plant_diversity_raw;  
   real<lower=0> sigma_psi_plant_diversity;
-  real mu_psi_landscape_isolation;
-  vector[n_cities] psi_landscape_isolation_raw;  
-  real<lower=0> sigma_psi_landscape_isolation;
+  real mu_psi_landscape_connectivity;
+  vector[n_cities] psi_landscape_connectivity_raw;  
+  real<lower=0> sigma_psi_landscape_connectivity;
   real mu_psi_landscape_grassherb;
   vector[n_cities] psi_landscape_grassherb_raw;  
   real<lower=0> sigma_psi_landscape_grassherb;
@@ -111,7 +111,7 @@ transformed parameters {
   vector[n_cities] psi_park_size;
   vector[n_cities] psi_tree_cover;
   vector[n_cities] psi_plant_diversity;
-  vector[n_cities] psi_landscape_isolation;
+  vector[n_cities] psi_landscape_connectivity;
   vector[n_cities] psi_landscape_grassherb;
   vector[n_cities] psi_landscape_woody;
   vector[n_species_clusters] p_species;
@@ -126,7 +126,7 @@ transformed parameters {
   psi_park_size = mu_psi_park_size + sigma_psi_park_size * psi_park_size_raw;
   psi_tree_cover = mu_psi_tree_cover + sigma_psi_tree_cover * psi_tree_cover_raw;
   psi_plant_diversity = mu_psi_plant_diversity + sigma_psi_plant_diversity * psi_plant_diversity_raw;
-  psi_landscape_isolation = mu_psi_landscape_isolation + sigma_psi_landscape_isolation * psi_landscape_isolation_raw;
+  psi_landscape_connectivity = mu_psi_landscape_connectivity + sigma_psi_landscape_connectivity * psi_landscape_connectivity_raw;
   psi_landscape_grassherb = mu_psi_landscape_grassherb + sigma_psi_landscape_grassherb * psi_landscape_grassherb_raw;
   psi_landscape_woody = mu_psi_landscape_woody + sigma_psi_landscape_woody * psi_landscape_woody_raw;
   p_species = sigma_p_species * p_species_raw;
@@ -146,7 +146,7 @@ transformed parameters {
       psi_park_size[city_id_vector[r]] * park_size[multicity_site_id_vector[r]] + // a site effect of park size
       psi_tree_cover[city_id_vector[r]] * tree_cover[multicity_site_id_vector[r]] +
       psi_plant_diversity[city_id_vector[r]] * plant_diversity[multicity_site_id_vector[r]] +
-      psi_landscape_isolation[city_id_vector[r]] * landscape_isolation[multicity_site_id_vector[r]] + // a site effect of park isolation
+      psi_landscape_connectivity[city_id_vector[r]] * landscape_connectivity[multicity_site_id_vector[r]] + // a site effect of park connectivity
       psi_landscape_grassherb[city_id_vector[r]] * landscape_grassherb[multicity_site_id_vector[r]] +
       psi_landscape_woody[city_id_vector[r]] * landscape_woody[multicity_site_id_vector[r]]
       ); // end psi[r]
@@ -196,9 +196,9 @@ model {
   mu_psi_plant_diversity ~ normal(0, 2);
   psi_plant_diversity_raw ~ std_normal();
   sigma_psi_plant_diversity ~ normal(0, 0.5);
-  mu_psi_landscape_isolation ~ normal(0, 2);
-  psi_landscape_isolation_raw ~ std_normal();
-  sigma_psi_landscape_isolation ~ normal(0, 0.5);
+  mu_psi_landscape_connectivity ~ normal(0, 2);
+  psi_landscape_connectivity_raw ~ std_normal();
+  sigma_psi_landscape_connectivity ~ normal(0, 0.5);
   mu_psi_landscape_grassherb ~ normal(0, 2);
   psi_landscape_grassherb_raw ~ std_normal();
   sigma_psi_landscape_grassherb ~ normal(0, 0.5);

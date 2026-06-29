@@ -67,9 +67,12 @@ for(i in 1:length(city_names)){
     
     # standardize infitsimely small greenspace areas
     mutate(total_green_space_area = ifelse(total_green_space_area < 0.1, 0.1, total_green_space_area),
-           connectivity = isolation * (-1)) %>%
+           log_total_green_space_area = log(total_green_space_area),
+           connectivity = isolation * (-1),
+           log_connectivity = log(isolation) * (-1) # transform back to isolation, get log, then transform back to connectivity
+           ) %>%
     #   get scaled covariate values
-    select(city, new_id, total_area_sqm, total_green_space_area, connectivity, tree_percent_cover, grass_shrub__percent_cover)
+    select(city, new_id, total_area_sqm, total_green_space_area, log_total_green_space_area, connectivity, log_connectivity, tree_percent_cover, grass_shrub__percent_cover)
 
   # add park flower data
   # first read the data 
