@@ -195,16 +195,20 @@ prep_data <- function(city_names,
   ## get site covariate data
   
   # source the prep function
-  source("./part2_local_landscape_predictors_of_occupancy/run_model/get_site_data.R")
+  #source("./part2_local_landscape_predictors_of_occupancy/run_model/get_site_data.R")
+  #site_data_temp <- get_site_data(city_names)
   
-  site_data_temp <- get_site_data(city_names)
+  # get site data for all parks
+  site_data_temp <- read.csv("./data/derived_park_site_covariate_data/derived_park_site_covariate_data.csv")
   
+  # then get sites where we actually had survey efforts
   site_data <- df %>%
     group_by(city, new_id) %>%
     slice(1) %>%
     ungroup() %>%
     select(city, new_id)
   
+  # and join the covariate data to these sites
   site_data <- left_join(site_data, site_data_temp, by = c("city", "new_id"))
   
   # the original scaled values are scaled within city ,considering all parks in those cities

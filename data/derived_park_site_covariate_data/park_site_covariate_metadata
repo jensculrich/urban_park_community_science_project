@@ -1,0 +1,22 @@
+"./data/derived_park_site_covariate_data/derived_park_site_covariate_data.csv" contains the site covariate
+data for each park in our focal cities derived from the land cover resources cited in the text.
+
+The park sites were defined by ParkServe park polygons.
+
+The data for each park site are as follows:
+- city: name of the city where the park is located.
+- new_id: a unique integer value site name. 
+- total_area_sqm: total area of park site in square meters (from ParkServe data).
+- total_green_space_area: total area of park site within city boundary that has either tree or herbaceous veg cover (non-impervious surface area) in square meters (from UrbanWatch data).
+- connectivity: area-weighted distance from all other parks within a 2km surrounding. High value == more connected park.
+- tree_percent_cover: proportion of park with tree canopy cover (from UrbanWatch data). 
+- grass_shrub__percent_cover: proportion of park with vegetation <3m height (from UrbanWatch data).
+- n_plant_genera: number of plant genera detected in the park via iNaturalist (obtained from GBIF).
+- log_n_plant_genera: calculated as log(n_plant_genera + 1).
+- land_cover_type_diversity: number of unique landcover types surrounding a park (from NCLD data).
+- shannon_diversity: shannon diversity index of diversity of land cover types surrounding a park (from NCLD data).
+- proportion_landscape_vegetation: percentage of 2km area around a park with vegetetated land cover classes (herb, shrub or tree) (from NCLD data).
+- proportion_landscape_open_developed: percentage of 2km area around a park classified as "open developed area" (from NCLD data).
+- proportion_landscape_medhigh_developed: percentage of 2km area around a park classified as "medium developed area" or "high developed area" (from NCLD data).
+- proportion_landscape_woody: percentage of 2km area around a park classified as shrub or tree cover (from NCLD data).
+- proportion_landscape_grassherb: percentage of 2km area around a park classified as grass or herbaceous vegetation cover (from NCLD data).
