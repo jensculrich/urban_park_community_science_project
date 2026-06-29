@@ -4,6 +4,7 @@
 .Ruserdata
 data/buffer_around_parks/
 data/city_shapefiles/
+data/data_summaries/
 data/detections_by_city/
 data/lepidoptera_trait_data/
 /data/parkserve_national_shapefiles/
