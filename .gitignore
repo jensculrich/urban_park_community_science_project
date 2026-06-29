@@ -6,7 +6,9 @@ data/buffer_around_parks/
 data/city_shapefiles/
 data/data_summaries/
 data/detections_by_city/
-data/lepidoptera_trait_data/
+data/lepidoptera_trait_data/invasive_species/
+data/lepidoptera_trait_data/leptraits/
+data/lepidoptera_trait_data/migratory_status/
 /data/parkserve_national_shapefiles/
 .RDataTmp*
 
