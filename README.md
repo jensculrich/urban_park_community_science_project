@@ -92,12 +92,18 @@ The major intermediate products generated per city are:
 3. A dataframe of iNaturalist flowering plant occurrence records joined to park boundaries, with park-level attributes (park size and land cover type areas) appended per record.
 4. A dataframe of park-level isolation values.
 
+The derived park site covariate data for all parks in all cities are located in a table here: 
+"./data/derived_park_site_covariate_data/derived_park_site_covariate_data.csv" 
+
 Across all cities, we also generate:
 
 5. A dataframe of city-level IIC connectivity values.
 6. A dataframe of city-level mean isolation values.
 7. A dataframe of city-level land cover composition, including total area per cover type and land cover diversity (number of distinct cover types).
 8. A dataframe of city-level mean and median park sizes.
+
+The derived city covariate data are located in a table here: 
+"./data/city_wide_data/derived_city_wide_data.csv"
 
 ## Lepidoptera Trait Data
 Our analyses incorporated some butterfly species traits as predictors of occupancy and detection.
@@ -108,7 +114,10 @@ For these data we searched the number of research grade versus total detections 
 for each butterfly genus included in the study.
 
 The Species list for traits file ("./lepidoptera_trait_data/SpeciesListForTraits.csv") was obtained from
-Goldstein et al., 2024. We added any species missing for the trait data using the same methods provided.
+Goldstein et al., 2024. We added any species missing for the trait data using the same methods provided. 
+This is the file used to access species trait data for all traits other than ease of ID for the analyses.
 
-The migratory status file ("./migratory_status/migratory.csv") contains info on whether species
-are migratory or not. This was obtained directly from Chowhury et al., 2021.
+To add data for species/traits missing from Goldstein et al., 2024, we used the following resources:
+The migratory status was obtained from Chowhury et al., 2021.
+Wingspan information was taken from the Leptraits V1.0 database.
+Feature Diversity was manually parsed from ButterfliesandMothsofNorthAmerica.com (BAMONA website)
