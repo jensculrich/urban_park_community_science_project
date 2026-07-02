@@ -5,11 +5,11 @@ library(bayesplot)
 # get prepared urban park site data
 my_data <- readRDS( paste0("./part2_local_landscape_predictors_of_occupancy/run_model/prepped_data/prepped_data.rds"))
 site_data <- my_data$site_data %>%
-  select(city, log_total_green_space_area, log_total_green_space_area_scaled_across_all_cities,
-         log_n_plant_genera, plant_genera_density_scaled_across_all_cities) %>%
+  select(city, log_total_green_space_area, log_total_green_space_area_scaled,
+         log_n_plant_genera, plant_genera_density_scaled) %>%
   mutate(city = as.factor(city)) %>%
   mutate(n_plant_genera = as.integer(exp(log_n_plant_genera))) %>%
-  rename("park_size" = "log_total_green_space_area_scaled_across_all_cities")
+  rename("park_size" = "log_total_green_space_area_scaled")
 
 # raw data
 plot(site_data$n_plant_genera ~ site_data$park_size)

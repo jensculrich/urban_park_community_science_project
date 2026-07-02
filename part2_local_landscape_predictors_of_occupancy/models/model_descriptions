@@ -9,3 +9,6 @@ m2.2: This model removes plant diversity. This will allow us to determine the to
 causal effects of park size and tree cover on occurrence. If the effect size does not
 change much, then we can presume that most of the effects of park size and tree cover
 are direct rather than acting through increasing plant diversity.
+
+model also removes landscape herbaceous and landscape woody cover. This will allow us to determine the total
+causal effects of park connectivity on occurrence, following the same logic above. 
