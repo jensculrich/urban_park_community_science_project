@@ -9,7 +9,8 @@ data/detections_by_city/
 data/lepidoptera_trait_data/invasive_species/
 data/lepidoptera_trait_data/leptraits/
 data/lepidoptera_trait_data/migratory_status/
-/data/parkserve_national_shapefiles/
+data/parkserve_national_shapefiles/
+visualize_data/
 .RDataTmp*
 
 .positai
