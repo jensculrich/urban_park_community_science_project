@@ -1,6 +1,4 @@
 library(tidyverse)
-library(rstanarm)
-library(bayesplot)
 
 center_scale <- function(x) {
   (x - mean(x)) / sd(x)
