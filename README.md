@@ -105,8 +105,8 @@ Across all cities, we also generate:
 The derived city covariate data are located in a table here: 
 "./data/city_wide_data/derived_city_wide_data.csv"
 
-The butterfly detection data referenced in the manuscript can be accessed here: [link](https://www.gbif.org/occurrence/download/0018787-250426092105405).
-The flowering plant detection data referenced in the manuscript can be accessed here: [link](https://www.gbif.org/occurrence/download/0009190-250325103851331).
+The raw butterfly detection data can be accessed here: [link](https://www.gbif.org/occurrence/download/0018787-250426092105405).
+The raw flowering plant detection data can be accessed here: [link](https://www.gbif.org/occurrence/download/0009190-250325103851331).
 
 ## Lepidoptera Trait Data
 Our analyses incorporated some butterfly species traits as predictors of occupancy and detection.
