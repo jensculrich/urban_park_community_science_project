@@ -71,9 +71,10 @@ city_data <- city_data %>%
 city_data <- city_data %>%
   cbind(., city_factor = seq(1:n_cities)) %>% 
   mutate(log_IIC = log(IIC), 
+         mean_connectivity = mean_isolation*(-1),
          log_park_size_scaled = center_scale(median_log_park_size),
          log_IIC_scaled = center_scale(log_IIC),
-         isolation_scaled = center_scale(mean_isolation),
+         connectivity_scaled = center_scale(mean_connectivity),
          percent_tree_scaled = center_scale(percent_tree),
          percent_grassshrub_scaled = center_scale(percent_grass_shrub),
          log_total_area = log(total_area_sqm),
